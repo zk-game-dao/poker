@@ -262,7 +262,7 @@ fn test_rake_different_currencies() {
     let rake_btc = Rake::new(
         small_blind_btc,
         &game_type,
-        &Currency::CKETHToken(CKTokenSymbol::BTC),
+        &Currency::BTC,
     )
     .expect("BTC rake should be created");
     assert_eq!(rake_btc.percentage_millipercent, 4500); // 4.5%
@@ -306,7 +306,7 @@ fn test_rake_caps_different_currencies() {
     let rake_btc = Rake::new(
         small_blind_btc,
         &game_type,
-        &Currency::CKETHToken(CKTokenSymbol::BTC),
+        &Currency::BTC,
     )
     .expect("BTC rake should be created");
     let pot_btc = 10_000_000_000; // 100.0 BTC
@@ -344,7 +344,7 @@ fn test_rake_decimal_precision() {
     let _rake_btc = Rake::new(
         small_blind_btc,
         &game_type,
-        &Currency::CKETHToken(CKTokenSymbol::BTC),
+        &Currency::BTC,
     )
     .expect("BTC rake should be created");
 }
@@ -379,7 +379,7 @@ fn test_rake_edge_cases_different_currencies() {
     let rake_btc = Rake::new(
         small_blind_btc,
         &game_type,
-        &Currency::CKETHToken(CKTokenSymbol::BTC),
+        &Currency::BTC,
     )
     .expect("BTC rake should be created");
     assert_eq!(rake_btc.percentage_millipercent, 4000); // 4.0%
