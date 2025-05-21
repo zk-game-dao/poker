@@ -9,6 +9,7 @@ env:
 
 jobs:
   deploy:
+    if: false
     name: Deploy to Mainnet
     runs-on: ubuntu-latest
     steps:
@@ -24,11 +25,6 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_CURRENCY_DEPLOY_KEY }}
-
       - name: Install dfx
         uses: dfinity/setup-dfx@main
         with: 
@@ -43,12 +39,6 @@ jobs:
 
       - name: Install Rust and wasm32 target
         run: rustup target add wasm32-unknown-unknown
-
-      - uses: healthplace/npmrc-registry-login-action@v1.0
-        with:
-          scope: '@zk-game-dao'
-          registry: 'https://npm.pkg.github.com'
-          auth-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
         run: npm ci
