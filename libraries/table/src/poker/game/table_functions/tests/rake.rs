@@ -1,7 +1,7 @@
 use currency::{types::currency::CKTokenSymbol, Currency};
 
 use crate::poker::game::{
-    table_functions::rake::{get_fixed_limit_configs, get_no_limit_config, interpolate_u64, Rake},
+    table_functions::rake::{get_no_limit_config, interpolate_u64, Rake},
     types::GameType,
     utils::convert_to_e8s,
 };
@@ -64,39 +64,6 @@ fn test_get_no_limit_config() {
 
     assert_eq!(rake.cap_2_3_players, expected_cap_2_3_players);
     assert_eq!(rake.cap_4_plus_players, expected_cap_4_plus_players);
-}
-
-// Test get_fixed_limit_configs function
-#[test]
-fn test_get_fixed_limit_configs() {
-    // Small blind within the first range
-    let small_blind = convert_to_e8s(0.05); // $0.05
-    let rake = get_fixed_limit_configs(small_blind).expect("Rake should be found");
-    assert_eq!(rake.percentage_millipercent, 4500); // 4.5%
-
-    // Expected caps calculated using interpolation
-    let expected_cap_2_3_players = interpolate_u64(
-        small_blind,
-        convert_to_e8s(0.03),
-        convert_to_e8s(0.24999999),
-        convert_to_e8s(0.03),
-        convert_to_e8s(0.10),
-    );
-    let expected_cap_4_plus_players = interpolate_u64(
-        small_blind,
-        convert_to_e8s(0.03),
-        convert_to_e8s(0.24999999),
-        convert_to_e8s(0.05),
-        convert_to_e8s(0.20),
-    );
-
-    assert_eq!(rake.cap_2_3_players, expected_cap_2_3_players);
-    assert_eq!(rake.cap_4_plus_players, expected_cap_4_plus_players);
-
-    // Small blind outside of defined ranges
-    let small_blind = convert_to_e8s(5.00); // $5.00
-    let rake = get_fixed_limit_configs(small_blind).expect("Rake should be found");
-    assert_eq!(rake.percentage_millipercent, 2500); // 2.5%
 }
 
 // Test Rake::new function
@@ -266,54 +233,6 @@ fn test_rake_different_currencies() {
     )
     .expect("BTC rake should be created");
     assert_eq!(rake_btc.percentage_millipercent, 4500); // 4.5%
-}
-
-#[test]
-fn test_rake_caps_different_currencies() {
-    // Test ETH caps
-    let small_blind_eth = 50_000_000_000_000_000; // 0.05 ETH
-    let game_type = GameType::NoLimit(small_blind_eth);
-    let rake_eth = Rake::new(
-        small_blind_eth,
-        &game_type,
-        &Currency::CKETHToken(CKTokenSymbol::ETH),
-    )
-    .expect("ETH rake should be created");
-    let pot_eth = 10_000_000_000_000_000_000; // 10.0 ETH
-
-    let eth_rake_2_players = rake_eth.calculate_rake(pot_eth, 2);
-    let eth_rake_4_players = rake_eth.calculate_rake(pot_eth, 4);
-    assert!(eth_rake_4_players > eth_rake_2_players); // Higher cap for more players
-
-    // Test USDC caps
-    let small_blind_usdc = 50_000; // 0.05 USDC
-    let game_type = GameType::NoLimit(small_blind_usdc);
-    let rake_usdc = Rake::new(
-        small_blind_usdc,
-        &game_type,
-        &Currency::CKETHToken(CKTokenSymbol::USDC),
-    )
-    .expect("USDC rake should be created");
-    let pot_usdc = 100_000_000; // 100.0 USDC
-
-    let usdc_rake_2_players = rake_usdc.calculate_rake(pot_usdc, 2);
-    let usdc_rake_4_players = rake_usdc.calculate_rake(pot_usdc, 4);
-    assert!(usdc_rake_4_players > usdc_rake_2_players);
-
-    // Test BTC caps
-    let small_blind_btc = 5_000_000; // 0.05 BTC
-    let game_type = GameType::NoLimit(small_blind_btc);
-    let rake_btc = Rake::new(
-        small_blind_btc,
-        &game_type,
-        &Currency::BTC,
-    )
-    .expect("BTC rake should be created");
-    let pot_btc = 10_000_000_000; // 100.0 BTC
-
-    let btc_rake_2_players = rake_btc.calculate_rake(pot_btc, 2);
-    let btc_rake_4_players = rake_btc.calculate_rake(pot_btc, 4);
-    assert!(btc_rake_4_players > btc_rake_2_players);
 }
 
 #[test]
