@@ -190,9 +190,7 @@ async fn synchronize_tables(
     }
 
     if players_on_tables.is_empty() {
-        return Err(TournamentError::Other(
-            "No players found on tables".to_string(),
-        ));
+        return Ok(cached_tables);
     }
 
     let unassigned_players: Vec<Principal> = tournament
