@@ -1,0 +1,24 @@
+[package]
+name = "cycle_dispenser"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+candid = "0.10"
+errors = { path = "../../libraries/errors" }
+ic-cdk = "0.12"
+thiserror = "1.0.57"
+serde = { version = "1.0.197", features = ["derive"] }
+lazy_static = "1.4.0"
+sha2 = "0.10.8"
+canistergeek_ic_rust = "0.4.3"
+canister_functions = { path = "../../libraries/canister_functions" }
+
+[features]
+default = []
+test_default = []

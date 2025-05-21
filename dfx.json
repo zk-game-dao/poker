@@ -1,0 +1,223 @@
+{
+  "dfx": "0.24.2",
+  "canisters": {
+    "ckbtc_ledger": {
+      "type": "custom",
+      "candid": "target/ic/ckbtc_ledger.did",
+      "wasm": "target/ic/ckbtc_ledger.wasm",
+      "init_arg_file": "src/candid/ckbtc_ledger_init.did",
+      "specified_id": "mxzaz-hqaaa-aaaar-qaada-cai",
+      "remote": {
+        "id": {
+          "ic": "mxzaz-hqaaa-aaaar-qaada-cai"
+        }
+      }
+    },
+    "ic_siwb_provider": {
+      "init_arg_file": "src/candid/ic_siwb_provider_init.did",
+      "candid": "target/ic/ic_siwb_provider.did",
+      "wasm": "target/ic/ic_siwb_provider.wasm",
+      "type": "custom",
+      "specified_id": "j2let-saaaa-aaaam-qds2q-cai",
+      "remote": {
+        "id": {
+          "ic": "j2let-saaaa-aaaam-qds2q-cai"
+        }
+      }
+    },
+    "log_store": {
+      "candid": "src/log_store/log_store.did",
+      "package": "log_store",
+      "type": "rust"
+    },
+    "cycle_dispenser": {
+      "candid": "src/cycle_dispenser/cycle_dispenser.did",
+      "package": "cycle_dispenser",
+      "type": "rust"
+    },
+    "table_canister": {
+      "candid": "src/table_canister/table_canister.did",
+      "package": "table_canister",
+      "type": "rust"
+    },
+    "table_index": {
+      "dependencies": [
+        "table_canister"
+      ],
+      "candid": "src/table_index/table_index.did",
+      "package": "table_index",
+      "type": "rust"
+    },
+    "tournament_canister": {
+      "candid": "src/tournament_canister/tournament_canister.did",
+      "package": "tournament_canister",
+      "dependencies": [
+        "table_canister"
+      ],
+      "type": "rust"
+    },
+    "tournament_index": {
+      "dependencies": [
+        "tournament_canister"
+      ],
+      "candid": "src/tournament_index/tournament_index.did",
+      "package": "tournament_index",
+      "type": "rust"
+    },
+    "users_canister": {
+      "candid": "src/users_canister/users_canister.did",
+      "package": "users_canister",
+      "type": "rust"
+    },
+    "users_index": {
+      "dependencies": [
+        "users_canister"
+      ],
+      "candid": "src/users_index/users_index.did",
+      "package": "users_index",
+      "type": "rust"
+    },
+    "app_frontend": {
+      "frontend": {
+        "entrypoint": "src/app_frontend/dist/index.html"
+      },
+      "dependencies": [
+        "table_index",
+        "users_index",
+        "internet-identity"
+      ],
+      "source": [
+        "src/app_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "src/app_frontend"
+    },
+    "btc_frontend": {
+      "frontend": {
+        "entrypoint": "src/btc_frontend/dist/index.html"
+      },
+      "dependencies": [
+        "table_index",
+        "users_index",
+        "internet-identity",
+        "ic_siwb_provider",
+        "ckbtc_ledger"
+      ],
+      "source": [
+        "src/btc_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "src/btc_frontend"
+    },
+    "internet-identity": {
+      "type": "pull",
+      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+    },
+    "nns-cycles-minting": {
+      "build": "",
+      "candid": "candid/nns-cycles-minting.did",
+      "remote": {
+        "id": {
+          "ic": "rkp4c-7iaaa-aaaaa-aaaca-cai",
+          "ic_test": "rkp4c-7iaaa-aaaaa-aaaca-cai",
+          "local": "rkp4c-7iaaa-aaaaa-aaaca-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    },
+    "nns-genesis-token": {
+      "build": "",
+      "candid": "candid/nns-genesis-token.did",
+      "remote": {
+        "id": {
+          "ic": "renrk-eyaaa-aaaaa-aaada-cai",
+          "ic_test": "renrk-eyaaa-aaaaa-aaada-cai",
+          "local": "renrk-eyaaa-aaaaa-aaada-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    },
+    "nns-governance": {
+      "build": "",
+      "candid": "candid/nns-governance.did",
+      "remote": {
+        "id": {
+          "ic": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+          "local": "rrkah-fqaaa-aaaaa-aaaaq-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    },
+    "nns-ledger": {
+      "build": "",
+      "candid": "candid/nns-ledger.did",
+      "remote": {
+        "id": {
+          "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai",
+          "local": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    },
+    "nns-lifeline": {
+      "build": "",
+      "candid": "candid/nns-lifeline.did",
+      "remote": {
+        "id": {
+          "ic": "rno2w-sqaaa-aaaaa-aaacq-cai",
+          "local": "rno2w-sqaaa-aaaaa-aaacq-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    },
+    "nns-registry": {
+      "build": "",
+      "candid": "candid/nns-registry.did",
+      "remote": {
+        "id": {
+          "ic": "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+          "local": "rwlgt-iiaaa-aaaaa-aaaaa-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    },
+    "nns-root": {
+      "build": "",
+      "candid": "candid/nns-root.did",
+      "remote": {
+        "id": {
+          "ic": "r7inp-6aaaa-aaaaa-aaabq-cai",
+          "local": "r7inp-6aaaa-aaaaa-aaabq-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    },
+    "nns-sns-wasm": {
+      "build": "",
+      "candid": "candid/nns-sns-wasm.did",
+      "remote": {
+        "id": {
+          "ic": "qaa6y-5yaaa-aaaaa-aaafa-cai",
+          "local": "qaa6y-5yaaa-aaaaa-aaafa-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1,
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    }
+  }
+}

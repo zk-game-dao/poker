@@ -1,0 +1,14 @@
+[package]
+name = "tournaments"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+candid = "0.10"
+canister_functions = { path = "../canister_functions" }
+errors = { path = "../errors" }
+ic-cdk = "0.12"
+ic-stable-structures = "0.6.5"
+serde = { version = "1.0.197", features = ["derive"] }
+table = { path = "../table" }
+thiserror = "1.0.63"

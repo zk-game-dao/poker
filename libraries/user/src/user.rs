@@ -1,0 +1,387 @@
+use candid::{CandidType, Decode, Encode, Principal};
+use serde::{Deserialize, Serialize};
+
+use ic_stable_structures::{storable::Bound, Storable};
+use std::borrow::Cow;
+
+const MAX_VALUE_SIZE: u32 = 200_000_000;
+pub const REFERRAL_PERIOD: u64 = 30 * 24 * 60 * 60 * 1_000_000_000;
+
+
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub struct Transaction {
+    pub transaction_id: u64,
+    pub amount: u64,
+    pub transaction_type: TransactionType,
+    pub timestamp: u64,
+    pub currency: Option<String>,
+}
+
+impl Transaction {
+    pub fn new(
+        transaction_id: u64,
+        amount: u64,
+        transaction_type: TransactionType,
+        timestamp: u64,
+        currency: Option<String>,
+    ) -> Transaction {
+        Transaction {
+            transaction_id,
+            amount,
+            transaction_type,
+            timestamp,
+            currency,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub enum TransactionType {
+    Deposit,
+    Withdraw,
+    TableDeposit {
+        table_id: Principal,
+    },
+    TableWithdraw {
+        table_id: Principal,
+    },
+    Transfer {
+        recipient: Principal,
+        transfer_type: TransferType,
+    },
+    Receive {
+        sender: Principal,
+        transfer_type: TransferType,
+    },
+}
+
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub enum TransferType {
+    CardShowRequest,
+}
+
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub struct EmojiUserAvatar {
+    pub emoji: u64,
+    pub style: u64,
+}
+
+/// The UserAvatar enum is used to store the user's avatar.
+///
+/// Right now, the only supported avatar type is an emoji.
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub enum UserAvatar {
+    Emoji(EmojiUserAvatar),
+}
+
+/// The User struct is stored in memory on the user canister.
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub struct User {
+    pub principal_id: Principal,
+    pub users_canister_id: Principal,
+    pub user_name: String,
+    pub balance: u64,
+    pub address: Option<String>,
+    pub avatar: Option<UserAvatar>,
+    /// The tables that the user is currently active in.
+    pub active_tables: Vec<Principal>,
+    pub enlarge_text: Option<bool>,
+    pub volume_level: Option<u16>,
+    pub transaction_history: Option<Vec<Transaction>>,
+    pub eth_wallet_address: Option<String>,
+    experience_points: Option<u64>,
+    pub is_verified: Option<bool>,
+    experience_points_pure_poker: Option<u64>,
+
+    /// Referral system fields
+    pub referrer: Option<Principal>,
+    pub referred_users: Option<Vec<Principal>>,
+    pub referral_start_date: Option<u64>, // Timestamp when user was referred
+}
+
+impl User {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        principal_id: Principal,
+        users_canister_id: Principal,
+        user_name: String,
+        balance: u64,
+        address: Option<String>,
+        avatar: Option<UserAvatar>,
+        eth_wallet_address: Option<String>,
+        referrer: Option<Principal>,
+        referral_start_date: Option<u64>,
+    ) -> User {
+        User {
+            user_name,
+            users_canister_id,
+            balance,
+            address,
+            principal_id,
+            avatar,
+            active_tables: Vec::new(),
+            enlarge_text: None,
+            volume_level: None,
+            transaction_history: None,
+            experience_points: Some(0),
+            eth_wallet_address,
+            is_verified: None,
+            experience_points_pure_poker: Some(0),
+            referrer,
+            referred_users: Some(Vec::new()),
+            referral_start_date,
+        }
+    }
+
+    /// Set the user name of the user.
+    ///
+    /// # Parameters
+    ///
+    /// - `user_name` - The user name to set.
+    pub fn set_user_name(&mut self, user_name: String) {
+        self.user_name = user_name;
+    }
+
+    /// Set the avatar of the user.
+    ///
+    /// # Parameters
+    ///
+    /// - `avatar` - The avatar to set.
+    pub fn set_avatar(&mut self, avatar: Option<UserAvatar>) {
+        self.avatar = avatar;
+    }
+
+    /// Set the balance of the user.
+    ///
+    /// # Parameters
+    ///
+    /// - `balance` - The balance to set.
+    pub fn set_balance(&mut self, balance: u64) {
+        self.balance = balance;
+    }
+
+    /// Set the address of the user.
+    ///
+    /// # Parameters
+    ///
+    /// - `address` - The address to set.
+    pub fn set_address(&mut self, address: Option<String>) {
+        self.address = address;
+    }
+
+    /// Set the principal id of the user's internet identity.
+    ///
+    /// # Parameters
+    ///
+    /// - `principal_id` - The principal id to set.
+    pub fn set_principal_id(&mut self, principal_id: Principal) {
+        self.principal_id = principal_id;
+    }
+
+    /// Deposit `amount` into the user's balance.
+    ///
+    /// # Parameters
+    ///
+    /// - `amount` - The amount to deposit.
+    pub fn deposit(&mut self, amount: u64) {
+        self.balance += amount;
+    }
+
+    /// Withdraw `amount` from the user's balance.
+    ///
+    /// # Parameters
+    ///
+    /// - `amount` - The amount to withdraw.
+    pub fn withdraw(&mut self, amount: u64) {
+        self.balance -= amount;
+    }
+
+    /// Add a transaction to the user's transaction history.
+    ///
+    /// # Parameters
+    ///
+    /// - `transaction` - The transaction to add.
+    pub fn add_transaction(
+        &mut self,
+        amount: u64,
+        transaction_type: TransactionType,
+        timestamp: Option<u64>,
+        currency: Option<String>,
+    ) {
+        let timestamp = timestamp.unwrap_or(ic_cdk::api::time());
+        if let Some(transaction_history) = &mut self.transaction_history {
+            let transaction = Transaction::new(
+                transaction_history.len() as u64,
+                amount,
+                transaction_type,
+                timestamp,
+                currency,
+            );
+            transaction_history.push(transaction);
+            purge_old_transactions(transaction_history);
+        } else {
+            let transaction =
+                Transaction::new(0_u64, amount, transaction_type, timestamp, currency);
+            self.transaction_history = Some(vec![transaction]);
+        }
+    }
+
+    /// Gets the user's level
+    ///
+    /// # Returns
+    ///
+    /// The user's level.
+    pub fn get_level(&self) -> f64 {
+        let experience_points = self.experience_points.unwrap_or(0);
+        if experience_points == 0 {
+            0.0
+        } else {
+            experience_points as f64 / 100.0
+        }
+    }
+
+    /// Gets the users experience points.
+    ///
+    /// # Returns
+    ///
+    /// The user's experience points.
+    pub fn get_experience_points(&self) -> u64 {
+        self.experience_points.unwrap_or(0)
+    }
+
+    /// Gets the users pure poker experience points.
+    ///
+    /// # Returns
+    ///
+    /// The user's pure poker experience points.
+    pub fn get_pure_poker_experience_points(&self) -> u64 {
+        self.experience_points_pure_poker.unwrap_or(0)
+    }
+
+    /// Clear the user's experience points.
+    pub fn clear_experience_points(&mut self) {
+        self.experience_points = Some(0);
+    }
+
+    /// Clear the user's pure poker experience points.
+    pub fn clear_pure_poker_experience_points(&mut self) {
+        self.experience_points_pure_poker = Some(0);
+    }
+
+    /// Add experience points to the user.
+    ///
+    /// # Parameters
+    ///
+    /// - `experience_points` - The experience points to add.
+    pub fn add_experience_points(&mut self, experience_points: u64) {
+        self.experience_points = Some(self.experience_points.unwrap_or(0) + experience_points);
+    }
+
+    /// Add btc experience points to the user.
+    ///
+    /// # Parameters
+    ///
+    /// - `experience_points` - The experience points to add.
+    pub fn add_pure_poker_experience_points(&mut self, experience_points: u64) {
+        self.experience_points_pure_poker =
+            Some(self.experience_points_pure_poker.unwrap_or(0) + experience_points);
+    }
+
+    pub fn get_referral_tier(&self) -> u8 {
+        let referral_count = self.referred_users.as_ref().unwrap_or(&Vec::new()).len();
+        match referral_count {
+            0..=3 => 1,
+            4..=9 => 2,
+            10..=19 => 3,
+            20..=49 => 4,
+            50..=99 => 5,
+            _ => 6
+        }
+    }
+    
+    pub fn get_referral_rake_percentage(&self) -> u8 {
+        match self.get_referral_tier() {
+            1 => 10,
+            2 => 12,
+            3 => 15,
+            4 => 18,
+            5 => 20,
+            6 => 25,
+            _ => 10 // Default to 10% for safety
+        }
+    }
+    
+    pub fn add_referred_user(&mut self, user_id: Principal) {
+        let referred_users = self.referred_users.get_or_insert_with(Vec::new);
+        if !referred_users.contains(&user_id) {
+            referred_users.push(user_id);
+        }
+    }
+    
+    pub fn is_within_referral_period(&self) -> bool {
+        if let Some(start_date) = self.referral_start_date {
+            let now = ic_cdk::api::time();
+            let one_month_nanos = REFERRAL_PERIOD;
+            now - start_date <= one_month_nanos
+        } else {
+            false
+        }
+    }
+}
+
+/// Purges all transactions older than 6 months from the user's transaction history.
+fn purge_old_transactions(transaction_history: &mut Vec<Transaction>) {
+    let six_months_ago = ic_cdk::api::time() - 6 * 30 * 24 * 60 * 60 * 1_000_000_000;
+    transaction_history.retain(|transaction| transaction.timestamp >= six_months_ago);
+}
+
+// For a type to be used in a `StableBTreeMap`, it needs to implement the `Storable`
+// trait, which specifies how the type can be serialized/deserialized.
+//
+// In this example, we're using candid to serialize/deserialize the struct, but you
+// can use anything as long as you're maintaining backward-compatibility. The
+// backward-compatibility allows you to change your struct over time (e.g. adding
+// new fields).
+//
+// The `Storable` trait is already implemented for several common types (e.g. u64),
+// so you can use those directly without implementing the `Storable` trait for them.
+impl Storable for User {
+    /// Serializes the struct into a byte array.
+    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap_or_else(|e| {
+            ic_cdk::println!("Serialization error: {:?}", e);
+            vec![]
+        }))
+    }
+
+    /// Deserializes the struct from a byte array.
+    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap_or_else(|e| {
+            ic_cdk::println!("Deserialization error: {:?}", e);
+            User {
+                user_name: String::new(),
+                balance: 0,
+                address: None,
+                principal_id: Principal::anonymous(),
+                users_canister_id: Principal::anonymous(),
+                avatar: None,
+                active_tables: Vec::new(),
+                enlarge_text: None,
+                volume_level: None,
+                transaction_history: None,
+                experience_points: Some(0),
+                eth_wallet_address: None,
+                is_verified: None,
+                experience_points_pure_poker: Some(0),
+                referrer: None,
+                referred_users: Some(Vec::new()),
+                referral_start_date: None,
+            }
+        })
+    }
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: MAX_VALUE_SIZE,
+        is_fixed_size: false,
+    };
+}

@@ -1,0 +1,1 @@
+export const DefaultSoundVolume = 0.5;

@@ -1,0 +1,231 @@
+type CanisterLogFeature = variant {
+  filterMessageByContains;
+  filterMessageByRegex;
+};
+type CanisterLogMessages = record {
+  data : vec LogMessageData;
+  lastAnalyzedMessageTimeNanos : opt nat64;
+};
+type CanisterLogMessagesInfo = record {
+  features : vec opt CanisterLogFeature;
+  lastTimeNanos : opt nat64;
+  count : nat32;
+  firstTimeNanos : opt nat64;
+};
+type CanisterLogRequest = variant {
+  getMessagesInfo;
+  getMessages : GetLogMessagesParameters;
+  getLatestMessages : GetLatestLogMessagesParameters;
+};
+type CanisterLogResponse = variant {
+  messagesInfo : CanisterLogMessagesInfo;
+  messages : CanisterLogMessages;
+};
+type CanisterManagementError = variant {
+  CreateCanisterError : text;
+  InsufficientCycles;
+  ManagementCanisterError : text;
+  LedgerError : text;
+  StopCanisterError : text;
+  Transfer : text;
+  QueryError : text;
+  DeleteCanisterError : text;
+  InstallCodeError : text;
+};
+type CanisterMetrics = record { data : CanisterMetricsData };
+type CanisterMetricsData = variant {
+  hourly : vec HourlyMetricsData;
+  daily : vec DailyMetricsData;
+};
+type CollectMetricsRequestType = variant { force; normal };
+type DailyMetricsData = record {
+  updateCalls : nat64;
+  canisterHeapMemorySize : NumericEntity;
+  canisterCycles : NumericEntity;
+  canisterMemorySize : NumericEntity;
+  timeMillis : int;
+};
+type EmojiUserAvatar = record { emoji : nat64; style : nat64 };
+type GetInformationRequest = record {
+  status : opt StatusRequest;
+  metrics : opt MetricsRequest;
+  logs : opt CanisterLogRequest;
+  version : bool;
+};
+type GetInformationResponse = record {
+  status : opt StatusResponse;
+  metrics : opt MetricsResponse;
+  logs : opt CanisterLogResponse;
+  version : opt nat;
+};
+type GetLatestLogMessagesParameters = record {
+  upToTimeNanos : opt nat64;
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+};
+type GetLogMessagesFilter = record {
+  analyzeCount : nat32;
+  messageRegex : opt text;
+  messageContains : opt text;
+};
+type GetLogMessagesParameters = record {
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+  fromTimeNanos : opt nat64;
+};
+type GetMetricsParameters = record {
+  dateToMillis : nat;
+  granularity : MetricsGranularity;
+  dateFromMillis : nat;
+};
+type HourlyMetricsData = record {
+  updateCalls : vec nat64;
+  canisterHeapMemorySize : vec nat64;
+  canisterCycles : vec nat64;
+  canisterMemorySize : vec nat64;
+  timeMillis : int;
+};
+type LogMessageData = record { timeNanos : nat64; message : text };
+type MetricsGranularity = variant { hourly; daily };
+type MetricsRequest = record { parameters : GetMetricsParameters };
+type MetricsResponse = record { metrics : opt CanisterMetrics };
+type NumericEntity = record {
+  avg : nat64;
+  max : nat64;
+  min : nat64;
+  first : nat64;
+  last : nat64;
+};
+type Result = variant { Ok : User; Err : UserError };
+type Result_1 = variant { Ok : opt text; Err : UserError };
+type Result_10 = variant {
+  Ok : vec record { principal; CanisterManagementError };
+  Err : UserError;
+};
+type Result_2 = variant {
+  Ok : vec record { principal; nat64 };
+  Err : UserError;
+};
+type Result_3 = variant { Ok : opt nat64; Err : UserError };
+type Result_4 = variant { Ok : nat64; Err : UserError };
+type Result_5 = variant { Ok : nat; Err : UserError };
+type Result_6 = variant { Ok : vec principal; Err : UserError };
+type Result_7 = variant { Ok : vec record { principal; nat }; Err : UserError };
+type Result_8 = variant { Ok : principal; Err : UserError };
+type Result_9 = variant { Ok; Err : UserError };
+type StatusRequest = record {
+  memory_size : bool;
+  cycles : bool;
+  heap_memory_size : bool;
+};
+type StatusResponse = record {
+  memory_size : opt nat64;
+  cycles : opt nat64;
+  heap_memory_size : opt nat64;
+};
+type Transaction = record {
+  transaction_id : nat64;
+  transaction_type : TransactionType;
+  currency : opt text;
+  timestamp : nat64;
+  amount : nat64;
+};
+type TransactionType = variant {
+  Withdraw;
+  Deposit;
+  TableWithdraw : record { table_id : principal };
+  Transfer : record { recipient : principal; transfer_type : TransferType };
+  TableDeposit : record { table_id : principal };
+  Receive : record { sender : principal; transfer_type : TransferType };
+};
+type TransferType = variant { CardShowRequest };
+type UpdateInformationRequest = record {
+  metrics : opt CollectMetricsRequestType;
+};
+type User = record {
+  experience_points_pure_poker : opt nat64;
+  experience_points : opt nat64;
+  user_name : text;
+  referrer : opt principal;
+  eth_wallet_address : opt text;
+  balance : nat64;
+  referred_users : opt vec principal;
+  is_verified : opt bool;
+  address : opt text;
+  transaction_history : opt vec Transaction;
+  principal_id : principal;
+  referral_start_date : opt nat64;
+  active_tables : vec principal;
+  users_canister_id : principal;
+  volume_level : opt nat16;
+  enlarge_text : opt bool;
+  avatar : opt UserAvatar;
+};
+type UserAvatar = variant { Emoji : EmojiUserAvatar };
+type UserError = variant {
+  MinimumVerificationDateMismatch;
+  UserAlreadyExists;
+  StateNotInitialized;
+  AuthorizationError;
+  PrincipalError : text;
+  BlockQueryFailed : text;
+  LockError;
+  InvalidTransactionDetails;
+  ManagementCanisterError : CanisterManagementError;
+  LedgerError : text;
+  CanisterCallFailed : text;
+  InvalidCredentialType : text;
+  BlockNotFound;
+  DuplicateTransaction;
+  InvalidRequest : text;
+  InvalidTransactionType;
+  QueryError : text;
+  InvalidIssuer;
+  UpgradeError : text;
+  SerializationError : text;
+  UserNotFound;
+  InsufficientFunds;
+  InvalidCredentialStructure;
+};
+service : () -> {
+  create_user : (text, opt text, principal, opt UserAvatar, opt principal) -> (
+      Result,
+    );
+  deposit : (principal, nat64, nat64) -> (Result);
+  getCanistergeekInformation : (GetInformationRequest) -> (
+      GetInformationResponse,
+    ) query;
+  get_account_number : () -> (Result_1) query;
+  get_cycles : () -> (text) query;
+  get_experience_points_leaderboard : (nat64, nat64) -> (Result_2);
+  get_experience_points_position : (principal) -> (Result_3);
+  get_leaderboard_length : () -> (Result_4) query;
+  get_number_of_registered_users : () -> (Result_4) query;
+  get_pure_poker_experience_points : (nat64, nat64) -> (Result_2);
+  get_pure_poker_position : (principal) -> (Result_3);
+  get_stable_storage_stats : () -> (text) query;
+  get_user : (principal) -> (Result);
+  get_user_by_principal : (principal) -> (Result);
+  get_user_canister_cycles : (principal) -> (Result_5) query;
+  get_user_canisters : () -> (Result_6) query;
+  get_user_canisters_cycles : () -> (Result_7) query;
+  get_users_canister_principal_by_id : (principal) -> (Result_8);
+  monitor_and_top_up_user_canisters : () -> (Result_9);
+  ping : () -> (text) query;
+  request_cycles : () -> (Result_9);
+  support_us : (principal, nat64) -> (Result_9);
+  top_up_user_canister : (principal, nat) -> (Result_9);
+  transfer : (principal, principal, nat64) -> (Result_9);
+  updateCanistergeekInformation : (UpdateInformationRequest) -> ();
+  update_user : (
+      principal,
+      opt text,
+      opt nat64,
+      opt text,
+      principal,
+      opt text,
+      opt UserAvatar,
+    ) -> (Result);
+  upgrade_all_user_canisters : () -> (Result_10);
+  withdraw : (principal, principal, nat64) -> (Result);
+}

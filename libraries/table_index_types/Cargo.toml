@@ -1,0 +1,12 @@
+[package]
+name = "table_index_types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+candid = "0.10.10"
+canister_functions = { path = "../canister_functions" }
+serde = { version = "1.0.210", features = ["derive"] }
+table = { path = "../table" }
+thiserror = "1.0.63"
+

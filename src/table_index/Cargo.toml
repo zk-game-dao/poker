@@ -1,0 +1,34 @@
+[package]
+name = "table_index"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+authentication = { path = "../../libraries/authentication" }
+candid = "0.10"
+canister_functions = { path = "../../libraries/canister_functions" }
+currency = { git = "ssh://git@github.com/zk-game-dao/currency.git", branch = "main"  }
+errors = { path = "../../libraries/errors" }
+ic-cdk = "0.12"
+ic-cdk-timers = "0.6" # Feel free to remove this dependency if you don't need timers
+thiserror = "1.0.57"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+lazy_static = "1.4.0"
+serde_bytes = "0.11.14"
+sha2 = "0.10.8"
+canistergeek_ic_rust = "0.4.3"
+ic-ledger-types = "0.10.0"
+ic-stable-structures = "0.6.5"
+table = { path = "../../libraries/table" }
+table_index_types = { path = "../../libraries/table_index_types" }
+futures = "0.3.31"
+
+[features]
+default = []
+test_default = []

@@ -1,0 +1,81 @@
+name: Deploy to Fly.io
+
+on:
+  push:
+    branches:
+      - main
+      - development
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/development'
+    environment: Development
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Set Staging Environment Variables
+        run: |
+          # Combine all variables into a single command for flyctl secrets set
+          # Base secrets and vars
+          flyctl secrets set \
+            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+            TWITTER_CONSUMER_KEY="${{ secrets.TWITTER_CONSUMER_KEY }}" \
+            TWITTER_CONSUMER_SECRET="${{ secrets.TWITTER_CONSUMER_SECRET }}" \
+            TWITTER_ACCESS_TOKEN="${{ secrets.TWITTER_ACCESS_TOKEN }}" \
+            TWITTER_ACCESS_TOKEN_SECRET="${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}" \
+            DISCORD_WEBHOOK_URL="${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            TELEGRAM_CHANNEL_ID="${{ vars.TELEGRAM_CHANNEL_ID }}" \
+            WEBSERVER_CORS="${{ vars.WEBSERVER_CORS }}" \
+            IC_URL="${{ vars.IC_URL }}" \
+            -c fly-stage.toml --stage
+          # Append canister IDs dynamically
+          jq -r 'to_entries | map("CANISTER_ID_\(.key | gsub("[^a-zA-Z0-9]"; "_") | ascii_upcase)=\(.value.ic)") | join("\n")' test_canister_ids.json | while IFS='=' read -r key value; do
+            flyctl secrets set "$key=$value" -c fly-stage.toml --stage
+          done
+        shell: bash
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Deploy
+        run: |
+          flyctl deploy -c fly-stage.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Set Production Environment Variables
+        run: |
+          # Combine all variables into a single command for flyctl secrets set
+          # Base secrets and vars
+          flyctl secrets set \
+            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+            TWITTER_CONSUMER_KEY="${{ secrets.TWITTER_CONSUMER_KEY }}" \
+            TWITTER_CONSUMER_SECRET="${{ secrets.TWITTER_CONSUMER_SECRET }}" \
+            TWITTER_ACCESS_TOKEN="${{ secrets.TWITTER_ACCESS_TOKEN }}" \
+            TWITTER_ACCESS_TOKEN_SECRET="${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}" \
+            DISCORD_WEBHOOK_URL="${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            TELEGRAM_CHANNEL_ID="${{ vars.TELEGRAM_CHANNEL_ID }}" \
+            WEBSERVER_CORS="${{ vars.WEBSERVER_CORS }}" \
+            IC_URL="${{ vars.IC_URL }}" \
+            -c fly.toml
+          # Append canister IDs dynamically
+          jq -r 'to_entries | map("CANISTER_ID_\(.key | gsub("[^a-zA-Z0-9]"; "_") | ascii_upcase)=\(.value.ic)") | join("\n")' canister_ids.json | while IFS='=' read -r key value; do
+            flyctl secrets set "$key=$value" -c fly.toml
+          done
+        shell: bash
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Deploy
+        run: |
+          flyctl deploy -c fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

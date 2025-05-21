@@ -1,0 +1,544 @@
+type ActionLog = record {
+  user_principal : opt principal;
+  action_type : ActionType;
+  timestamp : nat64;
+};
+type ActionType = variant {
+  Bet : record { amount : nat64 };
+  Win : record { amount : nat64 };
+  Leave;
+  Stage : record { stage : DealStage };
+  Call;
+  Fold;
+  Join;
+  BigBlind;
+  PlayersHandsRankedMainPot : record {
+    hands : vec record { text; vec Card; nat64 };
+  };
+  Raise : record { amount : nat64 };
+  SidePotCreated;
+  Kicked : record { reason : text };
+  PlayersHandsRankedSidePot : record {
+    hands : vec record { text; vec Card; nat64 };
+  };
+  AllIn : record { amount : nat64 };
+  SmallBlind;
+  Check;
+};
+type AnteType = variant {
+  PercentageOfBigBlind : nat8;
+  None;
+  BigBlindAnte;
+  Fixed : nat64;
+};
+type BetType = variant {
+  Ante : nat64;
+  BigBlind;
+  SmallBlind;
+  Raised : nat64;
+  Called;
+};
+type CKTokenSymbol = variant { BTC; ETH; USDC; USDT };
+type CanisterLogFeature = variant {
+  filterMessageByContains;
+  filterMessageByRegex;
+};
+type CanisterLogMessages = record {
+  data : vec LogMessageData;
+  lastAnalyzedMessageTimeNanos : opt nat64;
+};
+type CanisterLogMessagesInfo = record {
+  features : vec opt CanisterLogFeature;
+  lastTimeNanos : opt nat64;
+  count : nat32;
+  firstTimeNanos : opt nat64;
+};
+type CanisterLogRequest = variant {
+  getMessagesInfo;
+  getMessages : GetLogMessagesParameters;
+  getLatestMessages : GetLatestLogMessagesParameters;
+};
+type CanisterLogResponse = variant {
+  messagesInfo : CanisterLogMessagesInfo;
+  messages : CanisterLogMessages;
+};
+type CanisterManagementError = variant {
+  CreateCanisterError : text;
+  InsufficientCycles;
+  ManagementCanisterError : text;
+  LedgerError : text;
+  StopCanisterError : text;
+  Transfer : text;
+  QueryError : text;
+  DeleteCanisterError : text;
+  InstallCodeError : text;
+};
+type CanisterMetrics = record { data : CanisterMetricsData };
+type CanisterMetricsData = variant {
+  hourly : vec HourlyMetricsData;
+  daily : vec DailyMetricsData;
+};
+type Card = record { value : Value; suit : Suit };
+type CardRequestData = record {
+  user_principal : principal;
+  show_cards : bool;
+  amount : nat64;
+};
+type ChatError = variant {
+  EditTimeExpired : nat64;
+  SenderMuted : principal;
+  LockError : text;
+  MessageNotFound : nat64;
+  DuplicateMessageId : nat64;
+  ChatHistoryFull;
+  Unauthorized : record { reason : text };
+  RateLimitExceeded;
+  InvalidRequest : record { reason : text };
+  UserNotInTable : principal;
+  InternalError : text;
+  MessageTooLong : record { max_size : nat64; current_size : nat64 };
+};
+type ChatMessage = record {
+  id : nat64;
+  content : text;
+  edited : bool;
+  recipient : opt principal;
+  edit_timestamp : opt nat64;
+  sender : principal;
+  timestamp : nat64;
+  sender_name : text;
+  message_type : ChatMessageType;
+};
+type ChatMessageType = variant { PrivateMessage; TableMessage };
+type CollectMetricsRequestType = variant { force; normal };
+type Currency = variant {
+  BTC;
+  ICP;
+  GenericICRC1 : Token;
+  CKETHToken : CKTokenSymbol;
+};
+type CurrencyError = variant {
+  WalletNotSet;
+  BlockQueryFailed : text;
+  InsufficientAllowance;
+  LockError;
+  NoDepositAddress;
+  InvalidTransactionDetails;
+  OperationNotSupported : text;
+  TransferFromFailed : text;
+  LedgerError : text;
+  CanisterCallFailed : text;
+  BlockNotFound;
+  DuplicateTransaction;
+  WithdrawalFailed : text;
+  InvalidTransactionType;
+  QueryError : text;
+  NoTransactionSignatureProvided;
+  TransactionNotFound;
+  GetBlockError : text;
+  SerializationError : text;
+  AllowanceCheckFailed : text;
+  InsufficientFunds;
+  NoBlockNumberProvided;
+};
+type CurrencyType = variant { Fake; Real : Currency };
+type DailyMetricsData = record {
+  updateCalls : nat64;
+  canisterHeapMemorySize : NumericEntity;
+  canisterCycles : NumericEntity;
+  canisterMemorySize : NumericEntity;
+  timeMillis : int;
+};
+type DealStage = variant {
+  Opening;
+  Flop;
+  Turn;
+  River;
+  Showdown;
+  Fresh;
+  Blinds;
+};
+type EmojiUserAvatar = record { emoji : nat64; style : nat64 };
+type GameError = variant {
+  UserAlreadyExists;
+  CouldNotCalculateRake;
+  ActionNotAllowed : record { reason : text };
+  PlayerNotFound;
+  NoCardsLeft;
+  CardNotFound;
+  GameFull;
+  CanisterCallFailed : text;
+  UserAlreadyInGame;
+  Other : text;
+  InvalidCardValue;
+  BlindInsufficientFunds : record { user_id : nat64 };
+  TableNotFound;
+  InsufficientFunds;
+  NoWinner;
+};
+type GameType = variant {
+  NoLimit : nat64;
+  SpreadLimit : record { nat64; nat64 };
+  PotLimit : nat64;
+  FixedLimit : record { nat64; nat64 };
+};
+type GetInformationRequest = record {
+  status : opt StatusRequest;
+  metrics : opt MetricsRequest;
+  logs : opt CanisterLogRequest;
+  version : bool;
+};
+type GetInformationResponse = record {
+  status : opt StatusResponse;
+  metrics : opt MetricsResponse;
+  logs : opt CanisterLogResponse;
+  version : opt nat;
+};
+type GetLatestLogMessagesParameters = record {
+  upToTimeNanos : opt nat64;
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+};
+type GetLogMessagesFilter = record {
+  analyzeCount : nat32;
+  messageRegex : opt text;
+  messageContains : opt text;
+};
+type GetLogMessagesParameters = record {
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+  fromTimeNanos : opt nat64;
+};
+type GetMetricsParameters = record {
+  dateToMillis : nat;
+  granularity : MetricsGranularity;
+  dateFromMillis : nat;
+};
+type HourlyMetricsData = record {
+  updateCalls : vec nat64;
+  canisterHeapMemorySize : vec nat64;
+  canisterCycles : vec nat64;
+  canisterMemorySize : vec nat64;
+  timeMillis : int;
+};
+type LogMessageData = record { timeNanos : nat64; message : text };
+type MetricsGranularity = variant { hourly; daily };
+type MetricsRequest = record { parameters : GetMetricsParameters };
+type MetricsResponse = record { metrics : opt CanisterMetrics };
+type Notification = record {
+  id : nat64;
+  user_principal : principal;
+  message : NotificationMessage;
+  timestamp : nat64;
+};
+type NotificationMessage = variant { UserTurnStarted };
+type NumericEntity = record {
+  avg : nat64;
+  max : nat64;
+  min : nat64;
+  first : nat64;
+  last : nat64;
+};
+type PlayerAction = variant {
+  Joining;
+  Folded;
+  None;
+  SittingOut;
+  AllIn;
+  Checked;
+  Raised : nat64;
+  Called;
+};
+type PublicTable = record {
+  id : principal;
+  pot : nat64;
+  user_table_data : vec record { principal; UserTableData };
+  status : TableStatus;
+  deal_stage : DealStage;
+  small_blind : nat64;
+  sorted_users : opt vec UserCards;
+  last_timer_started_timestamp : nat64;
+  action_logs : vec ActionLog;
+  queue : vec QueueItem;
+  last_raise : nat64;
+  seats : vec SeatStatus;
+  round_ticker : nat64;
+  community_cards : vec Card;
+  current_player_index : nat64;
+  big_blind : nat64;
+  users : Users;
+  dealer_position : nat64;
+  highest_bet : nat64;
+  config : TableConfig;
+  side_pots : vec SidePot;
+  winners : opt vec User;
+};
+type QueueItem = variant {
+  Deposit : record { principal; principal; nat64 };
+  SittingOut : principal;
+  UpdateBlinds : record { nat64; nat64; opt AnteType };
+  PauseTableForAddon : nat64;
+  RemoveUser : record { principal; ActionType };
+  SittingIn : record { principal; bool };
+  PauseTable;
+  LeaveTableToMove : record { principal; principal; principal };
+};
+type RakeStats = record {
+  total_rake_collected : nat64;
+  total_rake_shared : nat64;
+};
+type Rank = variant {
+  StraightFlush : nat32;
+  Straight : nat32;
+  OnePair : nat32;
+  FullHouse : nat32;
+  TwoPair : nat32;
+  HighCard : nat32;
+  ThreeOfAKind : nat32;
+  Flush : nat32;
+  FourOfAKind : nat32;
+};
+type Result = variant { Ok; Err : TableError };
+type Result_1 = variant { Ok; Err : ChatError };
+type Result_10 = variant { Ok : Rank; Err : TableError };
+type Result_11 = variant { Ok : nat64; Err : ChatError };
+type Result_2 = variant { Ok : PublicTable; Err : TableError };
+type Result_3 = variant { Ok : ReturnResult; Err : TableError };
+type Result_4 = variant { Ok : vec ChatMessage; Err : ChatError };
+type Result_5 = variant { Ok : opt nat8; Err : TableError };
+type Result_6 = variant { Ok : vec Notification; Err : TableError };
+type Result_7 = variant { Ok : vec principal; Err : TableError };
+type Result_8 = variant { Ok : RakeStats; Err : TableError };
+type Result_9 = variant { Ok : bool; Err : TableError };
+type ReturnResult = variant { DepositQueued; DepositSuccessful };
+type SeatStatus = variant {
+  Empty;
+  QueuedForNextRound : record { principal; User; bool };
+  Reserved : record { "principal" : principal; timestamp : nat64 };
+  Occupied : principal;
+};
+type SidePot = record {
+  pot : nat64;
+  confirmed_pot : nat64;
+  highest_bet : nat64;
+  user_principals : vec principal;
+};
+type StatusRequest = record {
+  memory_size : bool;
+  cycles : bool;
+  heap_memory_size : bool;
+};
+type StatusResponse = record {
+  memory_size : opt nat64;
+  cycles : opt nat64;
+  heap_memory_size : opt nat64;
+};
+type Suit = variant { Spade; Diamond; Club; Heart };
+type TableConfig = record {
+  max_inactive_turns : nat16;
+  enable_rake : opt bool;
+  card_color : nat64;
+  name : text;
+  color : nat64;
+  currency_type : CurrencyType;
+  is_shared_rake : opt record { principal; text };
+  is_private : opt bool;
+  seats : nat8;
+  require_proof_of_humanity : opt bool;
+  environment_color : nat64;
+  max_seated_out_turns : opt nat16;
+  is_paused : opt bool;
+  game_type : GameType;
+  timer_duration : nat16;
+  auto_start_timer : nat16;
+  ante_type : opt AnteType;
+  table_type : opt TableType;
+};
+type TableError = variant {
+  UserAlreadyExists;
+  SeatNotFound;
+  StateNotInitialized;
+  AuthorizationError;
+  Chat : ChatError;
+  Game : GameError;
+  BlockQueryFailed : text;
+  LockError;
+  PlayerNotFound;
+  InvalidTransactionDetails;
+  ManagementCanisterError : CanisterManagementError;
+  LedgerError : text;
+  BlockNotFound;
+  CurrencyError : CurrencyError;
+  DuplicateTransaction;
+  InvalidRequest : text;
+  InvalidTransactionType;
+  QueryError : text;
+  UserError : UserError;
+  UserAlreadyInGame;
+  CanisterCallError : text;
+  UserNotVerified;
+  TableNotFound;
+  InvalidBlinds;
+  SerializationError : text;
+  UserNotFound;
+  InsufficientFunds;
+  NoWinner;
+};
+type TableStatus = variant { Paused; Reserved; Open; Closed };
+type TableType = variant {
+  Cash;
+  Tournament : record { is_final_table : bool; tournament_id : principal };
+  SitAndGo;
+  Satellite;
+};
+type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
+type Transaction = record {
+  transaction_id : nat64;
+  transaction_type : TransactionType;
+  currency : opt text;
+  timestamp : nat64;
+  amount : nat64;
+};
+type TransactionType = variant {
+  Withdraw;
+  Deposit;
+  TableWithdraw : record { table_id : principal };
+  Transfer : record { recipient : principal; transfer_type : TransferType };
+  TableDeposit : record { table_id : principal };
+  Receive : record { sender : principal; transfer_type : TransferType };
+};
+type TransferType = variant { CardShowRequest };
+type UpdateInformationRequest = record {
+  metrics : opt CollectMetricsRequestType;
+};
+type User = record {
+  experience_points_pure_poker : opt nat64;
+  experience_points : opt nat64;
+  user_name : text;
+  referrer : opt principal;
+  eth_wallet_address : opt text;
+  balance : nat64;
+  referred_users : opt vec principal;
+  is_verified : opt bool;
+  address : opt text;
+  transaction_history : opt vec Transaction;
+  principal_id : principal;
+  referral_start_date : opt nat64;
+  active_tables : vec principal;
+  users_canister_id : principal;
+  volume_level : opt nat16;
+  enlarge_text : opt bool;
+  avatar : opt UserAvatar;
+};
+type UserAvatar = variant { Emoji : EmojiUserAvatar };
+type UserCards = record {
+  id : principal;
+  cards : vec Card;
+  rank : Rank;
+  amount_won : nat64;
+};
+type UserError = variant {
+  MinimumVerificationDateMismatch;
+  UserAlreadyExists;
+  StateNotInitialized;
+  AuthorizationError;
+  PrincipalError : text;
+  BlockQueryFailed : text;
+  LockError;
+  InvalidTransactionDetails;
+  ManagementCanisterError : CanisterManagementError;
+  LedgerError : text;
+  CanisterCallFailed : text;
+  InvalidCredentialType : text;
+  BlockNotFound;
+  DuplicateTransaction;
+  InvalidRequest : text;
+  InvalidTransactionType;
+  QueryError : text;
+  InvalidIssuer;
+  UpgradeError : text;
+  SerializationError : text;
+  UserNotFound;
+  InsufficientFunds;
+  InvalidCredentialStructure;
+};
+type UserTableData = record {
+  experience_points : nat64;
+  inactive_turns : nat16;
+  player_action : PlayerAction;
+  cards : vec Card;
+  total_bet : nat64;
+  current_total_bet : nat64;
+  show_card_requests : vec CardRequestData;
+  seated_out_turns : nat16;
+  auto_check_fold : bool;
+};
+type Users = record { users : vec record { principal; User } };
+type Value = variant {
+  Ace;
+  Six;
+  Ten;
+  Two;
+  Eight;
+  Seven;
+  Five;
+  Four;
+  Jack;
+  King;
+  Nine;
+  Three;
+  Queen;
+};
+service : () -> {
+  check : (principal) -> (Result);
+  clear_chat_history : () -> (Result_1);
+  clear_table : () -> (Result);
+  create_table : (TableConfig, blob) -> (Result_2);
+  deposit_to_table : (principal, principal, nat64, bool) -> (Result_3);
+  edit_chat_message : (principal, nat64, text) -> (Result_1);
+  fold : (principal, bool) -> (Result);
+  getCanistergeekInformation : (GetInformationRequest) -> (
+      GetInformationResponse,
+    ) query;
+  get_chat_messages_for_user : (principal) -> (Result_4) query;
+  get_cycles : () -> (nat64) query;
+  get_free_seat_index : () -> (Result_5) query;
+  get_notifications : () -> (Result_6) query;
+  get_players_on_table : () -> (Result_7);
+  get_rake_stats : () -> (Result_8) query;
+  get_rake_wallet_account_id : () -> (text) query;
+  get_rake_wallet_principal : () -> (principal) query;
+  get_recent_chat_messages : (opt nat64, nat64) -> (Result_4) query;
+  get_seat_index : (principal) -> (Result_5) query;
+  get_table : () -> (Result_2) query;
+  handle_timer_expiration : (principal) -> (Result);
+  is_game_ongoing : () -> (Result_9) query;
+  is_table_full : () -> (Result_9) query;
+  join_table : (principal, principal, opt nat64, nat64, bool) -> (Result_2);
+  kick_player : (principal, principal, nat64) -> (Result_2);
+  leave_table : (principal, principal) -> (Result_2);
+  leave_table_for_table_balancing : (principal, principal, principal) -> (
+      Result_2,
+    );
+  pause_table : () -> (Result);
+  pause_table_for_addon : (nat64) -> (Result);
+  ping : () -> (text) query;
+  place_bet : (principal, BetType) -> (Result);
+  player_sitting_in : (principal, principal, bool) -> (Result);
+  player_sitting_out : (principal) -> (Result);
+  rank_cards : (vec Card) -> (Result_10) query;
+  resume_table : () -> (Result);
+  return_all_cycles_to_index : () -> (Result);
+  return_cycles_to_index : (nat) -> (Result);
+  send_chat_message : (principal, text, ChatMessageType, opt principal) -> (
+      Result_11,
+    );
+  set_as_final_table : () -> (Result);
+  set_auto_check_fold : (principal, bool) -> (Result);
+  set_player_action : (principal, PlayerAction) -> (Result);
+  start_new_betting_round : () -> (Result);
+  updateCanistergeekInformation : (UpdateInformationRequest) -> ();
+  update_blinds : (nat64, nat64, AnteType) -> (Result);
+  withdraw_from_table : (principal, principal, nat64) -> (Result);
+  withdraw_rake : (nat64) -> (Result);
+}

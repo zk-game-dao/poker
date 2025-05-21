@@ -1,0 +1,41 @@
+{
+  "app_frontend": {
+    "ic": "ea4no-4qaaa-aaaah-qdsjq-cai"
+  },
+  "btc_frontend": {
+    "ic": "ne3l3-ayaaa-aaaah-qqbwa-cai"
+  },
+  "cycle_dispenser": {
+    "ic": "ev34d-5yaaa-aaaah-qdska-cai"
+  },
+  "ic_siwb_provider": {
+    "ic": "j2let-saaaa-aaaam-qds2q-cai"
+  },
+  "log_store": {
+    "ic": "es22x-qaaaa-aaaah-qdskq-cai"
+  },
+  "table_canister": {
+    "ic": "e3zrl-giaaa-aaaah-qdsla-cai"
+  },
+  "table_index": {
+    "ic": "e4yx7-lqaaa-aaaah-qdslq-cai"
+  },
+  "tournament_canister": {
+    "ic": "vx6jo-kaaaa-aaaag-at3dq-cai"
+  },
+  "tournament_index": {
+    "ic": "u2qna-fiaaa-aaaag-at3ea-cai"
+  },
+  "user_canister": {
+    "ic": "frwtr-eyaaa-aaaah-qdsma-cai"
+  },
+  "user_index": {
+    "ic": "fwxvf-jaaaa-aaaah-qdsmq-cai"
+  },
+  "users_canister": {
+    "ic": "m4s6y-oyaaa-aaaah-qqbsa-cai"
+  },
+  "users_index": {
+    "ic": "m3tym-daaaa-aaaah-qqbsq-cai"
+  }
+}

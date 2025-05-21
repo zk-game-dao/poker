@@ -1,0 +1,22 @@
+[workspace]
+members = [
+    "libraries/authentication",
+    "libraries/canister_functions",
+    "libraries/chat",
+    "libraries/errors",
+    "libraries/table",
+    "libraries/table_index_types",
+    "libraries/tournaments",
+    "libraries/user",
+    "src/cycle_dispenser",
+    "src/log_store",
+    "src/table_canister",
+    "src/tournament_canister",
+    "src/tournament_index",
+    "src/table_index",
+    "src/users_canister",
+    "src/users_index",
+    "tests",
+    "webserver",
+]
+resolver = "2"
