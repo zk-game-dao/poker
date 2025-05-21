@@ -534,7 +534,6 @@ service : () -> {
       Result_11,
     );
   set_as_final_table : () -> (Result);
-  set_auto_check_fold : (principal, bool) -> (Result);
   set_player_action : (principal, PlayerAction) -> (Result);
   start_new_betting_round : () -> (Result);
   updateCanistergeekInformation : (UpdateInformationRequest) -> ();
