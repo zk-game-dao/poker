@@ -111,13 +111,13 @@ impl TestEnv {
             for table_id in tournament.tables.keys() {
                 let table = self.get_table(*table_id).unwrap();
                 if !table.users.is_empty() {
-                    let user = table.users.users.into_keys().next().unwrap();
-                    if let Err(e) = self.handle_user_losing(tournament_id, user, *table_id) {
-                        println!("Error eliminating player {}: {:?}", user.to_text(), e);
+                    let user = table.users.users.into_values().next().unwrap();
+                    if let Err(e) = self.handle_user_losing(tournament_id, user.principal_id, *table_id) {
+                        println!("Error eliminating player {}: {:?}", user.principal_id.to_text(), e);
                         continue;
                     }
-                    println!("Eliminated player: {}", user.to_text());
-                    eliminated_players.push(user);
+                    println!("Eliminated player: {}", user.principal_id.to_text());
+                    eliminated_players.push(user.principal_id);
                     if eliminated_players.len() == num_players as usize {
                         break 'outer;
                     }

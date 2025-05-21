@@ -109,7 +109,7 @@ impl TestEnv {
     pub fn pause_table(&self, table_id: Principal) -> Result<(), TableError> {
         let res: Result<pocket_ic::WasmResult, pocket_ic::UserError> = self.pocket_ic.update_call(
             table_id,
-            Principal::anonymous(),
+            table_id,
             "pause_table",
             encode_args(()).unwrap(),
         );
@@ -126,7 +126,7 @@ impl TestEnv {
     pub fn unpause_table(&self, table_id: Principal) -> Result<(), TableError> {
         let res: Result<pocket_ic::WasmResult, pocket_ic::UserError> = self.pocket_ic.update_call(
             table_id,
-            Principal::anonymous(),
+            table_id,
             "resume_table",
             encode_args(()).unwrap(),
         );
@@ -167,7 +167,7 @@ impl TestEnv {
         let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
             self.pocket_ic.update_call(
                 table_id,
-                Principal::anonymous(),
+                table_id,
                 "start_new_betting_round",
                 candid::encode_args(()).unwrap(),
             );

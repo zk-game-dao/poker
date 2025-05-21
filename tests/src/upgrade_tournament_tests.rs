@@ -37,7 +37,7 @@ fn upgrade_tournament_canister(env: &TestEnv, tournament_id: Principal) {
             vec![], // empty args for upgrades
             Some(
                 Principal::from_text(
-                    "3kryc-rcxpr-ojfta-nasyy-tmfwd-73zt5-ajtev-zxwv5-dob3d-ymvow-4qe",
+                    "km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe",
                 )
                 .unwrap(),
             ),
@@ -146,7 +146,7 @@ impl TestEnv {
     ) -> Result<(), TournamentIndexError> {
         let result = self.pocket_ic.update_call(
             self.canister_ids.tournament_index,
-            Principal::anonymous(),
+            tournament_id,
             "update_tournament_state",
             encode_args((tournament_id, new_state)).unwrap(),
         );
