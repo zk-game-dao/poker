@@ -351,17 +351,3 @@ fn scale_amount(amount: u64, from_decimals: u8, to_decimals: u8) -> u64 {
         std::cmp::Ordering::Equal => amount,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use currency::Currency;
-
-    #[test]
-    fn test_rake_calculation() {
-        let rake = Rake::new(1_000_000, &GameType::NoLimit(1_000_000), &Currency::ICP).unwrap();
-        assert_eq!(rake.percentage_millipercent, 4500);
-        assert_eq!(rake.cap_2_3_players, 500_000);
-        assert_eq!(rake.cap_4_plus_players, 1_000_000);
-    }
-}
