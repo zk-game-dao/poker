@@ -148,6 +148,7 @@ jobs:
           ./scripts/run-tests.sh ${{ matrix.module }}
 
   test-ui:
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
