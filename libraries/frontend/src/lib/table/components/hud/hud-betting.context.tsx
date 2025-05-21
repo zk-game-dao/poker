@@ -261,16 +261,16 @@ export const ProvideHUDBettingContext = memo<{ children: ReactNode }>(
       onError: showErrorModal,
     });
 
-    const { mutate: setAutoCheckFold, isPending: isSettingAutoCheckFold } = useMutation({
-      mutationFn: async (isEnabled: boolean) => {
-        if (!table || !zkpUser) throw "Table or user not found";
-        const result = await service.set_auto_check_fold(zkpUser.principal_id, isEnabled);
-        if ("Err" in result) throw result.Err;
-        await Queries.table.invalidate(table);
-        return result.Ok;
-      },
-      onError: showErrorModal,
-    });
+    // const { mutate: setAutoCheckFold, isPending: isSettingAutoCheckFold } = useMutation({
+    //   mutationFn: async (isEnabled: boolean) => {
+    //     if (!table || !zkpUser) throw "Table or user not found";
+    //     const result = await service.set_auto_check_fold(zkpUser.principal_id, isEnabled);
+    //     if ("Err" in result) throw result.Err;
+    //     await Queries.table.invalidate(table);
+    //     return result.Ok;
+    //   },
+    //   onError: showErrorModal,
+    // });
 
     const value = useMemo(() => {
       const v: HUDContextType = {
@@ -357,8 +357,8 @@ export const ProvideHUDBettingContext = memo<{ children: ReactNode }>(
       user,
       userIndex,
       zkpUser,
-      setAutoCheckFold,
-      isSettingAutoCheckFold,
+      // setAutoCheckFold,
+      // isSettingAutoCheckFold,
       currentBet,
       table,
       currencyType,
