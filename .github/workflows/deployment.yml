@@ -39,11 +39,6 @@ jobs:
       - name: Install Rust and wasm32 target
         run: rustup target add wasm32-unknown-unknown
 
-      - uses: healthplace/npmrc-registry-login-action@v1.0
-        with:
-          scope: '@zk-game-dao'
-          registry: 'https://npm.pkg.github.com'
-
       - name: Install dependencies
         run: npm ci
 
