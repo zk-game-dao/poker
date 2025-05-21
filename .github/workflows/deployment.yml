@@ -9,6 +9,7 @@ env:
 
 jobs:
   deploy:
+    if: false
     name: Deploy to Mainnet
     runs-on: ubuntu-latest
     steps:
