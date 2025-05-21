@@ -87,14 +87,14 @@ const preview: Preview = {
       toolbar: {
         icon: 'eye',
         items: [
-          { value: 'pp', right: 'pp', title: 'Pure Poker' },
-          { value: 'zkp', right: 'zkp', title: 'ZKP' },
+          { value: 'purepoker', right: 'purepoker', title: 'Pure Poker' },
+          { value: 'zkpoker', right: 'zkpoker', title: 'zkpoker' },
         ],
       },
     },
   },
   initialGlobals: {
-    platform: 'pp',
+    platform: 'purepoker',
   },
   decorators: [
     (Story) => {
@@ -118,7 +118,7 @@ const preview: Preview = {
               <ProvideQuery>
                 <ProvideUI theme={context.globals.platform}>
                   <ProvideCurrencyContext
-                    enabledNetworks={context.globals.platform === 'pp' ? ['btc'] : ['ic', 'eth']}
+                    enabledNetworks={context.globals.platform === 'purepoker' ? ['btc'] : ['ic', 'eth']}
                     siwbProviderCanisterId={undefined}
                   >
                     <ProvideModalStack>

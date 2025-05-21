@@ -115,8 +115,8 @@ export const LobbyTableCardComponent = memo<
       <Interactable
         href={isBTC ? relativeUrl : undefined}
         className={classNames(className, 'relative rounded-[16px] flex flex-col p-6 gap-4', {
-          'border-material-main-3 bg-[#3d3c3d] shadow-inner overflow-hidden group': theme === 'pp',
-          'border-material-medium-1 border-t': theme === 'zkp'
+          'border-material-main-3 bg-[#3d3c3d] shadow-inner overflow-hidden group': theme === 'purepoker',
+          'border-material-medium-1 border-t': theme === 'zkpoker'
         })}
       >
         {isBTC && (

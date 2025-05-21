@@ -98,7 +98,7 @@ export const RootComponent = memo<Omit<ThemeContextType, 'setShownCurrencyType'>
           }
         }}
       >
-        <ProvideUI theme={theme.isBTC ? 'pp' : 'zkp'}>
+        <ProvideUI theme={theme.isBTC ? 'purepoker' : 'zkpoker'}>
           <ProvideCurrencyContext
             enabledNetworks={theme.isBTC ? ['btc'] : ['ic', 'eth']}
             siwbProviderCanisterId={'CANISTER_ID_IC_SIWB_PROVIDER' in process.env ? Principal.from(process.env.CANISTER_ID_IC_SIWB_PROVIDER) : undefined}

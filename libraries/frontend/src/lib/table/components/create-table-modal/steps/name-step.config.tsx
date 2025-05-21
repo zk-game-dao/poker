@@ -69,7 +69,7 @@ const NameStepComponent = memo<StepComponentProps<Value, State>>(({ data, patch,
           {localState.is_shared_rake && (
             <>
               <ListItem>
-                Your revenue share will be deposited into your {isBTC ? 'Pure Poker' : 'ZKP'} wallet.
+                Your revenue share will be deposited into your {isBTC ? 'Pure Poker' : 'zkpoker'} wallet.
               </ListItem>
 
               <SwitchInputComponent
