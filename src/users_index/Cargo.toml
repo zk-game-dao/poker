@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 authentication = { path = "../../libraries/authentication" }
 candid = "0.10"
 canister_functions = { path = "../../libraries/canister_functions" }
-currency = { git = "ssh://git@github.com/zk-game-dao/currency.git", branch = "main"  }
+currency = { git = "https://github.com/zk-game-dao/currency.git", branch = "main" }
 errors = { path = "../../libraries/errors" }
 ic-cdk = "0.12"
 ic-cdk-timers = "0.6" # Feel free to remove this dependency if you don't need timers
