@@ -261,6 +261,18 @@ The project uses a structured deployment process:
    - Upgrade user canisters with `./scripts/upgrade_user_canisters.sh`
    - Upgrade table canisters with `./scripts/upgrade_table_canisters.sh`
 
+## Troubleshooting
+
+### error: failed to get `currency` as a dependency of package
+
+Add to your `~/.cargo/config.toml`
+```toml
+[net]
+git-fetch-with-cli = true
+```
+
+- [ ] Clans
+
 ## 🛣️ Roadmap
 
 - [ ] Clans
