@@ -284,7 +284,11 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## 📜 License
 
-TODO! Figure out which licence to use.
+This project is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).
+
+You are free to use, modify, and distribute this software, provided that any modified versions made available over a network also make their source code available under the same license.
+
+See the `LICENSE` file for full details.
 
 
 ## 📞 Contact
