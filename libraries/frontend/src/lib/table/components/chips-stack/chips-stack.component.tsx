@@ -31,7 +31,6 @@ const useValuePerChip = (currencyType: CurrencyType) => useMemo(() => matchRustE
       ETH: () => 10n ** 9n,
       USDC: () => 10n ** 3n,
       USDT: () => 10n ** 3n,
-      BTC: () => 10n ** 8n,
     }),
     BTC: () => 10n ** 2n,
   })

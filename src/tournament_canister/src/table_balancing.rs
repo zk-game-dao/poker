@@ -188,7 +188,11 @@ async fn synchronize_tables(
             table.1.players = public_table_players.iter().copied().collect::<HashSet<_>>();
         }
     }
-    
+
+    if players_on_tables.is_empty() {
+        return Ok(cached_tables);
+    }
+
     let unassigned_players: Vec<Principal> = tournament
         .current_players
         .keys()
@@ -205,6 +209,9 @@ async fn synchronize_tables(
                 .map(|p| p.to_text())
                 .collect::<Vec<_>>()
         );
+    }
+    if unassigned_players.len() == tournament.current_players.len() {
+        return Ok(cached_tables);
     }
     
     for player in unassigned_players {

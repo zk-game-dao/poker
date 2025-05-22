@@ -1,4 +1,4 @@
-type CKTokenSymbol = variant { BTC; ETH; USDC; USDT };
+type CKTokenSymbol = variant { ETH; USDC; USDT };
 type CanisterLogFeature = variant {
   filterMessageByContains;
   filterMessageByRegex;
