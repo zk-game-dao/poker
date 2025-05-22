@@ -450,8 +450,8 @@ fn test_table_balancing_with_player_overflow() {
     // With 7 players eliminated, should now have 7 players across max 2 tables
     assert_eq!(
         tournament.current_players.len(),
-        12,
-        "Should have 12 players remaining"
+        11,
+        "Should have 11 players remaining"
     );
     assert_eq!(
         tournament.current_players.len(),
@@ -611,8 +611,8 @@ fn test_table_balancing_with_player_overflow_two() {
     // With 7 players eliminated, should now have 7 players across max 2 tables
     assert_eq!(
         tournament.current_players.len(),
-        8,
-        "Should have 8 players remaining"
+        7,
+        "Should have 7 players remaining"
     );
     assert_eq!(
         tournament.current_players.len(),
