@@ -271,16 +271,9 @@ Add to your `~/.cargo/config.toml`
 git-fetch-with-cli = true
 ```
 
-- [ ] Clans
-
 ## 🛣️ Roadmap
 
 - [ ] Clans
-
-## 🤝 Contributing
-
-TODO!
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ## 📜 License
 
