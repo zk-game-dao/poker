@@ -36,10 +36,7 @@ use tournaments::tournaments::{
     utils::calculate_rake,
 };
 use utils::{
-    add_to_tournament_prize_pool, handle_addon, handle_cycle_check, handle_invalid_join,
-    handle_lost_user_rebuy_availability, handle_rebuy, handle_reentry, handle_refund,
-    handle_tournament_deposit, transfer_cycles_to_tournament_index, update_live_leaderboard,
-    update_tournament_state, LEADERBOARD_UPDATE_INTERVAL,
+    add_to_tournament_prize_pool, handle_addon, handle_cycle_check, handle_cycle_check_async, handle_invalid_join, handle_lost_user_rebuy_availability, handle_rebuy, handle_reentry, handle_refund, handle_tournament_deposit, transfer_cycles_to_tournament_index, update_live_leaderboard, update_tournament_state, LEADERBOARD_UPDATE_INTERVAL
 };
 
 pub mod canister_geek;
@@ -246,7 +243,7 @@ async fn user_join_tournament(
     users_canister_principal: Principal,
     user_id: Principal,
 ) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
 
     let tournament_state = {
         let tournament_state = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
