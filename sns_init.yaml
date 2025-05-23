@@ -58,10 +58,10 @@ NnsProposal:
         - Treasury: 50% (500,000,000)
           - Protection Fund: 25% (300,000,000)
           - Ecosystem Incentives: 5% (50,000,000)
-          - Strategic Reserve: 25% (250,000,000)
+          - Strategic Reserve: 20% (200,000,000)
         - Early Investors & Contributors: 10% (100,000,000)
         - Team: 15% (150,000,000)
-        - SNS Launchpad: 20% (200,000,000)
+        - SNS Launchpad: 25% (250,000,000)
         
         The SNS will be initialized with neurons for the core team and early contributors with appropriate dissolve delays and vesting periods to ensure long-term alignment with the project's success.
         
@@ -77,7 +77,8 @@ fallback_controller_principals:
     # principals of your intended fallback controllers.
     #
     # For testing, propose_sns.sh will fill this in automatically.
-    - YOUR_PRINCIPAL_ID
+    - km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe
+    - uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae
 
 # The list of dapp canister(s) that will be decentralized if the
 # decentralization swap succeeds. These are defined in the form of canister IDs,
@@ -117,7 +118,7 @@ Token:
     symbol: ZKG
 
     # SNS ledger transaction fee.
-    transaction_fee: 1_000_000 e8s
+    transaction_fee: 10_000 e8s
 
     # Path to the SNS token logo on your local filesystem. The path is relative
     # to the configuration file location, unless an absolute path is given.
@@ -395,19 +396,19 @@ Distribution:
         # as the treasury. This is initialized in a special sub-account, as the
         # main account of Governance is the minting account of the SNS Ledger.
         # This field is specified as a token. For instance, "1 token".
-        treasury: 550_000_000 tokens  # 55% of total supply for treasury
+        treasury: 500_000_000 tokens  # 50% of total supply for treasury
 
         # The initial SNS token balance of the Swap canister is what will be
         # available for the decentralization swap. These tokens will be swapped
         # for ICP. This field is specified as a token. For instance, "1 token".
-        swap: 200_000_000 tokens  # 20% of total supply for public sale via SNS Launchpad
+        swap: 250_000_000 tokens  # 25% of total supply for public sale via SNS Launchpad
 
     # Checksum of the total number of tokens distributed in this section.
     # This field is specified as a token. For instance, "1 token".
     #         150_000_000    (team neurons)
     #         100_000_000    (seed investor neurons)
-    #         550_000_000    (treasury)
-    #       + 200_000_000    (swap)
+    #         500_000_000    (treasury)
+    #       + 250_000_000    (swap)
     # ------------------
     total: 1_000_000_000 tokens
 
@@ -440,7 +441,7 @@ Swap:
     # The minimum amount of ICP that each participant must contribute
     # to participate. This field is specified as a token. For instance,
     # "1 token".
-    minimum_participant_icp: 1 tokens
+    minimum_participant_icp: 100 tokens
 
     # The maximum amount of ICP that each participant may contribute
     # to participate. This field is specified as a token. For instance,
