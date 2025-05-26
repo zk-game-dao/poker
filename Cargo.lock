@@ -5178,6 +5178,7 @@ dependencies = [
  "canistergeek_ic_rust",
  "currency",
  "errors",
+ "futures",
  "ic-cdk 0.12.3",
  "ic-cdk-timers",
  "ic-ledger-types 0.10.0",
