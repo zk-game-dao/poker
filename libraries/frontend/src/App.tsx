@@ -72,6 +72,10 @@ export const App = memo<Omit<ThemeContextType, 'setShownCurrencyType'>>(({
 }) => {
   const theme = useMemo((): Omit<ThemeContextType, 'setShownCurrencyType'> => ({
     ...remainder,
+    banner: {
+      children: "We're launching zkGame DAO on the SNS soon! Learn more",
+      href: "https://forum.dfinity.org/t/were-preparing-to-launch-zkgame-dao-on-the-sns/48128",
+    },
     isBTC,
     shownCurrencyType: { Real: isBTC ? { BTC: null } : { ICP: null } },
   }), [isBTC, remainder]);
