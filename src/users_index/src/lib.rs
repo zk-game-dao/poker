@@ -680,6 +680,23 @@ async fn upgrade_all_user_canisters() -> Result<Vec<(Principal, CanisterManageme
 }
 
 #[ic_cdk::update]
+async fn upgrade_user_canister(
+    user_canister: Principal,
+) -> Result<(), UserError> {
+    // Validate caller permissions
+    let caller = ic_cdk::api::caller();
+    if !CONTROLLER_PRINCIPALS.contains(&caller) {
+        return Err(UserError::AuthorizationError);
+    }
+
+    handle_cycle_check().await?;
+
+    let wasm_module = USER_CANISTER_WASM.to_vec();
+    upgrade_wasm_code(user_canister, wasm_module).await?;
+    Ok(())
+}
+
+#[ic_cdk::update]
 async fn get_experience_points_position(
     user_principal: Principal,
 ) -> Result<Option<u64>, UserError> {

@@ -17,7 +17,7 @@ use currency::{
     utils::get_canister_state,
     Currency,
 };
-use errors::{tournament_error::TournamentError, tournament_index_error::TournamentIndexError};
+use errors::{canister_management_error::CanisterManagementError, tournament_error::TournamentError, tournament_index_error::TournamentIndexError};
 use lazy_static::lazy_static;
 use memory::TABLE_CANISTER_POOL;
 use std::sync::Mutex;
@@ -650,6 +650,85 @@ fn get_completed_tournaments() -> Vec<TournamentData> {
         .filter_map(|id| state.tournaments.get(id))
         .cloned()
         .collect()
+}
+
+#[ic_cdk::update]
+async fn upgrade_all_tournament_canisters(
+) -> Result<Vec<(Principal, CanisterManagementError)>, TournamentIndexError> {
+    // Validate caller permissions
+    let caller = ic_cdk::api::caller();
+    if !CONTROLLER_PRINCIPALS.contains(&caller) {
+        return Err(TournamentIndexError::NotAuthorized);
+    }
+
+    handle_cycle_check().await?;
+
+    const BATCH_SIZE: usize = 30; // Process 30 tournaments at a time
+
+    let tournaments: Vec<Principal> = {
+        let state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
+        state.tournaments.keys().copied().collect()
+    };
+
+    let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
+    let mut failed_upgrades = Vec::new();
+
+    // Process tournaments in batches
+    for chunk in tournaments.chunks(BATCH_SIZE) {
+        let futures: Vec<_> = chunk
+            .iter()
+            .map(|&tournament_canister| {
+                let wasm_clone = wasm_module.clone();
+                async move {
+                    match canister_functions::upgrade_wasm_code(tournament_canister, wasm_clone).await {
+                        Ok(_) => {
+                            ic_cdk::println!(
+                                "Successfully upgraded tournament canister {}",
+                                tournament_canister
+                            );
+                            Ok(tournament_canister)
+                        }
+                        Err(e) => {
+                            ic_cdk::println!(
+                                "Failed to upgrade tournament canister {}: {:?}",
+                                tournament_canister,
+                                e
+                            );
+                            Err((tournament_canister, e))
+                        }
+                    }
+                }
+            })
+            .collect();
+
+        // Execute batch of upgrades
+        let batch_results = futures::future::join_all(futures).await;
+        for result in batch_results {
+            if let Err((canister_id, error)) = result {
+                failed_upgrades.push((canister_id, error));
+            }
+        }
+    }
+
+    Ok(failed_upgrades)
+}
+
+#[ic_cdk::update]
+async fn upgrade_tournament_canister(
+    tournament_canister: Principal,
+) -> Result<(), TournamentIndexError> {
+    // Validate caller permissions
+    let caller = ic_cdk::api::caller();
+    if !CONTROLLER_PRINCIPALS.contains(&caller) {
+        return Err(TournamentIndexError::NotAuthorized);
+    }
+
+    handle_cycle_check().await?;
+
+    let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
+    canister_functions::upgrade_wasm_code(tournament_canister, wasm_module).await?;
+
+    Ok(())
 }
 
 ic_cdk::export_candid!();

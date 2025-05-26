@@ -935,6 +935,25 @@ async fn upgrade_all_table_canisters(
 }
 
 #[ic_cdk::update]
+async fn upgrade_table_canister(
+    table_principal: Principal,
+) -> Result<(), TableIndexError> {
+    // Validate caller permissions
+    let caller = ic_cdk::api::caller();
+    if !CONTROLLER_PRINCIPALS.contains(&caller) {
+        return Err(TableIndexError::InvalidRequest(
+            "Unauthorized: caller is not a controller".to_string(),
+        ));
+    }
+
+    handle_cycle_check().await?;
+
+    let wasm_module = TABLE_CANISTER_WASM.to_vec();
+    canister_functions::upgrade_wasm_code(table_principal, wasm_module).await?;
+    Ok(())
+}
+
+#[ic_cdk::update]
 async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
     let currency_manager = {
         let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| TableError::LockError)?;

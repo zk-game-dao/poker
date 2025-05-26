@@ -542,5 +542,6 @@ service : () -> {
   updateCanistergeekInformation : (UpdateInformationRequest) -> ();
   update_table_player_count : (principal, nat64) -> (Result_1);
   upgrade_all_table_canisters : () -> (Result_8);
+  upgrade_table_canister : (principal) -> (Result_1);
   withdraw_rake : (nat64) -> (Result_9);
 }

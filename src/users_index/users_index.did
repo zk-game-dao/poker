@@ -227,5 +227,6 @@ service : () -> {
       opt UserAvatar,
     ) -> (Result);
   upgrade_all_user_canisters : () -> (Result_10);
+  upgrade_user_canister : (principal) -> (Result_9);
   withdraw : (principal, principal, nat64) -> (Result);
 }
