@@ -210,6 +210,8 @@ service : () -> {
   get_user_canisters : () -> (Result_6) query;
   get_user_canisters_cycles : () -> (Result_7) query;
   get_users_canister_principal_by_id : (principal) -> (Result_8);
+  get_verified_experience_points_leaderboard : (nat64, nat64) -> (Result_2);
+  get_verified_pure_poker_experience_points : (nat64, nat64) -> (Result_2);
   monitor_and_top_up_user_canisters : () -> (Result_9);
   ping : () -> (text) query;
   request_cycles : () -> (Result_9);

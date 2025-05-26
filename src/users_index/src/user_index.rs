@@ -192,6 +192,118 @@ impl UserIndex {
 
         Ok(all_results)
     }
+
+    pub async fn get_verified_experience_points_leaderboard(
+        &self,
+    ) -> Result<Vec<(Principal, u64)>, UserError> {
+        const BATCH_SIZE: usize = 30; // Process 30 users at a time
+
+        let users: Vec<Principal> = self.canister_user_count.keys().copied().collect();
+        let mut all_results = Vec::new();
+
+        // Process users in batches
+        for chunk in users.chunks(BATCH_SIZE) {
+            let futures: Vec<_> = chunk
+                .iter()
+                .map(|&users_canister| async move {
+                    match ic_cdk::call::<(), (Result<Vec<(Principal, u64)>, UserError>,)>(
+                        users_canister,
+                        "get_verified_user_experience_points",
+                        (),
+                    )
+                    .await
+                    {
+                        Ok((res,)) => {
+                            match res {
+                                Ok(points) => points,
+                                Err(e) => {
+                                    ic_cdk::println!(
+                                        "Failed to get experience points for user {}: {:?}",
+                                        users_canister,
+                                        e
+                                    );
+                                    vec![]
+                                },
+                            }
+                        },
+                        Err(e) => {
+                            ic_cdk::println!(
+                                "Failed to send canister call to get experience points for user {}: {:?}",
+                                users_canister,
+                                e
+                            );
+                            vec![]
+                        },
+                    }
+                })
+                .collect();
+
+            // Execute batch of queries
+            let batch_results: Vec<Vec<(Principal, u64)>> = join_all(futures).await;
+            all_results.extend(batch_results.into_iter().flatten());
+        }
+
+        // Sort by experience points in descending order
+        all_results.sort_by(|a, b| b.1.cmp(&a.1));
+
+        Ok(all_results)
+    }
+
+    pub async fn get_verified_pure_poker_experience_points_leaderboard(
+        &self,
+    ) -> Result<Vec<(Principal, u64)>, UserError> {
+        const BATCH_SIZE: usize = 30; // Process 30 users at a time
+
+        let users: Vec<Principal> = self.canister_user_count.keys().copied().collect();
+        let mut all_results = Vec::new();
+
+        // Process users in batches
+        for chunk in users.chunks(BATCH_SIZE) {
+            let futures: Vec<_> = chunk
+                .iter()
+                .map(|&user| async move {
+                    match ic_cdk::call::<(), (Result<Vec<(Principal, u64)>, UserError>,)>(
+                        user,
+                        "get_verified_pure_poker_user_experience_points",
+                        (),
+                    )
+                    .await
+                    {
+                        Ok((res,)) => {
+                            match res {
+                                Ok(points) => points,
+                                Err(e) => {
+                                    ic_cdk::println!(
+                                        "Failed to get experience points for user {}: {:?}",
+                                        user,
+                                        e
+                                    );
+                                    vec![]
+                                },
+                            }
+                        },
+                        Err(e) => {
+                            ic_cdk::println!(
+                                "Failed to send canister call to get experience points for user {}: {:?}",
+                                user,
+                                e
+                            );
+                            vec![]
+                        },
+                    }
+                })
+                .collect();
+
+            // Execute batch of queries
+            let batch_results: Vec<Vec<(Principal, u64)>> = join_all(futures).await;
+            all_results.extend(batch_results.into_iter().flatten());
+        }
+
+        // Sort by experience points in descending order
+        all_results.sort_by(|a, b| b.1.cmp(&a.1));
+
+        Ok(all_results)
+    }
 }
 
 pub async fn get_position_in_leaderboard(

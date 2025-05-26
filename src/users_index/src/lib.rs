@@ -77,6 +77,11 @@ lazy_static! {
     static ref PURE_POKER_LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> = Mutex::new(None);
     static ref PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
 
+    static ref VERIFIED_LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> = Mutex::new(None);
+    static ref VERIFIED_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
+    static ref VERIFIED_PURE_POKER_LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> = Mutex::new(None);
+    static ref VERIFIED_PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
+
     static ref CURRENCY_MANAGER: Mutex<CurrencyManager> = Mutex::new(CurrencyManager::new());
 }
 
@@ -574,6 +579,46 @@ async fn get_experience_points_leaderboard(
 }
 
 #[ic_cdk::update]
+async fn get_verified_experience_points_leaderboard(
+    page: u64,
+    page_size: u64,
+) -> Result<Vec<(Principal, u64)>, UserError> {
+    {
+        if let Some(leaderboard_cache_timestamp) = *VERIFIED_LEADERBOARD_CACHE_TIMESTAMP
+            .lock()
+            .map_err(|_| UserError::LockError)?
+        {
+            if ic_cdk::api::time() - leaderboard_cache_timestamp < 3_600_000_000_000 {
+                // 1 hour
+                let leaderboard_cache = VERIFIED_LEADERBOARD_CACHE
+                    .lock()
+                    .map_err(|_| UserError::LockError)?;
+                if let Some(leaderboard) = &*leaderboard_cache {
+                    return safely_get_leaderboard_page(leaderboard, page, page_size);
+                }
+            }
+        }
+    }
+
+    let user_index_state = USER_INDEX_STATE
+        .lock()
+        .map_err(|_| UserError::LockError)?
+        .clone();
+    let leaderboard = user_index_state.get_verified_experience_points_leaderboard().await?;
+
+    let mut leaderboard_cache = VERIFIED_LEADERBOARD_CACHE
+        .lock()
+        .map_err(|_| UserError::LockError)?;
+    let mut leaderboard_cache_timestamp = VERIFIED_LEADERBOARD_CACHE_TIMESTAMP
+        .lock()
+        .map_err(|_| UserError::LockError)?;
+    leaderboard_cache.replace(leaderboard.clone());
+    leaderboard_cache_timestamp.replace(ic_cdk::api::time());
+
+    safely_get_leaderboard_page(&leaderboard, page, page_size)
+}
+
+#[ic_cdk::update]
 async fn get_pure_poker_experience_points(
     page: u64,
     page_size: u64,
@@ -607,6 +652,48 @@ async fn get_pure_poker_experience_points(
         .lock()
         .map_err(|_| UserError::LockError)?;
     let mut leaderboard_cache_timestamp = PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP
+        .lock()
+        .map_err(|_| UserError::LockError)?;
+    leaderboard_cache.replace(leaderboard.clone());
+    leaderboard_cache_timestamp.replace(ic_cdk::api::time());
+
+    safely_get_leaderboard_page(&leaderboard, page, page_size)
+}
+
+#[ic_cdk::update]
+async fn get_verified_pure_poker_experience_points(
+    page: u64,
+    page_size: u64,
+) -> Result<Vec<(Principal, u64)>, UserError> {
+    {
+        if let Some(leaderboard_cache_timestamp) = *VERIFIED_PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP
+            .lock()
+            .map_err(|_| UserError::LockError)?
+        {
+            if ic_cdk::api::time() - leaderboard_cache_timestamp < 3_600_000_000_000 {
+                // 1 hour
+                let leaderboard_cache = VERIFIED_PURE_POKER_LEADERBOARD_CACHE
+                    .lock()
+                    .map_err(|_| UserError::LockError)?;
+                if let Some(leaderboard) = &*leaderboard_cache {
+                    return safely_get_leaderboard_page(leaderboard, page, page_size);
+                }
+            }
+        }
+    }
+
+    let user_index_state = USER_INDEX_STATE
+        .lock()
+        .map_err(|_| UserError::LockError)?
+        .clone();
+    let leaderboard = user_index_state
+        .get_verified_pure_poker_experience_points_leaderboard()
+        .await?;
+
+    let mut leaderboard_cache = VERIFIED_PURE_POKER_LEADERBOARD_CACHE
+        .lock()
+        .map_err(|_| UserError::LockError)?;
+    let mut leaderboard_cache_timestamp = VERIFIED_PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP
         .lock()
         .map_err(|_| UserError::LockError)?;
     leaderboard_cache.replace(leaderboard.clone());

@@ -221,6 +221,8 @@ service : () -> {
   get_user_experience_points : () -> (Result_5) query;
   get_user_icc : (principal) -> (Result);
   get_user_level : (principal) -> (Result_8) query;
+  get_verified_pure_poker_user_experience_points : () -> (Result_5) query;
+  get_verified_user_experience_points : () -> (Result_5) query;
   log_transaction : (
       principal,
       nat64,
