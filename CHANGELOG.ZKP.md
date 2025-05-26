@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.3.1] - 2025-05-26
+
+### Fixed
+- Leaderboard will only pay out to POH verified players.
+
 ## [2.3.0] - 2025-04-11
 
 ### Added
