@@ -102,7 +102,7 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
         // If user is not verified they are not eligible for payout.
         if user_obj.is_verified.unwrap_or(false) {
             let amount = calculate_amount_to_transfer(PERCENTAGE_PAYOUT[i]);
-            ic_cdk::println!("Transferring {} ICP to user {}", amount, user.to_text());
+            ic_cdk::println!("Transferring {} ICP to user {} with principal {}", amount, user_obj.user_name, user.to_text());
             match currency_manager
                 .withdraw(&currency::Currency::ICP, user, amount)
                 .await
@@ -189,7 +189,7 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
         // If user is not verified they are not eligible for payout.
         if user_obj.is_verified.unwrap_or(false) {
             let amount = calculate_amount_to_transfer_pure_poker(PERCENTAGE_PAYOUT[i]);
-            ic_cdk::println!("Transferring {} ICP to user {}", amount, user.to_text());
+            ic_cdk::println!("Transferring {} BTC to user {} with principal {}", amount, user_obj.user_name, user.to_text());
             match currency_manager
                 .withdraw(&currency::Currency::BTC, user, amount)
                 .await
