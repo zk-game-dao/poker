@@ -333,6 +333,28 @@ fn get_pure_poker_user_experience_points() -> Result<Vec<(Principal, u64)>, User
 }
 
 #[ic_cdk::query]
+fn get_verified_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
+    let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
+    let experience_points = user
+        .into_iter()
+        .filter(|user| user.is_verified.unwrap_or(false))
+        .map(|user| (user.principal_id, user.get_experience_points()))
+        .collect();
+    Ok(experience_points)
+}
+
+#[ic_cdk::query]
+fn get_verified_pure_poker_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
+    let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
+    let experience_points = user
+        .into_iter()
+        .filter(|user| user.is_verified.unwrap_or(false))
+        .map(|user| (user.principal_id, user.get_pure_poker_experience_points()))
+        .collect();
+    Ok(experience_points)
+}
+
+#[ic_cdk::query]
 fn get_experience_points_by_uid(user_id: Principal) -> Result<u64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let user = user
