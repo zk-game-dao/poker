@@ -20,20 +20,37 @@ import { useJackpot } from './data';
 import { LeaderboardEntry } from './leaderboard-entry.component';
 import { HowItWorksModal } from './leaderboard-how-it-works-modal.component';
 
+const ENDPOINTS = {
+  verified: {
+    get_length: 'get_leaderboard_length' as const,
+    zkp: 'get_experience_points_leaderboard' as const,
+    pp: 'get_pure_poker_experience_points' as const,
+  },
+  unverified: {
+    get_length: 'get_unverified_leaderboard_length' as const,
+    zkp: 'get_unverified_experience_points_leaderboard' as const,
+    pp: 'get_unverified_pure_poker_experience_points' as const,
+  },
+};
+
+type LeaderboardType = keyof typeof ENDPOINTS;
+
 export const LeaderboardPage = memo(() => {
   const [page, setPage] = useState(0n);
   const pageSize = useMemo(() => 50n, []);
   const isBTC = useIsBTC();
 
+  const type = useMemo((): LeaderboardType => 'verified' as const, []);
+
   const leaderboardSize = useQuery({
-    queryKey: Queries.leaderboardSize.key(),
+    queryKey: Queries.leaderboardSize.key(type),
     queryFn: () => callActorMutation(users_index, 'get_leaderboard_length'),
     retry: false,
     initialData: 0n,
   });
 
   const leaderboardPrincipals = useQuery({
-    queryKey: Queries.leaderboard.key(page, pageSize),
+    queryKey: Queries.leaderboard.key(type, page, pageSize),
     queryFn: () =>
       callActorMutation(users_index,
         isBTC ? 'get_pure_poker_experience_points' : 'get_experience_points_leaderboard',
