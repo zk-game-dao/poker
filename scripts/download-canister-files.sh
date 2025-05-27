@@ -54,3 +54,10 @@ download_if_not_exists "https://raw.githubusercontent.com/AstroxNetwork/ic-siwb/
 
 download_if_not_exists "https://github.com/AstroxNetwork/ic-siwb/raw/refs/heads/main/packages/ic_siwb_provider/ic_siwb_provider.wasm.gz" "$DIR/ic_siwb_provider.wasm.gz"
 [ -f "$DIR/ic_siwb_provider.wasm" ] || gunzip -k "$DIR/ic_siwb_provider.wasm.gz"
+
+echo "Downloading and extracting .did files asset storage for local deployment..."
+mkdir -p .dfx/local/canisters/app_frontend && \
+curl -o .dfx/local/canisters/app_frontend/assetstorage.did https://raw.githubusercontent.com/jamesbeadle/OpenFPL/4ae9346d84233654a6856b8d05defa4df8a66346/candid/assetstorage.did
+
+mkdir -p .dfx/local/canisters/btc_frontend && \
+curl -o .dfx/local/canisters/btc_frontend/assetstorage.did https://raw.githubusercontent.com/jamesbeadle/OpenFPL/4ae9346d84233654a6856b8d05defa4df8a66346/candid/assetstorage.did
