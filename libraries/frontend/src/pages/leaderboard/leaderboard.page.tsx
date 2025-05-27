@@ -99,9 +99,9 @@ export const LeaderboardPage = memo(() => {
             >Verify your account</Interactable>{' and compete '}</>}
             Compete for a spot in the Top 5 to claim your share of the {TokenAmountToString(jackpot, meta)} {CurrencyToString(currency)} weekly prize pool!
             <div className='type-body mt-4'>
-              You are currently {type === 'all' ? 'seeing all users' : 'only seeing verified users'}
+              You are currently {type === 'all' ? 'seeing all users' : 'only seeing verified users'}.
               <Interactable className='underline hover:no-underline ml-1' href={`/leaderboard/${type === 'all' ? 'verified' : 'all'}`}>
-                {type === 'all' ? 'Switch to verified users' : 'Switch to all users'}
+                {type === 'all' ? 'Show verified users' : 'Show all users'}
               </Interactable>
             </div>
           </>
