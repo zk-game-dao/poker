@@ -8,9 +8,9 @@ const UserContext = createContext<{
   actor?: _SERVICE;
   isLoading: boolean;
   show(): void;
-  /** @deprecated */
+  /** @deprecated use show instead */
   showProfile(): void;
-  /** @deprecated */
+  /** @deprecated use show instead */
   showSignup(): void;
 }>({
   isLoading: true,

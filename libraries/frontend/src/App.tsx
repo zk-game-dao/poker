@@ -36,7 +36,19 @@ const BuildRouter = (theme: Omit<ThemeContextType, 'setShownCurrencyType'>) => {
     { path: "rules", element: <HouseRulesPage /> },
     { path: "contact", element: <ContactPage /> },
     { path: "store", element: <StorePage /> },
-    { path: "leaderboard", element: <LeaderboardPage /> },
+    {
+      path: "leaderboard",
+      children: [
+        {
+          path: "",
+          loader: redirectLoader("/leaderboard/verified"),
+        },
+        {
+          path: ":type",
+          element: <LeaderboardPage />,
+        }
+      ]
+    },
     { path: "cash-games", element: <LobbyPage /> },
     { path: "changelog", element: <ChangelogPage markdown={theme.changelogMarkdown} /> },
     { path: "roadmap", element: <RoadmapPage markdown={theme.roadmapMarkdown} /> },
