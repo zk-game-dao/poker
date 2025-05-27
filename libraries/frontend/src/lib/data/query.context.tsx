@@ -90,10 +90,10 @@ export const Queries = {
     ],
   ),
 
-  leaderboard: queryKeyFactory((page: bigint, pageSize: bigint) => [
-    "leaderboard", page.toString(), pageSize.toString()
+  leaderboard: queryKeyFactory((type: 'verified' | 'all', page: bigint, pageSize: bigint) => [
+    "leaderboard", type, page.toString(), pageSize.toString()
   ]),
-  leaderboardSize: queryKeyFactory(() => ["leaderboard-size"]),
+  leaderboardSize: queryKeyFactory((type: 'verified' | 'all') => ["leaderboard-size", type]),
 
   userExperiencePoints: queryKeyFactory((canisterId?: Principal) => [
     "user-experience-points",
