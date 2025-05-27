@@ -123,7 +123,7 @@ const BasicsStepComponent = memo<StepComponentProps<BasicsStepValues>>(({ data, 
         />
         <RealCurrencyInputComponent
           label={<>Token <Tooltips.token /></>}
-          value={!data.currency || 'Fake' in data.currency ? undefined : { ICP: null }}
+          value={!data.currency || 'Fake' in data.currency ? undefined : data.currency.Real}
           onChange={(currency) => patch({ currency: !currency ? undefined : { Real: currency } })}
         />
 
