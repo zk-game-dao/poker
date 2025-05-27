@@ -4,6 +4,7 @@
 
 ### Added
 - Add DAO announcement banner.
+- Add upgrade canister functions.
 
 ### Fixed
 - Leaderboard will only pay out to POH verified players.
