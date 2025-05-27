@@ -27,7 +27,7 @@ description: >
 # Must have less than 341,334 bytes. The only supported format is PNG.
 # Consider that NNS dapp will render the image with a 1:1 aspect ratio and
 # cropped to a circle.
-logo: logo.png
+logo: ./src/app_frontend/public/logo.png
 
 # URL that represents the SNS, usually a dapp controlled by the SNS project.
 # Must be a string from 10 to 512 bytes, and the domain must be HTTPS.
@@ -123,7 +123,7 @@ Token:
     # Path to the SNS token logo on your local filesystem. The path is relative
     # to the configuration file location, unless an absolute path is given.
     # Must have less than 341,334 bytes. The only supported format is PNG.
-    logo: logo.png
+    logo: ./src/app_frontend/public/logo.png
 
 # Configures SNS proposal-related fields. These fields define the initial values
 # for some of the nervous system parameters related to SNS proposals. This will
@@ -428,7 +428,7 @@ Swap:
     # the swap to succeed. If this amount is not achieved, the swap will be
     # aborted (instead of committed) when the due date/time occurs.
     # Must be smaller than or equal than `maximum_direct_participation_icp`.
-    minimum_direct_participation_icp: 250_000 tokens
+    minimum_direct_participation_icp: 150_000 tokens
 
     # Maximum amount of ICP from direct participants. If this amount is achieved,
     # the swap will finalize immediately, without waiting for the due date/time;
