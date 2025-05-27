@@ -759,7 +759,7 @@ async fn upgrade_all_user_canisters() -> Result<Vec<(Principal, CanisterManageme
 
     let users: Vec<Principal> = {
         let user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
-        user_index_state.get_user_canisters()
+        user_index_state.get_users_canisters()
     };
 
     let wasm_module = USER_CANISTER_WASM.to_vec();
