@@ -2,6 +2,9 @@
 
 ## [2.3.1] - 2025-05-26
 
+### Added
+- Add DAO announcement banner.
+
 ### Fixed
 - Leaderboard will only pay out to POH verified players.
 
@@ -11,7 +14,6 @@
 
 - Add min max buttons for some token inputs.
 - Add new inline chat system.
-- 
 
 ### Fixed
 
