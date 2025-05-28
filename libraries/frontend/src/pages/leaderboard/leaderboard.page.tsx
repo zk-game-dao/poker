@@ -39,7 +39,7 @@ const ENDPOINTS = {
 
 type LeaderboardType = keyof typeof ENDPOINTS;
 
-export const LeaderboardPage = memo(() => {
+export const LeaderboardPage = memo<{ disableVerifiedLeaderboard?: boolean }>(({ disableVerifiedLeaderboard = false }) => {
   // const [page, setPage] = useState(0n);
   const pageSize = useMemo(() => 50n, []);
   const { show, user } = useUser();
@@ -53,7 +53,8 @@ export const LeaderboardPage = memo(() => {
   }, [params]);
   const setPage = (newPage: bigint) => setParams({ page: newPage.toString() });
 
-  const { type = 'verified' } = useParams<{ type?: LeaderboardType }>()
+  const { type: _type = 'verified' } = useParams<{ type?: LeaderboardType }>()
+  const type = useMemo(() => disableVerifiedLeaderboard ? 'all' : _type, [_type, disableVerifiedLeaderboard]);
 
   const leaderboardSize = useQuery({
     queryKey: Queries.leaderboardSize.key(type),
@@ -82,7 +83,6 @@ export const LeaderboardPage = memo(() => {
   const jackpot = useMemo(() => Object.values(jackpots).flatMap(v => v).reduce((a, b) => a + b, 0n), [Object.values(jackpots)]);
   const meta = useCurrencyManagerMeta({ Real: currency });
 
-
   return (
     <LayoutComponent
       footer
@@ -92,18 +92,26 @@ export const LeaderboardPage = memo(() => {
           <>
             Track your progress and see how you stack up against other players in {wording.product}'s XP Rewards System.
             <br />
-            {user && <>
-            <Interactable
-              className='inline underline hover:no-underline text-material-heavy-2 '
-              onClick={show}
-            >Verify your account</Interactable>{' and compete '}</>}
+            {!disableVerifiedLeaderboard && user && (
+              <>
+                <Interactable
+                  className='inline underline hover:no-underline text-material-heavy-2 '
+                  onClick={show}
+                >
+                  Verify your account
+                </Interactable>
+                {' and compete '}
+              </>
+            )}
             Compete for a spot in the Top 5 to claim your share of the {TokenAmountToString(jackpot, meta)} {CurrencyToString(currency)} weekly prize pool!
-            <div className='type-body mt-4'>
-              You are currently {type === 'all' ? 'seeing all users' : 'only seeing verified users'}.
-              <Interactable className='underline hover:no-underline ml-1' href={`/leaderboard/${type === 'all' ? 'verified' : 'all'}`}>
-                {type === 'all' ? 'Show verified users' : 'Show all users'}
-              </Interactable>
-            </div>
+            {!disableVerifiedLeaderboard && (
+              <div className='type-body mt-4'>
+                You are currently {type === 'all' ? 'seeing all users' : 'only seeing verified users'}.
+                <Interactable className='underline hover:no-underline ml-1' href={`/leaderboard/${type === 'all' ? 'verified' : 'all'}`}>
+                  {type === 'all' ? 'Show verified users' : 'Show all users'}
+                </Interactable>
+              </div>
+            )}
           </>
         ),
         ctas: [
