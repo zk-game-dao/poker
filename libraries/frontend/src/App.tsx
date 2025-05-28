@@ -60,10 +60,8 @@ const BuildRouter = (theme: Omit<ThemeContextType, 'setShownCurrencyType'>) => {
       path: "tables",
       children: [{ path: ":tableId", element: <TablePage /> }],
     },
+    TournamentsRouter,
   ];
-
-  if (!theme.hideTournaments)
-    children.push(TournamentsRouter);
 
   return createBrowserRouter([
     {

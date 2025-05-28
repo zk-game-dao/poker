@@ -4,7 +4,6 @@ import { CurrencyType } from '@zk-game-dao/currency';
 import { UIConfig } from '@zk-game-dao/ui';
 
 export type ThemeContextType = {
-  hideTournaments: boolean;
   isBTC: boolean;
   shownCurrencyType: CurrencyType;
 
@@ -17,7 +16,6 @@ export type ThemeContextType = {
 } & Pick<UIConfig, 'banner'>;
 
 export const ThemeContext = createContext<ThemeContextType>({
-  hideTournaments: false,
   isBTC: false,
   shownCurrencyType: { Fake: null },
   setShownCurrencyType: () => { },

@@ -107,7 +107,7 @@ export const RootComponent = memo<Omit<ThemeContextType, 'setShownCurrencyType'>
                 // { type: "link", label: "Profile", onClick: () => theme.showProfile() },
                 { type: "link", label: "Cash games", href: "/cash-games" },
                 { type: "link", label: "Leaderboard", href: "/leaderboard" },
-                { type: "link", label: "Tournaments", comingSoon: theme.hideTournaments, href: "/tournaments" },
+                { type: "link", label: "Tournaments", href: "/tournaments" },
                 { type: "seperator" },
                 { type: "link", label: "Roadmap", href: "/roadmap" },
                 { type: "link", label: "Changelog", href: "/changelog" },
