@@ -14,7 +14,6 @@ export const App = memo(() => (
     becomeAHostMarkdown={becomeAHost}
     changelogMarkdown={changelog}
     isBTC
-    hideTournaments
     shownCurrencyType={{ Real: { BTC: null } }}
   />
 ));

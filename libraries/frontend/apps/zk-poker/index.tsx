@@ -15,7 +15,6 @@ export const App = memo(() => (
     changelogMarkdown={changelog}
 
     isBTC={false}
-    hideTournaments={false}
     shownCurrencyType={{ Real: { ICP: null } }} />
 ));
 App.displayName = 'App';
