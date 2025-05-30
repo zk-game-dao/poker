@@ -1,5 +1,12 @@
 # Changelog
 
+## WIP
+
+### Fixed
+- Internet identity idle timeout increased to 1 day.
+- Rendering of token icons now also shows in-line.
+- `"No EIP-6963 wallets found"` warning message improved.
+
 ## [2.3.1] - 2025-05-26
 
 ### Added

@@ -91,7 +91,7 @@
     "@web3auth/no-modal": "^9.5.4",
     "@web3auth/passkeys-sfa-plugin": "^9.0.0",
     "@web3auth/solana-provider": "^9.5.1",
-    "@zk-game-dao/currency": "^0.3.41",
+    "@zk-game-dao/currency": "^0.4.0",
     "@zk-game-dao/ui": "^0.2.12",
     "analytics": "^0.8.14",
     "autoprefixer": "^10.4.19",
