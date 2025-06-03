@@ -97,22 +97,22 @@ type NumericEntity = record {
   last : nat64;
 };
 type Result = variant { Ok : User; Err : UserError };
-type Result_1 = variant { Ok : opt text; Err : UserError };
+type Result_1 = variant { Ok; Err : UserError };
 type Result_10 = variant {
   Ok : vec record { principal; CanisterManagementError };
   Err : UserError;
 };
-type Result_2 = variant {
+type Result_2 = variant { Ok : opt text; Err : UserError };
+type Result_3 = variant {
   Ok : vec record { principal; nat64 };
   Err : UserError;
 };
-type Result_3 = variant { Ok : opt nat64; Err : UserError };
-type Result_4 = variant { Ok : nat64; Err : UserError };
-type Result_5 = variant { Ok : nat; Err : UserError };
-type Result_6 = variant { Ok : vec principal; Err : UserError };
-type Result_7 = variant { Ok : vec record { principal; nat }; Err : UserError };
-type Result_8 = variant { Ok : principal; Err : UserError };
-type Result_9 = variant { Ok; Err : UserError };
+type Result_4 = variant { Ok : opt nat64; Err : UserError };
+type Result_5 = variant { Ok : nat64; Err : UserError };
+type Result_6 = variant { Ok : nat; Err : UserError };
+type Result_7 = variant { Ok : vec principal; Err : UserError };
+type Result_8 = variant { Ok : vec record { principal; nat }; Err : UserError };
+type Result_9 = variant { Ok : principal; Err : UserError };
 type StatusRequest = record {
   memory_size : bool;
   cycles : bool;
@@ -123,22 +123,6 @@ type StatusResponse = record {
   cycles : opt nat64;
   heap_memory_size : opt nat64;
 };
-type Transaction = record {
-  transaction_id : nat64;
-  transaction_type : TransactionType;
-  currency : opt text;
-  timestamp : nat64;
-  amount : nat64;
-};
-type TransactionType = variant {
-  Withdraw;
-  Deposit;
-  TableWithdraw : record { table_id : principal };
-  Transfer : record { recipient : principal; transfer_type : TransferType };
-  TableDeposit : record { table_id : principal };
-  Receive : record { sender : principal; transfer_type : TransferType };
-};
-type TransferType = variant { CardShowRequest };
 type UpdateInformationRequest = record {
   metrics : opt CollectMetricsRequestType;
 };
@@ -149,10 +133,9 @@ type User = record {
   referrer : opt principal;
   eth_wallet_address : opt text;
   balance : nat64;
-  referred_users : opt vec principal;
+  referred_users : opt vec record { principal; nat64 };
   is_verified : opt bool;
   address : opt text;
-  transaction_history : opt vec Transaction;
   principal_id : principal;
   referral_start_date : opt nat64;
   active_tables : vec principal;
@@ -191,34 +174,35 @@ service : () -> {
   create_user : (text, opt text, principal, opt UserAvatar, opt principal) -> (
       Result,
     );
+  delete_users_canister : (principal) -> (Result_1);
   deposit : (principal, nat64, nat64) -> (Result);
   getCanistergeekInformation : (GetInformationRequest) -> (
       GetInformationResponse,
     ) query;
-  get_account_number : () -> (Result_1) query;
+  get_account_number : () -> (Result_2) query;
   get_cycles : () -> (text) query;
-  get_experience_points_leaderboard : (nat64, nat64) -> (Result_2);
-  get_experience_points_position : (principal) -> (Result_3);
-  get_leaderboard_length : () -> (Result_4) query;
-  get_number_of_registered_users : () -> (Result_4) query;
-  get_pure_poker_experience_points : (nat64, nat64) -> (Result_2);
-  get_pure_poker_position : (principal) -> (Result_3);
+  get_experience_points_leaderboard : (nat64, nat64) -> (Result_3);
+  get_experience_points_position : (principal) -> (Result_4);
+  get_leaderboard_length : () -> (Result_5) query;
+  get_number_of_registered_users : () -> (Result_5) query;
+  get_pure_poker_experience_points : (nat64, nat64) -> (Result_3);
+  get_pure_poker_position : (principal) -> (Result_4);
   get_stable_storage_stats : () -> (text) query;
   get_user : (principal) -> (Result);
   get_user_by_principal : (principal) -> (Result);
-  get_user_canister_cycles : (principal) -> (Result_5) query;
-  get_user_canisters : () -> (Result_6) query;
-  get_user_canisters_cycles : () -> (Result_7) query;
-  get_users_canister_principal_by_id : (principal) -> (Result_8);
-  get_verified_experience_points_leaderboard : (nat64, nat64) -> (Result_2);
-  get_verified_experience_points_leaderboard_length : () -> (Result_4);
-  get_verified_pure_poker_experience_points : (nat64, nat64) -> (Result_2);
-  monitor_and_top_up_user_canisters : () -> (Result_9);
+  get_user_canister_cycles : (principal) -> (Result_6) query;
+  get_user_canisters : () -> (Result_7) query;
+  get_user_canisters_cycles : () -> (Result_8) query;
+  get_users_canister_principal_by_id : (principal) -> (Result_9);
+  get_verified_experience_points_leaderboard : (nat64, nat64) -> (Result_3);
+  get_verified_experience_points_leaderboard_length : () -> (Result_5);
+  get_verified_pure_poker_experience_points : (nat64, nat64) -> (Result_3);
+  monitor_and_top_up_user_canisters : () -> (Result_1);
   ping : () -> (text) query;
-  request_cycles : () -> (Result_9);
-  support_us : (principal, nat64) -> (Result_9);
-  top_up_user_canister : (principal, nat) -> (Result_9);
-  transfer : (principal, principal, nat64) -> (Result_9);
+  request_cycles : () -> (Result_1);
+  support_us : (principal, nat64) -> (Result_1);
+  top_up_user_canister : (principal, nat) -> (Result_1);
+  transfer : (principal, principal, nat64) -> (Result_1);
   updateCanistergeekInformation : (UpdateInformationRequest) -> ();
   update_user : (
       principal,
@@ -230,6 +214,6 @@ service : () -> {
       opt UserAvatar,
     ) -> (Result);
   upgrade_all_user_canisters : () -> (Result_10);
-  upgrade_user_canister : (principal) -> (Result_9);
+  upgrade_user_canister : (principal) -> (Result_1);
   withdraw : (principal, principal, nat64) -> (Result);
 }
