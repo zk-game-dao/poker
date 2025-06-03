@@ -1,6 +1,5 @@
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
-use ic_stable_structures::DefaultMemoryImpl;
-use ic_stable_structures::Vec;
+use ic_stable_structures::{BTreeMap, DefaultMemoryImpl};
 use std::cell::RefCell;
 use user::user::User;
 
@@ -15,10 +14,10 @@ thread_local! {
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
      // Use StableVec to store the vector of users
-     static STABLE_USERS: RefCell<Vec<User, Memory>> = RefCell::new(
-        Vec::init(
+     static STABLE_USERS: RefCell<BTreeMap<u64, User, Memory>> = RefCell::new(
+        BTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0)))
-        ).unwrap()
+        )
     );
 }
 
@@ -30,25 +29,18 @@ fn pre_upgrade() {
     let res = std::panic::catch_unwind(|| {
         if let Ok(users) = USERS.lock() {
             STABLE_USERS.with(|stable_users_ref| {
-                let stable_users = stable_users_ref.borrow_mut();
-
-                // Clear existing stable storage
-                while !stable_users.is_empty() {
-                    let _ = stable_users.pop();
+                let mut stable_users = stable_users_ref.borrow_mut();
+                // Delete old data
+                stable_users.clear_new();
+                
+                // Store users with transaction_history removed
+                for (i, user) in users.iter().enumerate() {
+                    let mut user_clone = user.clone();
+                    user_clone.transaction_history = None; // Affects stored data
+                    stable_users.insert(i as u64, user_clone);
                 }
-
-                // Store each user in the stable vector
-                for user in users.iter() {
-                    if let Err(e) = stable_users.push(user) {
-                        ic_cdk::println!("Error storing user: {:?}", e);
-                    }
-                }
-
-                ic_cdk::println!(
-                    "Successfully stored {} users in stable memory",
-                    stable_users.len()
-                );
             });
+            
         } else {
             ic_cdk::println!("Failed to acquire USERS lock during pre_upgrade");
         }
@@ -71,13 +63,10 @@ fn post_upgrade() {
 
             STABLE_USERS.with(|stable_users_ref| {
                 let stable_users = stable_users_ref.borrow();
-                let len = stable_users.len();
 
                 // Retrieve each user from stable storage
-                for i in 0..len {
-                    if let Some(user) = stable_users.get(i) {
-                        users.push(user);
-                    }
+                for user in stable_users.values() {
+                    users.push(user);
                 }
 
                 ic_cdk::println!(
