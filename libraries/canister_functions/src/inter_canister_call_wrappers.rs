@@ -543,9 +543,7 @@ pub async fn ensure_principal_is_controller(
     // Check if the principal is already a controller
     let is_already_controller = canister_status
         .settings
-        .controllers
-        .iter()
-        .any(|controller| *controller == principal);
+        .controllers.contains(&principal);
 
     // If principal is already a controller, we're done
     if is_already_controller {
