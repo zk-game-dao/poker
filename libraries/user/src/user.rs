@@ -2,58 +2,10 @@ use candid::{CandidType, Decode, Encode, Principal};
 use serde::{Deserialize, Serialize};
 
 use ic_stable_structures::{storable::Bound, Storable};
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 const MAX_VALUE_SIZE: u32 = 200_000_000;
 pub const REFERRAL_PERIOD: u64 = 30 * 24 * 60 * 60 * 1_000_000_000;
-
-
-#[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
-pub struct Transaction {
-    pub transaction_id: u64,
-    pub amount: u64,
-    pub transaction_type: TransactionType,
-    pub timestamp: u64,
-    pub currency: Option<String>,
-}
-
-impl Transaction {
-    pub fn new(
-        transaction_id: u64,
-        amount: u64,
-        transaction_type: TransactionType,
-        timestamp: u64,
-        currency: Option<String>,
-    ) -> Transaction {
-        Transaction {
-            transaction_id,
-            amount,
-            transaction_type,
-            timestamp,
-            currency,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
-pub enum TransactionType {
-    Deposit,
-    Withdraw,
-    TableDeposit {
-        table_id: Principal,
-    },
-    TableWithdraw {
-        table_id: Principal,
-    },
-    Transfer {
-        recipient: Principal,
-        transfer_type: TransferType,
-    },
-    Receive {
-        sender: Principal,
-        transfer_type: TransferType,
-    },
-}
 
 #[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub enum TransferType {
@@ -87,7 +39,6 @@ pub struct User {
     pub active_tables: Vec<Principal>,
     pub enlarge_text: Option<bool>,
     pub volume_level: Option<u16>,
-    pub transaction_history: Option<Vec<Transaction>>,
     pub eth_wallet_address: Option<String>,
     experience_points: Option<u64>,
     pub is_verified: Option<bool>,
@@ -95,7 +46,7 @@ pub struct User {
 
     /// Referral system fields
     pub referrer: Option<Principal>,
-    pub referred_users: Option<Vec<Principal>>,
+    pub referred_users: Option<HashMap<Principal, u64>>,
     pub referral_start_date: Option<u64>, // Timestamp when user was referred
 }
 
@@ -122,13 +73,12 @@ impl User {
             active_tables: Vec::new(),
             enlarge_text: None,
             volume_level: None,
-            transaction_history: None,
             experience_points: Some(0),
             eth_wallet_address,
             is_verified: None,
             experience_points_pure_poker: Some(0),
             referrer,
-            referred_users: Some(Vec::new()),
+            referred_users: Some(HashMap::new()),
             referral_start_date,
         }
     }
@@ -196,36 +146,6 @@ impl User {
         self.balance -= amount;
     }
 
-    /// Add a transaction to the user's transaction history.
-    ///
-    /// # Parameters
-    ///
-    /// - `transaction` - The transaction to add.
-    pub fn add_transaction(
-        &mut self,
-        amount: u64,
-        transaction_type: TransactionType,
-        timestamp: Option<u64>,
-        currency: Option<String>,
-    ) {
-        let timestamp = timestamp.unwrap_or(ic_cdk::api::time());
-        if let Some(transaction_history) = &mut self.transaction_history {
-            let transaction = Transaction::new(
-                transaction_history.len() as u64,
-                amount,
-                transaction_type,
-                timestamp,
-                currency,
-            );
-            transaction_history.push(transaction);
-            purge_old_transactions(transaction_history);
-        } else {
-            let transaction =
-                Transaction::new(0_u64, amount, transaction_type, timestamp, currency);
-            self.transaction_history = Some(vec![transaction]);
-        }
-    }
-
     /// Gets the user's level
     ///
     /// # Returns
@@ -288,7 +208,7 @@ impl User {
     }
 
     pub fn get_referral_tier(&self) -> u8 {
-        let referral_count = self.referred_users.as_ref().unwrap_or(&Vec::new()).len();
+        let referral_count = self.referred_users.as_ref().unwrap_or(&HashMap::new()).len();
         match referral_count {
             0..=3 => 1,
             4..=9 => 2,
@@ -312,10 +232,16 @@ impl User {
     }
     
     pub fn add_referred_user(&mut self, user_id: Principal) {
-        let referred_users = self.referred_users.get_or_insert_with(Vec::new);
-        if !referred_users.contains(&user_id) {
-            referred_users.push(user_id);
+        let referred_users = self.referred_users.get_or_insert_with(HashMap::new);
+        let timestamp = ic_cdk::api::time();
+        if !referred_users.contains_key(&user_id) {
+            referred_users.insert(user_id, timestamp);
         }
+
+        // Check for all referred users and remove those who are no longer within the referral period
+        referred_users.retain(|_, &mut time| {
+            timestamp + REFERRAL_PERIOD > time 
+        });
     }
     
     pub fn is_within_referral_period(&self) -> bool {
@@ -327,12 +253,6 @@ impl User {
             false
         }
     }
-}
-
-/// Purges all transactions older than 6 months from the user's transaction history.
-fn purge_old_transactions(transaction_history: &mut Vec<Transaction>) {
-    let six_months_ago = ic_cdk::api::time() - 6 * 30 * 24 * 60 * 60 * 1_000_000_000;
-    transaction_history.retain(|transaction| transaction.timestamp >= six_months_ago);
 }
 
 // For a type to be used in a `StableBTreeMap`, it needs to implement the `Storable`
@@ -368,13 +288,12 @@ impl Storable for User {
                 active_tables: Vec::new(),
                 enlarge_text: None,
                 volume_level: None,
-                transaction_history: None,
                 experience_points: Some(0),
                 eth_wallet_address: None,
                 is_verified: None,
                 experience_points_pure_poker: Some(0),
                 referrer: None,
-                referred_users: Some(Vec::new()),
+                referred_users: Some(HashMap::new()),
                 referral_start_date: None,
             }
         })

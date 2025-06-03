@@ -1,3 +1,4 @@
+use candid::Principal;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{BTreeMap, DefaultMemoryImpl};
 use std::cell::RefCell;
@@ -14,7 +15,7 @@ thread_local! {
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
      // Use StableVec to store the vector of users
-     static STABLE_USERS: RefCell<BTreeMap<u64, User, Memory>> = RefCell::new(
+     static STABLE_USERS: RefCell<BTreeMap<Principal, User, Memory>> = RefCell::new(
         BTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0)))
         )
@@ -34,10 +35,8 @@ fn pre_upgrade() {
                 stable_users.clear_new();
                 
                 // Store users with transaction_history removed
-                for (i, user) in users.iter().enumerate() {
-                    let mut user_clone = user.clone();
-                    user_clone.transaction_history = None; // Affects stored data
-                    stable_users.insert(i as u64, user_clone);
+                for (uid, user) in users.iter() {
+                    stable_users.insert(*uid, user.clone());
                 }
             });
             
@@ -65,8 +64,8 @@ fn post_upgrade() {
                 let stable_users = stable_users_ref.borrow();
 
                 // Retrieve each user from stable storage
-                for user in stable_users.values() {
-                    users.push(user);
+                for (uid, user) in stable_users.iter() {
+                    users.insert(uid, user);
                 }
 
                 ic_cdk::println!(
