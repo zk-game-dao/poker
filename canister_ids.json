@@ -26,12 +26,6 @@
   "tournament_index": {
     "ic": "zocwf-5qaaa-aaaam-qdfaq-cai"
   },
-  "user_canister": {
-    "ic": "zirex-paaaa-aaaam-qbe3a-cai"
-  },
-  "user_index": {
-    "ic": "zpqcd-cyaaa-aaaam-qbe3q-cai"
-  },
   "users_canister": {
     "ic": "laxmp-mqaaa-aaaam-qdsvq-cai"
   },
