@@ -33,9 +33,9 @@ use table::{
     utils::is_table_game_ongoing,
 };
 use tournaments::tournaments::types::UserTournamentAction;
-use user::user::{TransactionType, User, REFERRAL_PERIOD};
+use user::user::{User, REFERRAL_PERIOD};
 use utils::{
-    get_user_index_principal, handle_cycle_check, handle_table_validity_check, log_user_transaction, update_player_count_tournament, update_table_player_count
+    get_user_index_principal, handle_cycle_check, handle_last_user_leaving, handle_table_validity_check, update_player_count_tournament, update_table_player_count
 };
 
 pub mod canister_geek;
@@ -189,11 +189,6 @@ async fn join_table(
         CurrencyType::Fake => {}
     }
 
-    let currency_type = match table.config.currency_type {
-        CurrencyType::Real(currency) => currency.to_string(),
-        CurrencyType::Fake => "Fake".to_string(),
-    };
-
     let (user,): (Result<User, UserError>,) = ic_cdk::call(
         users_canister_principal,
         "add_active_table",
@@ -255,24 +250,6 @@ async fn join_table(
                         .remove_user(users_canister_principal, ActionType::Leave)
                         .map_err(|e| e.into_inner())?;
                     return Err(e.into());
-                }
-            }
-            match log_user_transaction(
-                users_canister_principal,
-                user_id,
-                deposit_amount,
-                TransactionType::TableDeposit { table_id: table.id },
-                None,
-                Some(currency_type.clone()),
-            )
-            .await
-            {
-                Ok(_) => {}
-                Err(e) => {
-                    ic_cdk::println!("Error logging user transaction: {:?}", e);
-
-                    remove_users_active_table(users_canister_principal, user_id).await?;
-                    return Err(e);
                 }
             }
         }
@@ -340,11 +317,6 @@ async fn kick_player(
         table.clone()
     };
 
-    let currency_type = match &table.config.currency_type.clone() {
-        CurrencyType::Real(currency) => currency.to_string(),
-        CurrencyType::Fake => "Fake".to_string(),
-    };
-
     match &table.config.currency_type {
         CurrencyType::Real(currency) => {
             ic_cdk::println!("Balance: {}", balance);
@@ -368,16 +340,6 @@ async fn kick_player(
                 currency_manager
                     .withdraw(currency, user_id, balance)
                     .await?;
-                let amount = balance - fee;
-                log_user_transaction(
-                    users_canister_principal,
-                    user_id,
-                    amount,
-                    TransactionType::TableWithdraw { table_id: table.id },
-                    None,
-                    Some(currency_type),
-                )
-                .await?;
             }
         }
         CurrencyType::Fake => {}
@@ -400,6 +362,11 @@ async fn kick_player(
     let caller = ic_cdk::api::caller();
     table.hide_cards(caller).map_err(|e| e.into_inner())?;
     let _ = update_table_player_count(table.users.len());
+
+    if table.users.users.len() == 0 {
+        handle_last_user_leaving()
+            .await?;
+    }
 
     Ok(table.into())
 }
@@ -455,11 +422,6 @@ async fn leave_table(
         (table.clone(), balance)
     };
 
-    let currency_type = match &table.config.currency_type.clone() {
-        CurrencyType::Real(currency) => currency.to_string(),
-        CurrencyType::Fake => "Fake".to_string(),
-    };
-
     match &table.config.currency_type {
         CurrencyType::Real(currency) => {
             ic_cdk::println!("Balance: {}", balance);
@@ -483,16 +445,6 @@ async fn leave_table(
                 currency_manager
                     .withdraw(currency, user_id, balance)
                     .await?;
-                let amount = balance - fee;
-                log_user_transaction(
-                    users_canister_id,
-                    user_id,
-                    amount,
-                    TransactionType::TableWithdraw { table_id: table.id },
-                    None,
-                    Some(currency_type),
-                )
-                .await?;
             }
         }
         CurrencyType::Fake => {}
@@ -520,6 +472,11 @@ async fn leave_table(
     };
     if let Err(e) = res {
         ic_cdk::println!("Error updating table player count: {:?}", e);
+    }
+
+    if table.users.users.len() == 0 {
+        handle_last_user_leaving()
+            .await?;
     }
 
     Ok(table.into())
@@ -590,7 +547,6 @@ async fn leave_table_for_table_balancing(
 
 #[ic_cdk::update]
 async fn withdraw_from_table(
-    users_canister_id: Principal,
     user_id: Principal,
     amount: u64,
 ) -> Result<(), TableError> {
@@ -638,11 +594,6 @@ async fn withdraw_from_table(
         table.clone()
     };
 
-    let currency_type = match table.config.currency_type {
-        CurrencyType::Real(currency) => currency.to_string(),
-        CurrencyType::Fake => "Fake".to_string(),
-    };
-
     match table.config.currency_type {
         CurrencyType::Real(currency) => {
             let currency_manager = {
@@ -657,16 +608,6 @@ async fn withdraw_from_table(
             currency_manager
                 .withdraw(&currency, user_id, amount)
                 .await?;
-            let amount = amount - ic_ledger_types::DEFAULT_FEE.e8s();
-            log_user_transaction(
-                users_canister_id,
-                user_id,
-                amount,
-                TransactionType::TableWithdraw { table_id: table.id },
-                None,
-                Some(currency_type),
-            )
-            .await?;
         }
         CurrencyType::Fake => {}
     }
@@ -738,11 +679,6 @@ async fn deposit_to_table(
         table.clone()
     };
 
-    let currency_type = match table.config.currency_type {
-        CurrencyType::Real(currency) => currency.to_string(),
-        CurrencyType::Fake => "Fake".to_string(),
-    };
-
     match table.config.currency_type {
         CurrencyType::Real(currency) => {
             let currency_manager = {
@@ -782,15 +718,6 @@ async fn deposit_to_table(
                     return Err(e.into());
                 }
             }
-            log_user_transaction(
-                users_canister_id,
-                user_id,
-                amount,
-                TransactionType::TableDeposit { table_id: table.id },
-                None,
-                Some(currency_type),
-            )
-            .await?;
         }
         CurrencyType::Fake => {}
     }
@@ -1409,13 +1336,15 @@ async fn withdraw_rake(mut rake_amount: u64) -> Result<(), TableError> {
                                 ic_cdk::println!("Error distributing referral rake: {:?}", e);
                             } else {
                                 house_rake -= referrer_amount;
+                                if house_rake <= 0 {
+                                    break;
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // TODO: At some point we need to figure if we want to withdraw rake to external blockchains.
             if let Some((rake_share_principal, _rake_share_account_id)) =
                 table.config.is_shared_rake
             {
@@ -1424,36 +1353,18 @@ async fn withdraw_rake(mut rake_amount: u64) -> Result<(), TableError> {
                     .await
                 {
                     ic_cdk::println!("Error withdrawing rake: {:?}", e);
-                    let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
-                    let table = table.as_mut().ok_or(TableError::TableNotFound)?;
-                    let mut rake_total = table.rake_total.unwrap_or(0);
-                    rake_total += house_rake;
-                    table.rake_total = Some(rake_total);
-                    return Err(e.into());
                 }
                 if let Err(e) = currency_manager
                     .withdraw(&currency, rake_share_principal, rake_amount - ic_ledger_types::DEFAULT_FEE.e8s())
                     .await
                 {
                     ic_cdk::println!("Error withdrawing rake: {:?}", e);
-                    let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
-                    let table = table.as_mut().ok_or(TableError::TableNotFound)?;
-                    let mut rake_total = table.rake_total.unwrap_or(0);
-                    rake_total += rake_amount;
-                    table.rake_total = Some(rake_total);
-                    return Err(e.into());
                 }
             } else if let Err(e) = currency_manager
                 .withdraw_rake(&currency, *RAKE_WALLET_ADDRESS_PRINCIPAL, rake_amount + house_rake - ic_ledger_types::DEFAULT_FEE.e8s())
                 .await
             {
                 ic_cdk::println!("Error withdrawing rake: {:?}", e);
-                let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
-                let table = table.as_mut().ok_or(TableError::TableNotFound)?;
-                let mut rake_total = table.rake_total.unwrap_or(0);
-                rake_total += rake_amount;
-                table.rake_total = Some(rake_total);
-                return Err(e.into());
             }
         }
         CurrencyType::Fake => {}

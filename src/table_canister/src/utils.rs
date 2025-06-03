@@ -2,14 +2,12 @@ use candid::Principal;
 use canister_functions::cycle::check_and_top_up_canister;
 use errors::{
     table_error::TableError, table_index_error::TableIndexError, tournament_error::TournamentError,
-    user_error::UserError,
 };
 use ic_ledger_types::{AccountIdentifier, Subaccount};
 use table::poker::game::table_functions::types::CurrencyType;
 use tournaments::tournaments::types::UserTournamentAction;
-use user::user::TransactionType;
 
-use crate::{BACKEND_PRINCIPAL, TABLE};
+use crate::{BACKEND_PRINCIPAL, CURRENCY_MANAGER, RAKE_WALLET_ADDRESS_PRINCIPAL, TABLE};
 
 const MINIMUM_CYCLE_THRESHOLD: u128 = 350_000_000_000;
 
@@ -165,25 +163,6 @@ pub fn handle_table_validity_check() -> Result<(), TableError> {
     Ok(())
 }
 
-pub async fn log_user_transaction(
-    users_canister_principal: Principal,
-    user_id: Principal,
-    amount: u64,
-    transaction_type: TransactionType,
-    timestamp: Option<u64>,
-    currency: Option<String>,
-) -> Result<(), TableError> {
-    let (ret,): (Result<(), UserError>,) = ic_cdk::call(
-        users_canister_principal,
-        "log_transaction",
-        (user_id, amount, transaction_type, timestamp, currency),
-    )
-    .await
-    .map_err(|e| TableError::CanisterCallError(format!("{:?} {}", e.0, e.1)))?;
-    ret?;
-    Ok(())
-}
-
 pub fn get_user_index_principal(table_index_principal: Principal) -> Principal {
     if table_index_principal == Principal::from_text("zbspl-ziaaa-aaaam-qbe2q-cai").unwrap() {
         Principal::from_text("lvq5c-nyaaa-aaaam-qdswa-cai").unwrap()
@@ -192,4 +171,61 @@ pub fn get_user_index_principal(table_index_principal: Principal) -> Principal {
     } else {
         Principal::from_text("txyno-ch777-77776-aaaaq-cai").unwrap()
     }
+}
+
+pub async fn handle_last_user_leaving() -> Result<(), TableError> {
+    let table = {
+        let mut table_lock = TABLE.lock().map_err(|_| TableError::LockError)?;
+        let table = match table_lock.as_mut() {
+            Some(table) => table,
+            None => return Err(TableError::StateNotInitialized), // No table to process
+        };
+        table.rake_total = Some(0);
+        table.clone()
+    };
+    let currency_manager = {
+        let currency_manager = CURRENCY_MANAGER
+            .lock()
+            .map_err(|_| TableError::LockError)?;
+        currency_manager.clone().ok_or(TableError::StateNotInitialized)?
+    };
+
+    match table.config.currency_type {
+        CurrencyType::Real(currency) => {
+            let balance = currency_manager
+                .get_balance(&currency, ic_cdk::api::id())
+                .await
+                .map_err(|e| TableError::CanisterCallError(format!("{:?}", e)))?;
+            if balance > 0 {
+                if let Some((rake_share_principal, _rake_share_account_id)) =
+                    table.config.is_shared_rake
+                {
+                    let house_rake = balance / 2;
+                    if let Err(e) = currency_manager
+                        .withdraw_rake(&currency, *RAKE_WALLET_ADDRESS_PRINCIPAL, house_rake as u64)
+                        .await
+                    {
+                        ic_cdk::println!("Error withdrawing rake: {:?}", e);
+                    }
+                    if let Err(e) = currency_manager
+                        .withdraw(&currency, rake_share_principal, house_rake as u64)
+                        .await
+                    {
+                        ic_cdk::println!("Error withdrawing rake: {:?}", e);
+                    }
+                } else if let Err(e) = currency_manager
+                    .withdraw_rake(&currency, *RAKE_WALLET_ADDRESS_PRINCIPAL, balance as u64)
+                    .await
+                {
+                    ic_cdk::println!("Error withdrawing rake: {:?}", e);
+                }
+            }
+        }
+        CurrencyType::Fake => {
+            ic_cdk::println!("Table uses fake currency, no balance check needed.");
+            return Ok(());
+        }
+    }
+
+    Ok(())
 }
