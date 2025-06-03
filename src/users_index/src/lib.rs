@@ -2,14 +2,10 @@ use authentication::validate_caller;
 // use authentication::validate_caller;
 use candid::{Nat, Principal};
 use canister_functions::{
-    create_canister_wrapper,
-    cycle::{
+    create_canister_wrapper, cycle::{
         check_and_top_up_canister, get_cycle_balances, monitor_and_top_up_canisters,
         top_up_canister,
-    },
-    install_wasm_code,
-    rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL,
-    upgrade_wasm_code,
+    }, install_wasm_code, rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL, stop_and_delete_canister, upgrade_wasm_code
 };
 use currency::types::currency_manager::CurrencyManager;
 use errors::{canister_management_error::CanisterManagementError, user_error::UserError};
@@ -856,10 +852,12 @@ async fn delete_users_canister(
     handle_cycle_check().await?;
 
     // Delete the canister
-    ic_cdk::call(user_canister, "delete_canister", ()).await.map_err(|e| {
-        UserError::CanisterCallFailed(format!("Failed to delete canister: {:?}", e))
-    })?;
-    
+    stop_and_delete_canister(user_canister)
+        .await
+        .map_err(|e| UserError::ManagementCanisterError(CanisterManagementError::DeleteCanisterError(
+            format!("Failed to delete canister {}: {:?}", user_canister, e)
+        )))?;
+
     Ok(())
 }
 
