@@ -234,9 +234,7 @@ impl User {
     pub fn add_referred_user(&mut self, user_id: Principal) {
         let referred_users = self.referred_users.get_or_insert_with(HashMap::new);
         let timestamp = ic_cdk::api::time();
-        if !referred_users.contains_key(&user_id) {
-            referred_users.insert(user_id, timestamp);
-        }
+        referred_users.entry(user_id).or_insert(timestamp);
 
         // Check for all referred users and remove those who are no longer within the referral period
         referred_users.retain(|_, &mut time| {

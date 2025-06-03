@@ -278,9 +278,7 @@ fn get_user_level(user_id: Principal) -> Result<f64, UserError> {
 #[ic_cdk::query]
 fn get_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let experience_points = user
-        .into_iter()
-        .map(|(_, user)| (user.principal_id, user.get_experience_points()))
+    let experience_points = user.into_values().map(|user| (user.principal_id, user.get_experience_points()))
         .collect();
     Ok(experience_points)
 }
@@ -288,9 +286,7 @@ fn get_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
 #[ic_cdk::query]
 fn get_pure_poker_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let experience_points = user
-        .into_iter()
-        .map(|(_, user)| (user.principal_id, user.get_pure_poker_experience_points()))
+    let experience_points = user.into_values().map(|user| (user.principal_id, user.get_pure_poker_experience_points()))
         .collect();
     Ok(experience_points)
 }

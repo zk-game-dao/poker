@@ -34,7 +34,6 @@ fn pre_upgrade() {
                 // Delete old data
                 stable_users.clear_new();
                 
-                // Store users with transaction_history removed
                 for (uid, user) in users.iter() {
                     stable_users.insert(*uid, user.clone());
                 }

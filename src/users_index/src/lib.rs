@@ -833,4 +833,34 @@ async fn get_pure_poker_position(user_principal: Principal) -> Result<Option<u64
     get_position_in_leaderboard(user_principal, true).await
 }
 
+#[ic_cdk::update]
+async fn delete_users_canister(
+    user_canister: Principal,
+) -> Result<(), UserError> {
+    // Validate caller permissions
+    let caller = ic_cdk::api::caller();
+    if !CONTROLLER_PRINCIPALS.contains(&caller) {
+        return Err(UserError::AuthorizationError);
+    }
+
+    {
+        let mut user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
+
+        for (user_id, canister_id) in user_index_state.user_to_canister.clone().iter() {
+            if *canister_id == user_canister {
+                user_index_state.user_to_canister.remove(user_id);
+            }
+        }
+    }
+
+    handle_cycle_check().await?;
+
+    // Delete the canister
+    ic_cdk::call(user_canister, "delete_canister", ()).await.map_err(|e| {
+        UserError::CanisterCallFailed(format!("Failed to delete canister: {:?}", e))
+    })?;
+    
+    Ok(())
+}
+
 ic_cdk::export_candid!();
