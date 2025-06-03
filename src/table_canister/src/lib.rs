@@ -363,7 +363,7 @@ async fn kick_player(
     table.hide_cards(caller).map_err(|e| e.into_inner())?;
     let _ = update_table_player_count(table.users.len());
 
-    if table.users.users.len() == 0 {
+    if table.users.users.is_empty() {
         handle_last_user_leaving()
             .await?;
     }
@@ -474,7 +474,7 @@ async fn leave_table(
         ic_cdk::println!("Error updating table player count: {:?}", e);
     }
 
-    if table.users.users.len() == 0 {
+    if table.users.users.is_empty() {
         handle_last_user_leaving()
             .await?;
     }
@@ -1335,8 +1335,8 @@ async fn withdraw_rake(mut rake_amount: u64) -> Result<(), TableError> {
                             {
                                 ic_cdk::println!("Error distributing referral rake: {:?}", e);
                             } else {
-                                house_rake -= referrer_amount;
-                                if house_rake <= 0 {
+                                house_rake = house_rake.saturating_sub(referrer_amount);
+                                if house_rake == 0 {
                                     break;
                                 }
                             }
