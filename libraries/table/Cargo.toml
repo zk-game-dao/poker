@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 candid = "0.10"
 errors = { path = "../errors" }
-ic-cdk = "0.15.2"
-ic-cdk-timers = "0.6"
+ic-cdk = "0.18.3"
+ic-cdk-timers = "0.12"
 thiserror = "1.0.57"
 serde = { version = "1.0.197", features = ["derive"] }
 lazy_static = "1.4.0"

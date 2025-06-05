@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 candid = "0.10"
 errors = { path = "../errors" }
-ic-cdk = "0.15.2"
+ic-cdk = "0.18.3"
 serde = { version = "1.0.197", features = ["derive"] }
 ic-stable-structures = "0.6.5"
-ic-ledger-types = "0.13.0"
+ic-ledger-types = "0.15.0"
 serde_bytes = "0.11.15"
 user = { path = "../user" }
 table = { path = "../table" }
