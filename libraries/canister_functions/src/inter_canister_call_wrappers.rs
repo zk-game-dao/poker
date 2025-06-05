@@ -4,7 +4,7 @@ use errors::{
     tournament_index_error::TournamentIndexError, user_error::UserError,
 };
 use ic_cdk::api::management_canister::main::{
-    canister_status, update_settings, CanisterIdRecord, CanisterSettings, UpdateSettingsArgument,
+    canister_status, update_settings, CanisterIdRecord, CanisterSettings, LogVisibility, UpdateSettingsArgument
 };
 use table::{poker::game::types::PublicTable, types::ReturnResult};
 use user::user::User;
@@ -573,6 +573,8 @@ pub async fn ensure_principal_is_controller(
         memory_allocation: None,
         freezing_threshold: None,
         reserved_cycles_limit: None,
+        wasm_memory_limit: None,
+        log_visibility: None,
     };
 
     // Update the canister settings

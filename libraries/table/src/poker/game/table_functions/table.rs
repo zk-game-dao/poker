@@ -614,7 +614,7 @@ impl Table {
 
         for user_principal in self.seats.clone().into_iter() {
             if let SeatStatus::Occupied(user_principal) = user_principal {
-                #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+                // #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
                 {
                     let experience_points =
                         if let Ok(table_data) = self.get_user_table_data(user_principal) {
@@ -635,7 +635,7 @@ impl Table {
                                 match ic_cdk::call(
                                     users_canister_id,
                                     "add_experience_points",
-                                    (experience_points, currency, user_principal),
+                                    (experience_points, currency.to_string(), user_principal),
                                 )
                                 .await
                                 {

@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 candid = "0.10"
-ic-cdk = "0.12"
+ic-cdk = "0.15.2"

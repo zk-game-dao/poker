@@ -14,11 +14,10 @@ candid = "0.10"
 canister_functions = { path = "../../libraries/canister_functions" }
 currency = { git = "https://github.com/zk-game-dao/currency.git", branch = "main" }
 errors = { path = "../../libraries/errors" }
-ic-cdk = "0.12"
+ic-cdk = "0.15.2"
 ic-cdk-timers = "0.6" # Feel free to remove this dependency if you don't need timers
 thiserror = "1.0.57"
 serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
 lazy_static = "1.4.0"
 ic-ledger-types = "0.13.0"
 serde_bytes = "0.11.14"
@@ -28,9 +27,6 @@ ic-stable-structures = "0.6.5"
 table = { path = "../../libraries/table" }
 tournaments = { path = "../../libraries/tournaments" }
 user = { path = "../../libraries/user" }
-
-[dev-dependencies]
-rand = "0.8.5"
 
 [features]
 default = []

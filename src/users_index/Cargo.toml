@@ -14,7 +14,7 @@ candid = "0.10"
 canister_functions = { path = "../../libraries/canister_functions" }
 currency = { git = "https://github.com/zk-game-dao/currency.git", branch = "main" }
 errors = { path = "../../libraries/errors" }
-ic-cdk = "0.12"
+ic-cdk = "0.15.2"
 ic-cdk-timers = "0.6" # Feel free to remove this dependency if you don't need timers
 thiserror = "1.0.57"
 serde = { version = "1.0.197", features = ["derive"] }

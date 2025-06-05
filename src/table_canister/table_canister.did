@@ -538,6 +538,6 @@ service : () -> {
   start_new_betting_round : () -> (Result);
   updateCanistergeekInformation : (UpdateInformationRequest) -> ();
   update_blinds : (nat64, nat64, AnteType) -> (Result);
-  withdraw_from_table : (principal, principal, nat64) -> (Result);
+  withdraw_from_table : (principal, nat64) -> (Result);
   withdraw_rake : (nat64) -> (Result);
 }

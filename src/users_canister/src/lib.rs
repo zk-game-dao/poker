@@ -1,14 +1,13 @@
 use authentication::validate_caller;
 use candid::Principal;
 use canister_functions::cycle::check_and_top_up_canister;
-use currency::Currency;
 use errors::user_error::UserError;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
 use ic_verifiable_credentials::{
     issuer_api::CredentialSpec, validate_ii_presentation_and_claims, VcFlowSigners,
 };
 use lazy_static::lazy_static;
-use user::user::{TransactionType, User, UserAvatar};
+use user::user::{User, UserAvatar};
 
 use std::sync::Mutex;
 
@@ -242,29 +241,9 @@ fn get_cycles() -> String {
 }
 
 #[ic_cdk::update]
-fn log_transaction(
-    user_id: Principal,
-    amount: u64,
-    transaction_type: TransactionType,
-    timestamp: Option<u64>,
-    currency: Option<String>,
-) -> Result<(), UserError> {
-    handle_cycle_check();
-    let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = user
-        .iter_mut()
-        .find(|user| user.principal_id == user_id)
-        .ok_or(UserError::UserNotFound)?;
-
-    user.add_transaction(amount, transaction_type, timestamp, currency);
-
-    Ok(())
-}
-
-#[ic_cdk::update]
 fn add_experience_points(
     experience_points: u64,
-    currency: Currency,
+    currency: String,
     user_id: Principal,
 ) -> Result<User, UserError> {
     handle_cycle_check();
@@ -273,10 +252,13 @@ fn add_experience_points(
         .iter_mut()
         .find(|user| user.principal_id == user_id)
         .ok_or(UserError::UserNotFound)?;
-    match currency {
-        Currency::BTC => user.add_pure_poker_experience_points(experience_points),
-        _ => user.add_experience_points(experience_points),
+
+    if currency == "BTC".to_string() {
+        user.add_pure_poker_experience_points(experience_points);
+    } else {
+        user.add_experience_points(experience_points);
     }
+    
     Ok(user.clone())
 }
 

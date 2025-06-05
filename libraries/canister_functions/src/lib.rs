@@ -38,6 +38,8 @@ pub async fn create_canister_wrapper(
             memory_allocation: None,
             freezing_threshold: None,
             reserved_cycles_limit: None,
+            log_visibility: None,
+            wasm_memory_limit: None,
         }),
     };
 
@@ -96,7 +98,7 @@ pub async fn upgrade_wasm_code(
     wasm_module: Vec<u8>,
 ) -> Result<(), CanisterManagementError> {
     let install_code_arg = InstallCodeArgument {
-        mode: CanisterInstallMode::Upgrade,
+        mode: CanisterInstallMode::Upgrade(None),
         canister_id,
         wasm_module,
         arg: candid::encode_args(()).unwrap(),

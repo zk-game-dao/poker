@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 candid = "0.10"
 errors = { path = "../../libraries/errors" }
-ic-cdk = "0.12"
+ic-cdk = "0.15.2"
 thiserror = "1.0.57"
 serde = { version = "1.0.197", features = ["derive"] }
 lazy_static = "1.4.0"

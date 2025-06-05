@@ -1,4 +1,3 @@
-type CKTokenSymbol = variant { ETH; USDC; USDT };
 type CanisterLogFeature = variant {
   filterMessageByContains;
   filterMessageByRegex;
@@ -39,12 +38,6 @@ type CanisterMetricsData = variant {
   daily : vec DailyMetricsData;
 };
 type CollectMetricsRequestType = variant { force; normal };
-type Currency = variant {
-  BTC;
-  ICP;
-  GenericICRC1 : Token;
-  CKETHToken : CKTokenSymbol;
-};
 type DailyMetricsData = record {
   updateCalls : nat64;
   canisterHeapMemorySize : NumericEntity;
@@ -126,7 +119,6 @@ type StatusResponse = record {
   cycles : opt nat64;
   heap_memory_size : opt nat64;
 };
-type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
 type Transaction = record {
   transaction_id : nat64;
   transaction_type : TransactionType;
@@ -193,7 +185,7 @@ type UserError = variant {
 };
 service : () -> {
   add_active_table : (principal, principal) -> (Result);
-  add_experience_points : (nat64, Currency, principal) -> (Result);
+  add_experience_points : (nat64, text, principal) -> (Result);
   clear_experience_points : () -> (Result_1);
   clear_pure_poker_experience_points : () -> (Result_1);
   create_user : (
@@ -223,13 +215,6 @@ service : () -> {
   get_user_level : (principal) -> (Result_8) query;
   get_verified_pure_poker_user_experience_points : () -> (Result_5) query;
   get_verified_user_experience_points : () -> (Result_5) query;
-  log_transaction : (
-      principal,
-      nat64,
-      TransactionType,
-      opt nat64,
-      opt text,
-    ) -> (Result_1);
   ping : () -> (text) query;
   remove_active_table : (principal, principal) -> (Result);
   updateCanistergeekInformation : (UpdateInformationRequest) -> ();
