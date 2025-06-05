@@ -24,7 +24,7 @@ sha2 = "0.10.8"
 
 ic-stable-structures = "0.6.5"
 user = { path = "../../libraries/user" }
-ic-verifiable-credentials = "1.0.1"
+# ic-verifiable-credentials = "1.0.1"
 ic-canister-sig-creation = "1.2.0"
 
 [features]
