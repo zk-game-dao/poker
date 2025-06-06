@@ -308,7 +308,6 @@ impl TestEnv {
     pub fn player_withdraw(
         &self,
         table_id: Principal,
-        user_principal: Principal,
         wallet_principal_id: Principal,
         amount: u64,
     ) -> Result<(), TableError> {
@@ -317,7 +316,7 @@ impl TestEnv {
                 table_id,
                 wallet_principal_id,
                 "withdraw_from_table",
-                candid::encode_args((user_principal, wallet_principal_id, amount)).unwrap(),
+                candid::encode_args((wallet_principal_id, amount)).unwrap(),
             );
 
         match table_state {

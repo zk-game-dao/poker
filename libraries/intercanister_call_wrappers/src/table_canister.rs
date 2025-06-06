@@ -412,7 +412,7 @@ pub async fn deposit_to_table(
 
     match call_result {
         Ok(res) => match res.candid() {
-            Ok(result) => Ok(result),
+            Ok(result) => result,
             Err(err) => {
                 ic_cdk::println!("Error depositing to table: {:?}", err);
                 Err(TableError::CanisterCallError(format!(

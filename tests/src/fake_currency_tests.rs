@@ -91,6 +91,6 @@ fn withdraw_from_fake_table() {
         .unwrap();
     assert_eq!(public_table.users.len(), 2);
 
-    let res = test_env.player_withdraw(public_table.id, user_1, user_1, convert_to_e8s(50.0));
+    let res = test_env.player_withdraw(public_table.id, user_1, convert_to_e8s(50.0));
     assert!(res.is_err());
 }

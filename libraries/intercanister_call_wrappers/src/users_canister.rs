@@ -75,7 +75,7 @@ pub async fn update_user_wrapper(
     match call_result {
         Ok(user_result) => {
             match user_result.candid() {
-                Ok(user) => Ok(user),
+                Ok(user) => user,
                 Err(err) => {
                     ic_cdk::println!("Error decoding user: {:?}", err);
                     Err(UserError::CanisterCallFailed(format!(

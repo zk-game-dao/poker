@@ -12,7 +12,6 @@ mod pot;
 mod sitting_in_and_out_tests;
 mod table_tests;
 mod tournament_tests;
-mod transaction_history;
 mod turn_tests;
 mod upgrade_table_tests;
 mod upgrade_tournament_tests;
