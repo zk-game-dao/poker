@@ -42,7 +42,7 @@ lazy_static! {
 
 fn handle_cycle_check() {
     let cycles = ic_cdk::api::canister_cycle_balance();
-    if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
+    if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
     ic_cdk::futures::spawn(async {
@@ -252,7 +252,7 @@ fn add_experience_points(
         .find(|user| user.principal_id == user_id)
         .ok_or(UserError::UserNotFound)?;
 
-    if currency == "BTC".to_string() {
+    if currency == *"BTC" {
         user.add_pure_poker_experience_points(experience_points);
     } else {
         user.add_experience_points(experience_points);

@@ -39,7 +39,7 @@ pub fn get_canister_state() -> CanisterState {
 
 pub fn handle_cycle_check() {
     let cycles = ic_cdk::api::canister_cycle_balance();
-    if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
+    if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
 
@@ -97,7 +97,6 @@ pub fn update_player_count_tournament(user_action: UserTournamentAction) -> Resu
     ic_cdk::futures::spawn(async move {
         if let Err(e) = update_player_count_tournament_wrapper(backend_principal, ic_cdk::api::canister_self(), user_action).await {
             ic_cdk::println!("Failed to update player count in tournament: {:?}", e);
-            return;
         }
     });
     Ok(())
@@ -122,7 +121,6 @@ pub fn update_table_player_count(user_count: usize) -> Result<(), TableError> {
     ic_cdk::futures::spawn(async move {
         if let Err(e) = update_table_player_count_wrapper(backend_principal, ic_cdk::api::canister_self(), user_count).await {
             ic_cdk::println!("Failed to update table player count: {:?}", e);
-            return;
         }
     });
 

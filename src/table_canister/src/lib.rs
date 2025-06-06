@@ -251,7 +251,7 @@ async fn join_table(
     let is_paused = table_state.config.is_paused.unwrap_or(false);
 
     if table_state.number_of_players() >= 2 && !table_state.is_game_ongoing() && !is_paused {
-        let _res = start_new_betting_round_wrapper(ic_cdk::api::canister_self()).await?;
+        start_new_betting_round_wrapper(ic_cdk::api::canister_self()).await?;
     }
     let caller = ic_cdk::api::msg_caller();
     table_state.hide_cards(caller).map_err(|e| e.into_inner())?;
@@ -1366,7 +1366,7 @@ async fn return_all_cycles_to_index() -> Result<(), TableError> {
 
         validate_caller(vec![backend_principal, table_state.id]);
     }
-    let all_cycles = ic_cdk::api::canister_cycle_balance().saturating_sub(35_000_000_000) as u128;
+    let all_cycles = ic_cdk::api::canister_cycle_balance().saturating_sub(35_000_000_000);
     if all_cycles == 0 {
         return Err(TableError::CanisterCallError(
             "No cycles available to send".to_string(),

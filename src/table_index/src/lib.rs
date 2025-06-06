@@ -524,7 +524,7 @@ async fn request_cycles() -> Result<(), TableIndexError> {
         ));
     }
 
-    transfer_cycles(CYCLES_TOP_UP_AMOUNT as u128, caller).await
+    transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
 async fn transfer_cycles(cycles_amount: u128, caller: Principal) -> Result<(), TableIndexError> {
