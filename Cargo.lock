@@ -3894,6 +3894,7 @@ dependencies = [
  "errors",
  "ic-cdk",
  "ic-cdk-timers",
+ "ic-ledger-types",
  "ic-stable-structures",
  "lazy_static",
  "serde",

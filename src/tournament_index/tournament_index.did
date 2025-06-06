@@ -25,29 +25,6 @@ type BuyInOptions = record {
   rebuy : RebuyOptions;
 };
 type CKTokenSymbol = variant { ETH; USDC; USDT };
-type CanisterLogFeature = variant {
-  filterMessageByContains;
-  filterMessageByRegex;
-};
-type CanisterLogMessages = record {
-  data : vec LogMessageData;
-  lastAnalyzedMessageTimeNanos : opt nat64;
-};
-type CanisterLogMessagesInfo = record {
-  features : vec opt CanisterLogFeature;
-  lastTimeNanos : opt nat64;
-  count : nat32;
-  firstTimeNanos : opt nat64;
-};
-type CanisterLogRequest = variant {
-  getMessagesInfo;
-  getMessages : GetLogMessagesParameters;
-  getLatestMessages : GetLatestLogMessagesParameters;
-};
-type CanisterLogResponse = variant {
-  messagesInfo : CanisterLogMessagesInfo;
-  messages : CanisterLogMessages;
-};
 type CanisterManagementError = variant {
   CreateCanisterError : text;
   InsufficientCycles;
@@ -58,11 +35,6 @@ type CanisterManagementError = variant {
   QueryError : text;
   DeleteCanisterError : text;
   InstallCodeError : text;
-};
-type CanisterMetrics = record { data : CanisterMetricsData };
-type CanisterMetricsData = variant {
-  hourly : vec HourlyMetricsData;
-  daily : vec DailyMetricsData;
 };
 type ChatError = variant {
   EditTimeExpired : nat64;
@@ -78,7 +50,6 @@ type ChatError = variant {
   InternalError : text;
   MessageTooLong : record { max_size : nat64; current_size : nat64 };
 };
-type CollectMetricsRequestType = variant { force; normal };
 type Currency = variant {
   BTC;
   ICP;
@@ -118,13 +89,6 @@ type CustomTournamentSpeedType = record {
   initial_blind_percentage : nat8;
   level_duration_ns : nat64;
 };
-type DailyMetricsData = record {
-  updateCalls : nat64;
-  canisterHeapMemorySize : NumericEntity;
-  canisterCycles : NumericEntity;
-  canisterMemorySize : NumericEntity;
-  timeMillis : int;
-};
 type GameError = variant {
   UserAlreadyExists;
   CouldNotCalculateRake;
@@ -148,49 +112,6 @@ type GameType = variant {
   PotLimit : nat64;
   FixedLimit : record { nat64; nat64 };
 };
-type GetInformationRequest = record {
-  status : opt StatusRequest;
-  metrics : opt MetricsRequest;
-  logs : opt CanisterLogRequest;
-  version : bool;
-};
-type GetInformationResponse = record {
-  status : opt StatusResponse;
-  metrics : opt MetricsResponse;
-  logs : opt CanisterLogResponse;
-  version : opt nat;
-};
-type GetLatestLogMessagesParameters = record {
-  upToTimeNanos : opt nat64;
-  count : nat32;
-  filter : opt GetLogMessagesFilter;
-};
-type GetLogMessagesFilter = record {
-  analyzeCount : nat32;
-  messageRegex : opt text;
-  messageContains : opt text;
-};
-type GetLogMessagesParameters = record {
-  count : nat32;
-  filter : opt GetLogMessagesFilter;
-  fromTimeNanos : opt nat64;
-};
-type GetMetricsParameters = record {
-  dateToMillis : nat;
-  granularity : MetricsGranularity;
-  dateFromMillis : nat;
-};
-type HourlyMetricsData = record {
-  updateCalls : vec nat64;
-  canisterHeapMemorySize : vec nat64;
-  canisterCycles : vec nat64;
-  canisterMemorySize : vec nat64;
-  timeMillis : int;
-};
-type LogMessageData = record { timeNanos : nat64; message : text };
-type MetricsGranularity = variant { hourly; daily };
-type MetricsRequest = record { parameters : GetMetricsParameters };
-type MetricsResponse = record { metrics : opt CanisterMetrics };
 type NewTournament = record {
   min_players : nat8;
   name : text;
@@ -212,13 +133,6 @@ type NewTournamentSpeedType = variant {
   Custom : CustomTournamentSpeedType;
   HyperTurbo : nat8;
   Turbo : nat8;
-};
-type NumericEntity = record {
-  avg : nat64;
-  max : nat64;
-  min : nat64;
-  first : nat64;
-  last : nat64;
 };
 type PayoutPercentage = record { position : nat16; percentage : nat8 };
 type RebuyOptions = record {
@@ -266,16 +180,6 @@ type SpeedTypeParams = record {
 type SpinGoMultiplier = record {
   multiplier : nat64;
   payout_structure : vec PayoutPercentage;
-};
-type StatusRequest = record {
-  memory_size : bool;
-  cycles : bool;
-  heap_memory_size : bool;
-};
-type StatusResponse = record {
-  memory_size : opt nat64;
-  cycles : opt nat64;
-  heap_memory_size : opt nat64;
 };
 type TableBalancer = record {
   balance_interval_ns : nat64;
@@ -423,9 +327,6 @@ type TournamentType = variant {
   SitAndGo : TournamentSizeType;
   Freeroll : TournamentSizeType;
 };
-type UpdateInformationRequest = record {
-  metrics : opt CollectMetricsRequestType;
-};
 type UserError = variant {
   MinimumVerificationDateMismatch;
   UserAlreadyExists;
@@ -464,9 +365,6 @@ service : () -> {
   clear_pool : () -> (Result);
   create_tournament : (NewTournament, TableConfig) -> (Result_1);
   delete_tournament : (principal) -> (Result);
-  getCanistergeekInformation : (GetInformationRequest) -> (
-      GetInformationResponse,
-    ) query;
   get_account_number : () -> (Result_2) query;
   get_active_tournaments : (opt nat8) -> (vec TournamentData) query;
   get_all_tournaments : () -> (vec TournamentData) query;
@@ -491,7 +389,6 @@ service : () -> {
   purge_table_pool : () -> ();
   register_token : (principal) -> (Result_5);
   request_cycles : () -> (Result);
-  updateCanistergeekInformation : (UpdateInformationRequest) -> ();
   update_tournament_state : (principal, TournamentState) -> (Result);
   upgrade_all_tournament_canisters : () -> (Result_6);
   upgrade_tournament_canister : (principal) -> (Result);
