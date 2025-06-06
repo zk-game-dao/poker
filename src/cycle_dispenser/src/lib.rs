@@ -63,7 +63,7 @@ async fn request_cycles() -> Result<(), CanisterManagementError> {
         return Err(CanisterManagementError::InsufficientCycles);
     }
 
-    transfer_cycles(CYCLES_TOP_UP_AMOUNT as u128, caller).await
+    transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
 async fn transfer_cycles(

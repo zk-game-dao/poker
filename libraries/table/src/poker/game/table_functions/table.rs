@@ -618,13 +618,13 @@ impl Table {
                 {
                     let experience_points =
                         if let Ok(table_data) = self.get_user_table_data(user_principal) {
-                            table_data.experience_points.clone()
+                            table_data.experience_points
                         } else {
                             continue;
                         };
                     
                     let users_canister_id = match self.users.get(&user_principal) {
-                        Some(user) => user.users_canister_id.clone(),
+                        Some(user) => user.users_canister_id,
                         None => continue,
                     };
 

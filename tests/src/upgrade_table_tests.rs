@@ -90,7 +90,7 @@ fn verify_table_exists(env: &TestEnv, table_principal: Principal) -> bool {
         encode_args(()).unwrap(),
     );
 
-    matches!(result, Ok(_))
+    result.is_ok()
 }
 
 #[test]
