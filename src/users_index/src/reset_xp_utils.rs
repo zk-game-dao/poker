@@ -1,10 +1,11 @@
 use std::cell::RefCell;
 
-use canister_functions::{inter_canister_call_wrappers::get_user, leaderboard_utils::{
+use canister_functions::leaderboard_utils::{
     calculate_amount_to_transfer, calculate_amount_to_transfer_pure_poker, PERCENTAGE_PAYOUT,
-}};
+};
 use errors::user_error::UserError;
 use ic_cdk_timers::TimerId;
+use intercanister_call_wrappers::users_canister::get_user;
 
 use crate::{CURRENCY_MANAGER, USER_INDEX_STATE};
 

@@ -33,6 +33,7 @@ type CanisterManagementError = variant {
   StopCanisterError : text;
   Transfer : text;
   QueryError : text;
+  CanisterCallError : text;
   DeleteCanisterError : text;
   InstallCodeError : text;
 };

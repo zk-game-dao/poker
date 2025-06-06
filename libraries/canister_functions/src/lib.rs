@@ -1,9 +1,7 @@
 use candid::Principal;
 use errors::canister_management_error::CanisterManagementError;
-use ic_cdk::api::management_canister::main::{
-    canister_status, create_canister, delete_canister, stop_canister, CanisterIdRecord,
-    CanisterInstallMode, CanisterSettings, CanisterStatusType, CreateCanisterArgument,
-    InstallCodeArgument,
+use ic_cdk::management_canister::{
+    canister_status, create_canister_with_extra_cycles, delete_canister, install_code, stop_canister, CanisterInstallMode, CanisterSettings, CanisterStatusArgs, CanisterStatusType, CreateCanisterArgs, DeleteCanisterArgs, InstallCodeArgs, StopCanisterArgs
 };
 
 pub mod cycle;
@@ -24,30 +22,31 @@ const CYCLE_TOP_UP_AMOUNT: u128 = 1_000_000_000_000;
 /// - The principal of the new canister.
 /// - A [`CanisterManagementError`] if the operation fails.
 pub async fn create_canister_wrapper(
-    mut controller_principals: Vec<Principal>,
+    controller_principals: Vec<Principal>,
     cycle_amount: Option<u128>,
 ) -> Result<Principal, CanisterManagementError> {
     // Step 1: Create a new canister
     let app_backend_principal = ic_cdk::api::canister_self();
-    controller_principals.push(app_backend_principal);
-    let create_canister_arg = CreateCanisterArgument {
+    let create_canister_arg = CreateCanisterArgs {
         settings: Some(CanisterSettings {
-            controllers: Some(controller_principals),
+            controllers: Some(vec![app_backend_principal]),
             compute_allocation: None,
             memory_allocation: None,
             freezing_threshold: None,
             reserved_cycles_limit: None,
-            log_visibility: None,
+            log_visibility: Some(ic_cdk::management_canister::LogVisibility::AllowedViewers(controller_principals.clone())),
             wasm_memory_limit: None,
+            wasm_memory_threshold: None,
         }),
     };
 
-    let cycle_amount = cycle_amount.unwrap_or(CYCLE_TOP_UP_AMOUNT);
-    let create_canister_response = create_canister(create_canister_arg, cycle_amount)
+    let cycles = cycle_amount.unwrap_or(CYCLE_TOP_UP_AMOUNT);
+
+    let create_canister_response = create_canister_with_extra_cycles(&create_canister_arg, cycles)
         .await
         .map_err(|e| CanisterManagementError::CreateCanisterError(format!("{:?}", e)))?;
 
-    Ok(create_canister_response.0.canister_id)
+    Ok(create_canister_response.canister_id)
 }
 
 /// Installs the wasm code into a canister
@@ -65,19 +64,17 @@ pub async fn install_wasm_code(
     canister_id: Principal,
     wasm_module: Vec<u8>,
 ) -> Result<(), CanisterManagementError> {
-    let install_code_arg = InstallCodeArgument {
+    let install_code_arg = InstallCodeArgs {
         mode: CanisterInstallMode::Install,
         canister_id,
         wasm_module,
         arg: candid::encode_args(()).unwrap(),
     };
-    ic_cdk::call(
-        Principal::management_canister(),
-        "install_code",
-        (install_code_arg,),
-    )
-    .await
-    .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+
+    install_code(&install_code_arg)
+        .await
+        .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+
     Ok(())
 }
 
@@ -96,19 +93,16 @@ pub async fn upgrade_wasm_code(
     canister_id: Principal,
     wasm_module: Vec<u8>,
 ) -> Result<(), CanisterManagementError> {
-    let install_code_arg = InstallCodeArgument {
+    let install_code_arg = InstallCodeArgs {
         mode: CanisterInstallMode::Upgrade(None),
         canister_id,
         wasm_module,
         arg: candid::encode_args(()).unwrap(),
     };
-    ic_cdk::call(
-        Principal::management_canister(),
-        "install_code",
-        (install_code_arg,),
-    )
-    .await
-    .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+
+    install_code(&install_code_arg)
+        .await
+        .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
     Ok(())
 }
 
@@ -125,15 +119,15 @@ pub async fn stop_and_delete_canister(
     canister_id: Principal,
 ) -> Result<(), CanisterManagementError> {
     // Step 2: Stop the canister
-    stop_canister(CanisterIdRecord { canister_id })
+    stop_canister(&StopCanisterArgs { canister_id })
         .await
         .map_err(|e| CanisterManagementError::StopCanisterError(format!("{:?}", e)))?;
 
     let mut error_count = 0;
     loop {
-        match canister_status(CanisterIdRecord { canister_id }).await {
+        match canister_status(&CanisterStatusArgs { canister_id }).await {
             Ok(canister_status) => {
-                if canister_status.0.status == CanisterStatusType::Stopped {
+                if canister_status.status == CanisterStatusType::Stopped {
                     break;
                 }
             }
@@ -150,7 +144,7 @@ pub async fn stop_and_delete_canister(
         }
     }
     // Step 3: Delete the canister
-    delete_canister(CanisterIdRecord { canister_id })
+    delete_canister(&DeleteCanisterArgs { canister_id })
         .await
         .map_err(|e| CanisterManagementError::DeleteCanisterError(format!("{:?}", e)))?;
 

@@ -492,7 +492,7 @@ async fn get_user_canister_cycles(user_canister: Principal) -> Result<Nat, UserE
     Ok(balances[0].1.clone())
 }
 
-const CYCLES_TOP_UP_AMOUNT: u64 = 750_000_000_000;
+const CYCLES_TOP_UP_AMOUNT: u128 = 750_000_000_000;
 
 #[ic_cdk::update]
 async fn request_cycles() -> Result<(), UserError> {

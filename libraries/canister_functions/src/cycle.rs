@@ -104,13 +104,7 @@ pub async fn check_and_top_up_canister(
                     canister_id,
                     status.cycles
                 );
-                let res: Result<(), CanisterManagementError> =
-                    ic_cdk::call(cycle_dispenser_canister, "request_cycles", ())
-                        .await
-                        .map_err(|e| {
-                            CanisterManagementError::ManagementCanisterError(format!("{:?}", e))
-                        });
-                if let Err(e) = res {
+                if let Err(e) = request_cycles_wrapper(cycle_dispenser_canister).await {
                     ic_cdk::println!("Error requesting cycles: {:?}", e);
                     return Err(e);
                 }
@@ -126,3 +120,34 @@ pub async fn check_and_top_up_canister(
     }
     Ok(())
 }
+
+pub async fn request_cycles_wrapper(
+    cycle_dispenser_canister: Principal,
+) -> Result<(), CanisterManagementError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(
+        cycle_dispenser_canister,
+        "request_cycles",
+    )
+    .await;
+
+    match call_result {
+        Ok(res) => match res.candid() {
+            Ok(res) => res,
+            Err(err) => {
+                ic_cdk::println!("Error requesting cycles: {:?}", err);
+                Err(CanisterManagementError::CanisterCallError(format!(
+                    "Failed to decode request_cycles response: {:?}",
+                    err
+                )))
+            }
+        },
+        Err(err) => {
+            ic_cdk::println!("Error in request_cycles call: {:?}", err);
+            Err(CanisterManagementError::CanisterCallError(format!(
+                "{:?}",
+                err
+            )))
+        }
+    }
+}
+

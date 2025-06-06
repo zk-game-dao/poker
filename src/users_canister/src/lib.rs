@@ -45,7 +45,7 @@ fn handle_cycle_check() {
     if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
-    ic_cdk::spawn(async {
+    ic_cdk::futures::spawn(async {
         let user_index_result = USER_INDEX_PRINCIPAL.lock();
         let user_index = match user_index_result {
             Ok(lock) => match *lock {
@@ -72,10 +72,10 @@ fn handle_cycle_check() {
 #[ic_cdk::init]
 fn init() {
     let principal = ic_cdk::api::canister_self();
-    ic_cdk::print(format!(
+    ic_cdk::println!(
         "Users canister {} initialized",
         principal.to_text()
-    ));
+    );
 }
 
 #[ic_cdk::query]
