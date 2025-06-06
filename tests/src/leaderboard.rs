@@ -67,7 +67,7 @@ fn test_experience_points_reset_and_payout() {
         UNIX_EPOCH + Duration::from_secs(sunday_midnight)
     };
 
-    test_env.pocket_ic.set_time(sunday_midnight);
+    test_env.pocket_ic.set_time(sunday_midnight.into());
 
     for _ in 0..12 {
         test_env.pocket_ic.tick();
@@ -81,7 +81,7 @@ fn test_experience_points_reset_and_payout() {
         assert_eq!(exp, 0, "Experience points should be reset to 0");
     }
 
-    test_env.pocket_ic.set_time(SystemTime::now());
+    test_env.pocket_ic.set_time(SystemTime::now().into());
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn test_experience_points_reset_and_payout_btc() {
         UNIX_EPOCH + Duration::from_secs(sunday_midnight)
     };
 
-    test_env.pocket_ic.set_time(sunday_midnight);
+    test_env.pocket_ic.set_time(sunday_midnight.into());
 
     for _ in 0..12 {
         test_env.pocket_ic.tick();
@@ -160,5 +160,5 @@ fn test_experience_points_reset_and_payout_btc() {
         assert_eq!(exp, 0, "Experience points should be reset to 0");
     }
 
-    test_env.pocket_ic.set_time(SystemTime::now());
+    test_env.pocket_ic.set_time(SystemTime::now().into());
 }

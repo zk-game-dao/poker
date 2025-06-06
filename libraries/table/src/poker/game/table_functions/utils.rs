@@ -710,7 +710,7 @@ impl Table {
                         .map_err(|e| trace_err!(e, ""))?;
                     if is_game_paused {
                         let table_principal = self.id;
-                        ic_cdk::spawn(async move {
+                        ic_cdk::futures::spawn(async move {
                             match ic_cdk::call(table_principal, "start_new_betting_round", ()).await
                             {
                                 Ok(res) => res,
@@ -725,7 +725,7 @@ impl Table {
                         continue;
                     }
                     let table_principal = self.id;
-                    ic_cdk::spawn(async move {
+                    ic_cdk::futures::spawn(async move {
                         match ic_cdk::call(
                             table_principal,
                             "deposit_to_table",
@@ -781,7 +781,7 @@ impl Table {
                         .balance;
                     self.user_table_data.remove(&user_id);
                     self.users.remove_user(user_id);
-                    ic_cdk::spawn(async move {
+                    ic_cdk::futures::spawn(async move {
                         let table = get_table(to_table).await;
                         match table {
                             Ok(_) => {
@@ -837,7 +837,7 @@ impl Table {
                         duration.as_secs()
                     );
                     let _ = ic_cdk_timers::set_timer(duration, move || {
-                        ic_cdk::spawn(async move {
+                        ic_cdk::futures::spawn(async move {
                             ic_cdk::println!(
                                 "Resuming table after addon period of {} seconds",
                                 duration.as_secs()

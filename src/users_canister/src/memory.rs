@@ -94,19 +94,3 @@ fn post_upgrade() {
         ic_cdk::println!("Error during post_upgrade: {:?}", res);
     }
 }
-
-// Helper function to debug stable storage state
-#[ic_cdk::query]
-fn get_stable_storage_stats() -> String {
-    let user_count = STABLE_USERS.with(|stable_users_ref| stable_users_ref.borrow().len());
-
-    let volatile_count = match USERS.lock() {
-        Ok(users) => users.len(),
-        Err(_) => 0,
-    };
-
-    format!(
-        "Stable storage contains {} users, volatile memory contains {} users",
-        user_count, volatile_count
-    )
-}

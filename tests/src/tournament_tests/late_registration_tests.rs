@@ -26,7 +26,7 @@ fn test_late_registration() {
         .as_nanos() as u64;
 
     let now = std::time::SystemTime::now();
-    test_env.pocket_ic.set_time(now);
+    test_env.pocket_ic.set_time(now.into());
 
     // Create tournament config with late registration period of 10 seconds
     let tournament_config = NewTournament {

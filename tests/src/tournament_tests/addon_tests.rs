@@ -43,7 +43,7 @@ impl TestEnv {
 
         // Set the mock time to current for the test
         let now = std::time::SystemTime::now();
-        self.pocket_ic.set_time(now);
+        self.pocket_ic.set_time(now.into());
 
         // Create tournament configuration
         let tournament_config = NewTournament {

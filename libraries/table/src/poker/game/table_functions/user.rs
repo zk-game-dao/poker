@@ -342,7 +342,7 @@ impl Table {
                 .balance;
             self.user_table_data.remove(&user_id);
             self.users.remove_user(user_id);
-            ic_cdk::spawn(async move {
+            ic_cdk::futures::spawn(async move {
                 let table = get_table(table_to_move_to).await;
                 match table {
                     Ok(_) => {

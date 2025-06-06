@@ -631,7 +631,7 @@ impl Table {
                     match self.config.currency_type {
                         CurrencyType::Fake => {}
                         CurrencyType::Real(currency) => {
-                            ic_cdk::spawn(async move {
+                            ic_cdk::futures::spawn(async move {
                                 match ic_cdk::call(
                                     users_canister_id,
                                     "add_experience_points",
@@ -698,7 +698,7 @@ impl Table {
             };
             if rake_total > fee {
                 let id = self.id;
-                ic_cdk::spawn(async move {
+                ic_cdk::futures::spawn(async move {
                     match ic_cdk::call(id, "withdraw_rake", (rake_total,)).await {
                         Ok(res) => res,
                         Err(_err) => {}
@@ -892,7 +892,7 @@ impl Table {
             if let Some(TableType::Tournament { tournament_id, .. }) =
                 self.config.table_type.clone()
             {
-                ic_cdk::spawn(async move {
+                ic_cdk::futures::spawn(async move {
                     ic_cdk::println!("Removing from tournament: {:?}", tournament_id.to_text());
                     let res: Result<(Result<(), TournamentError>,), _> =
                         ic_cdk::call(tournament_id, "handle_user_losing", (user_principal, id))

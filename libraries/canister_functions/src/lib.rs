@@ -7,7 +7,6 @@ use ic_cdk::api::management_canister::main::{
 };
 
 pub mod cycle;
-pub mod inter_canister_call_wrappers;
 pub mod leaderboard_utils;
 pub mod rake_constants;
 pub mod rake_stats;
@@ -29,7 +28,7 @@ pub async fn create_canister_wrapper(
     cycle_amount: Option<u128>,
 ) -> Result<Principal, CanisterManagementError> {
     // Step 1: Create a new canister
-    let app_backend_principal = ic_cdk::api::id();
+    let app_backend_principal = ic_cdk::api::canister_self();
     controller_principals.push(app_backend_principal);
     let create_canister_arg = CreateCanisterArgument {
         settings: Some(CanisterSettings {

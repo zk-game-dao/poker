@@ -11,7 +11,6 @@ use user::user::{User, UserAvatar};
 
 use std::sync::Mutex;
 
-pub mod canister_geek;
 mod memory;
 
 const MINIMUM_CYCLE_THRESHOLD: u128 = 350_000_000_000;
@@ -42,7 +41,7 @@ lazy_static! {
 }
 
 fn handle_cycle_check() {
-    let cycles = ic_cdk::api::canister_balance();
+    let cycles = ic_cdk::api::canister_cycle_balance();
     if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
@@ -63,7 +62,7 @@ fn handle_cycle_check() {
         };
 
         if let Err(e) =
-            check_and_top_up_canister(ic_cdk::api::id(), user_index, MINIMUM_CYCLE_THRESHOLD).await
+            check_and_top_up_canister(ic_cdk::api::canister_self(), user_index, MINIMUM_CYCLE_THRESHOLD).await
         {
             ic_cdk::println!("Failed to top up canister: {:?}", e);
         }
@@ -72,7 +71,7 @@ fn handle_cycle_check() {
 
 #[ic_cdk::init]
 fn init() {
-    let principal = ic_cdk::api::id();
+    let principal = ic_cdk::api::canister_self();
     ic_cdk::print(format!(
         "Users canister {} initialized",
         principal.to_text()
@@ -106,14 +105,14 @@ fn create_user(
     {
         *USER_INDEX_PRINCIPAL
             .lock()
-            .map_err(|_| UserError::LockError)? = Some(ic_cdk::api::caller());
+            .map_err(|_| UserError::LockError)? = Some(ic_cdk::api::msg_caller());
     }
 
     handle_cycle_check();
 
     let user = User::new(
         internet_identity_principal_id,
-        ic_cdk::api::id(),
+        ic_cdk::api::canister_self(),
         user_name,
         0,
         address,
@@ -236,7 +235,7 @@ fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
 
 #[ic_cdk::query]
 fn get_cycles() -> String {
-    let cycles = ic_cdk::api::canister_balance();
+    let cycles = ic_cdk::api::canister_cycle_balance();
     format!("Cycles: {}", cycles)
 }
 

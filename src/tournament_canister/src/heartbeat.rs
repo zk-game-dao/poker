@@ -1,11 +1,8 @@
 use std::{sync::atomic::Ordering, time::Duration};
 
 use candid::Principal;
-use canister_functions::inter_canister_call_wrappers::{
-    get_and_remove_from_pool_wrapper, handle_cancelled_tournament_wrapper, join_table,
-    pause_table_for_addon_wrapper, resume_table_wrapper,
-};
-use errors::{table_error::TableError, tournament_error::TournamentError};
+use errors::tournament_error::TournamentError;
+use intercanister_call_wrappers::{table_canister::{join_table, pause_table_for_addon_wrapper, resume_table_wrapper, update_blinds}, tournament_canister::{get_and_remove_from_pool_wrapper, handle_cancelled_tournament_wrapper}};
 use tournaments::tournaments::{
     table_balancing::calculate_players_per_table,
     tournament_type::{TournamentSizeType, TournamentType},
@@ -226,19 +223,9 @@ async fn check_and_update_blinds() -> Result<(), TournamentError> {
 
         // Update all tournament tables with new blinds
         for table_id in tournament.tables.keys() {
-            let (res,): (Result<(), TableError>,) = ic_cdk::call(
-                *table_id,
-                "update_blinds",
-                (
-                    new_level.small_blind,
-                    new_level.big_blind,
-                    new_level.ante_type.clone(),
-                ),
-            )
-            .await
-            .map_err(|e| TournamentError::CanisterCallError(format!("{:?}", e)))?;
-            if let Err(e) = res {
-                ic_cdk::println!("Error updating blinds on table: {:?}", e);
+            if let Err(e) = update_blinds(*table_id, &new_level).await {
+                ic_cdk::println!("Error updating blinds on table {:?}: {:?}", table_id, e);
+                continue;
             }
         }
     }
@@ -275,8 +262,8 @@ async fn check_and_start_tournament() -> Result<(), TournamentError> {
         {
             tournament.state = TournamentState::Cancelled;
 
-            let id = ic_cdk::api::id();
-            ic_cdk::spawn(async move {
+            let id = ic_cdk::api::canister_self();
+            ic_cdk::futures::spawn(async move {
                 match handle_cancelled_tournament_wrapper(id).await {
                     Ok(_) => {}
                     Err(e) => ic_cdk::println!("Error handling cancelled tournament: {:?}", e),

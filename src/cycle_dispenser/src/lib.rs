@@ -3,12 +3,10 @@ use canister_functions::cycle::top_up_canister;
 use errors::canister_management_error::CanisterManagementError;
 use lazy_static::lazy_static;
 
-pub mod canister_geek;
-
 pub type PlayerId = u64;
 pub type TableId = u64;
 
-const CYCLES_TOP_UP_AMOUNT: u64 = 20_000_000_000_000;
+const CYCLES_TOP_UP_AMOUNT: u128 = 20_000_000_000_000;
 
 // Define a global instance of GameState wrapped in a Mutex for safe concurrent access.
 lazy_static! {
@@ -45,17 +43,17 @@ lazy_static! {
 
 #[ic_cdk::init]
 fn init() {
-    let principal = ic_cdk::api::id();
-    ic_cdk::print(format!(
+    let principal = ic_cdk::api::canister_self();
+    ic_cdk::println!(
         "Cycle dispenser canister {} initialized",
         principal.to_text()
-    ));
+    );
 }
 
 #[ic_cdk::update]
 async fn request_cycles() -> Result<(), CanisterManagementError> {
-    let cycles = ic_cdk::api::canister_balance();
-    let caller = ic_cdk::api::caller();
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    let caller = ic_cdk::api::msg_caller();
 
     if cycles < CYCLES_TOP_UP_AMOUNT {
         ic_cdk::println!(
@@ -85,8 +83,8 @@ async fn transfer_cycles(
 }
 
 #[ic_cdk::query]
-fn get_cycles() -> u64 {
-    ic_cdk::api::canister_balance()
+fn get_cycles() -> u128 {
+    ic_cdk::api::canister_cycle_balance()
 }
 
 ic_cdk::export_candid!();

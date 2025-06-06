@@ -3,17 +3,17 @@ use std::{collections::HashMap, sync::Mutex};
 use authentication::validate_caller;
 use candid::Principal;
 use canister_functions::{
-    inter_canister_call_wrappers::{get_user, get_users_canister_principal_by_id_wrapper, remove_users_active_table},
     rake_constants,
     rake_stats::RakeStats,
 };
 use chat::{ChatHistory, ChatMessage, ChatMessageType};
 use currency::{state::TransactionState, types::currency_manager::CurrencyManager};
 use errors::{
-    chat_error::ChatError, game_error::GameError, log_store_error::LogStoreError,
-    table_error::TableError, user_error::UserError,
+    chat_error::ChatError, game_error::GameError,
+    table_error::TableError
 };
-use ic_cdk::api::management_canister::main::CanisterIdRecord;
+use ic_cdk::management_canister::{DepositCyclesArgs};
+use intercanister_call_wrappers::{log_store::log_actions_wrapper, table_canister::{kick_player_wrapper, leave_table_wrapper, start_new_betting_round_wrapper}, users_canister::{add_users_active_table, get_user, get_users_canister_principal_by_id_wrapper, remove_users_active_table}};
 use lazy_static::lazy_static;
 use table::{
     poker::{
@@ -38,7 +38,6 @@ use utils::{
     get_user_index_principal, handle_cycle_check, handle_last_user_leaving, handle_table_validity_check, update_player_count_tournament, update_table_player_count
 };
 
-pub mod canister_geek;
 mod memory;
 pub mod utils;
 
@@ -62,8 +61,8 @@ lazy_static! {
 
 #[ic_cdk::init]
 fn init() {
-    let principal = ic_cdk::api::id();
-    ic_cdk::print(format!("Table canister {} initialized", principal));
+    let principal = ic_cdk::api::canister_self();
+    ic_cdk::println!("Table canister {} initialized", principal);
 }
 
 #[ic_cdk::update]
@@ -76,11 +75,11 @@ async fn create_table(config: TableConfig, bytes: Vec<u8>) -> Result<PublicTable
         if let Some(backend_principal) = *backend_principal {
             validate_caller(vec![backend_principal]);
         }
-        *backend_principal = Some(ic_cdk::api::caller());
+        *backend_principal = Some(ic_cdk::api::msg_caller());
 
         let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
 
-        let table = Table::new(ic_cdk::api::id(), config.clone(), bytes);
+        let table = Table::new(ic_cdk::api::canister_self(), config.clone(), bytes);
 
         *table_state = Some(table.clone());
         table.clone()
@@ -108,7 +107,7 @@ fn ping() -> String {
 fn get_table() -> Result<PublicTable, TableError> {
     let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table = table.as_mut().ok_or(TableError::TableNotFound)?;
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
 
     if table.deal_stage != DealStage::Showdown {
         table.hide_cards(caller).map_err(|e| e.into_inner())?;
@@ -189,15 +188,8 @@ async fn join_table(
         CurrencyType::Fake => {}
     }
 
-    let (user,): (Result<User, UserError>,) = ic_cdk::call(
-        users_canister_principal,
-        "add_active_table",
-        (ic_cdk::api::id(), user_id),
-    )
-    .await
-    .map_err(|e| TableError::CanisterCallError(format!("{:?} {}", e.0, e.1)))?;
+    let user = add_users_active_table(users_canister_principal, ic_cdk::api::canister_self(), user_id).await;
     let mut user = user?;
-
     user.balance = deposit_amount;
 
     if table.users.users.contains_key(&user_id) || table.is_user_in_table(user_id) {
@@ -259,12 +251,9 @@ async fn join_table(
     let is_paused = table_state.config.is_paused.unwrap_or(false);
 
     if table_state.number_of_players() >= 2 && !table_state.is_game_ongoing() && !is_paused {
-        let (_res,): (Result<(), TableError>,) =
-            ic_cdk::call(ic_cdk::api::id(), "start_new_betting_round", ())
-                .await
-                .map_err(|e| TableError::CanisterCallError(format!("{:?} {}", e.0, e.1)))?;
+        let _res = start_new_betting_round_wrapper(ic_cdk::api::canister_self()).await?;
     }
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     table_state.hide_cards(caller).map_err(|e| e.into_inner())?;
     let res = match table_state.config.table_type {
         Some(TableType::Cash) | None => update_table_player_count(table_state.users.len()),
@@ -345,7 +334,7 @@ async fn kick_player(
         CurrencyType::Fake => {}
     }
 
-    ic_cdk::spawn(async move {
+    ic_cdk::futures::spawn(async move {
         if let Err(e) = remove_users_active_table(users_canister_principal, user_id).await {
             ic_cdk::println!("Error removing active table: {}", e);
         }
@@ -359,7 +348,7 @@ async fn kick_player(
             .map_err(|e| e.into_inner())?;
     }
 
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     table.hide_cards(caller).map_err(|e| e.into_inner())?;
     let _ = update_table_player_count(table.users.len());
 
@@ -450,7 +439,7 @@ async fn leave_table(
         CurrencyType::Fake => {}
     }
 
-    ic_cdk::spawn(async move {
+    ic_cdk::futures::spawn(async move {
         if let Err(e) = remove_users_active_table(users_canister_id, user_id).await {
             ic_cdk::println!("Error removing active table: {}", e);
         }
@@ -464,7 +453,7 @@ async fn leave_table(
             .map_err(|e| e.into_inner())?;
     }
 
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     table.hide_cards(caller).map_err(|e| e.into_inner())?;
     let res = match table.config.table_type {
         Some(TableType::Cash) | None => update_table_player_count(table.users.len()),
@@ -518,7 +507,7 @@ async fn leave_table_for_table_balancing(
         table.clone()
     };
 
-    ic_cdk::spawn(async move {
+    ic_cdk::futures::spawn(async move {
         if let Err(e) = remove_users_active_table(users_canister_id, user_id).await {
             ic_cdk::println!("Error removing active table: {}", e);
         }
@@ -532,7 +521,7 @@ async fn leave_table_for_table_balancing(
             .map_err(|e| e.into_inner())?;
     }
 
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     table.hide_cards(caller).map_err(|e| e.into_inner())?;
     let res = match table.config.table_type {
         Some(TableType::Cash) | None => update_table_player_count(table.users.len()),
@@ -906,10 +895,10 @@ async fn player_sitting_in(
         && !table_state.is_game_ongoing()
         && auto_start
     {
-        let (_res,): (Result<(), TableError>,) =
-            ic_cdk::call(ic_cdk::api::id(), "start_new_betting_round", ())
-                .await
-                .map_err(|e| TableError::CanisterCallError(format!("{:?} {}", e.0, e.1)))?;
+        start_new_betting_round_wrapper(
+            ic_cdk::api::canister_self(),
+        )
+        .await?;
     }
 
     Ok(())
@@ -1059,12 +1048,11 @@ fn handle_timer_expiration(user_id: Principal) -> Result<(), TableError> {
 async fn start_new_betting_round() -> Result<(), TableError> {
     handle_cycle_check();
 
-    let raw_bytes = ic_cdk::api::management_canister::main::raw_rand().await;
+    let raw_bytes = ic_cdk::management_canister::raw_rand().await;
     let raw_bytes = raw_bytes
         .map_err(|e| {
             TableError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
-        })?
-        .0;
+        })?;
 
     let (kicked_players, action_logs, table_id, total_users, seated_out_kicked_players, users) = {
         let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
@@ -1160,36 +1148,20 @@ async fn start_new_betting_round() -> Result<(), TableError> {
         total_kicked_users.push((user.clone(), balance));
     }
 
-    ic_cdk::spawn(async move {
+    ic_cdk::futures::spawn(async move {
         for (user, balance) in total_kicked_users {
-            let leave_result: Result<(Result<PublicTable, TableError>,), _> = ic_cdk::call(
-                ic_cdk::api::id(),
-                "kick_player",
-                (user.users_canister_id, user.principal_id, balance),
-            )
-            .await;
-
-            match leave_result {
-                Ok((result,)) => match result {
-                    Ok(_) => {}
-                    Err(err) => {
-                        ic_cdk::println!(
-                            "Error kicking inactive player: Error leaving table: {:?}",
-                            err
-                        );
-                    }
-                },
-                Err(err) => {
-                    ic_cdk::println!(
-                        "Error kicking inactive player: Error leaving table: {:?}",
-                        err
-                    );
+            match kick_player_wrapper(ic_cdk::api::canister_self(), user.users_canister_id, user.principal_id, balance).await {
+                Ok(_) => {
+                    ic_cdk::println!("Kicked player: {}", user.principal_id);
+                }
+                Err(e) => {
+                    ic_cdk::println!("Error kicking player: {:?}", e);
                 }
             }
         }
     });
 
-    ic_cdk::spawn(async move {
+    ic_cdk::futures::spawn(async move {
         let backend_principal = match BACKEND_PRINCIPAL.lock() {
             Ok(guard) => match *guard {
                 Some(principal) => principal,
@@ -1206,49 +1178,34 @@ async fn start_new_betting_round() -> Result<(), TableError> {
 
         if backend_principal == Principal::from_text("zbspl-ziaaa-aaaam-qbe2q-cai").unwrap() {
             // Check if the backend principal is the prod deployment or dev deployment
-            let (_res,): (Result<(), LogStoreError>,) = match ic_cdk::call(
+            if let Err(e) = log_actions_wrapper(
                 Principal::from_text("ztuys-vyaaa-aaaam-qbezq-cai").unwrap(),
-                "log_actions",
-                (table_id, action_logs),
+                table_id,
+                action_logs,
             )
-            .await
-            {
-                Ok(res) => res,
-                Err(e) => {
-                    ic_cdk::println!("Error storing logs: {:?}", e);
-                    return;
-                }
-            };
+            .await {
+                ic_cdk::println!("Error storing logs: {:?}", e);
+            }
         } else if backend_principal == Principal::from_text("e4yx7-lqaaa-aaaah-qdslq-cai").unwrap()
         {
-            let (_res,): (Result<(), LogStoreError>,) = match ic_cdk::call(
+            if let Err(e) = log_actions_wrapper(
                 Principal::from_text("es22x-qaaaa-aaaah-qdskq-cai").unwrap(),
-                "log_actions",
-                (table_id, action_logs),
+                table_id,
+                action_logs,
             )
-            .await
-            {
-                Ok(res) => res,
-                Err(e) => {
-                    ic_cdk::println!("Error storing logs: {:?}", e);
-                    return;
-                }
-            };
+            .await {
+                ic_cdk::println!("Error storing logs: {:?}", e);
+            }
         } else if backend_principal == Principal::from_text("by6od-j4aaa-aaaaa-qaadq-cai").unwrap()
         {
-            let (_res,): (Result<(), LogStoreError>,) = match ic_cdk::call(
+            if let Err(e) = log_actions_wrapper(
                 Principal::from_text("bw4dl-smaaa-aaaaa-qaacq-cai").unwrap(),
-                "log_actions",
-                (table_id, action_logs),
+                table_id,
+                action_logs,
             )
-            .await
-            {
-                Ok(res) => res,
-                Err(e) => {
-                    ic_cdk::println!("Error storing logs: {:?}", e);
-                    return;
-                }
-            };
+            .await {
+                ic_cdk::println!("Error storing logs: {:?}", e);
+            }
         }
     });
 
@@ -1256,7 +1213,7 @@ async fn start_new_betting_round() -> Result<(), TableError> {
 }
 
 #[ic_cdk::update]
-async fn withdraw_rake(mut rake_amount: u64) -> Result<(), TableError> {
+async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
     handle_cycle_check();
     handle_table_validity_check()?;
 
@@ -1266,6 +1223,8 @@ async fn withdraw_rake(mut rake_amount: u64) -> Result<(), TableError> {
 
         table.clone()
     };
+
+    let mut rake_amount = rake_amount;
 
     let user_index = {
         let backend_principal = BACKEND_PRINCIPAL
@@ -1407,7 +1366,7 @@ async fn return_all_cycles_to_index() -> Result<(), TableError> {
 
         validate_caller(vec![backend_principal, table_state.id]);
     }
-    let all_cycles = ic_cdk::api::canister_balance().saturating_sub(35_000_000_000) as u128;
+    let all_cycles = ic_cdk::api::canister_cycle_balance().saturating_sub(35_000_000_000) as u128;
     if all_cycles == 0 {
         return Err(TableError::CanisterCallError(
             "No cycles available to send".to_string(),
@@ -1444,8 +1403,8 @@ async fn transfer_cycles_to_table_index(cycles_amount: u128) -> Result<(), Table
         ))?;
 
     // Transfer all cycles to the index canister
-    let res = ic_cdk::api::management_canister::main::deposit_cycles(
-        CanisterIdRecord {
+    let res = ic_cdk::management_canister::deposit_cycles(
+        &DepositCyclesArgs {
             canister_id: backend_principal,
         },
         cycles_amount,
@@ -1454,16 +1413,16 @@ async fn transfer_cycles_to_table_index(cycles_amount: u128) -> Result<(), Table
 
     match res {
         Ok(_) => Ok(()),
-        Err((code, msg)) => Err(TableError::CanisterCallError(format!(
-            "Failed to send cycles: {}: {}",
-            code as u32, msg
+        Err(e) => Err(TableError::CanisterCallError(format!(
+            "Failed to send cycles: {:?}",
+            e
         ))),
     }
 }
 
 #[ic_cdk::query]
-fn get_cycles() -> u64 {
-    ic_cdk::api::canister_balance()
+fn get_cycles() -> u128 {
+    ic_cdk::api::canister_cycle_balance()
 }
 
 #[ic_cdk::update]
@@ -1546,9 +1505,9 @@ async fn clear_table() -> Result<(), TableError> {
             .into_iter()
             .map(|(user_principal, wallet_principal)| async move {
                 // TODO: Handle this properly
-                match canister_functions::inter_canister_call_wrappers::leave_table(
+                match leave_table_wrapper(
+                    ic_cdk::api::canister_self(),
                     user_principal,
-                    ic_cdk::api::id(),
                     wallet_principal,
                 )
                 .await
@@ -1657,11 +1616,10 @@ async fn resume_table() -> Result<(), TableError> {
     };
 
     if !is_paused {
-        let (res,): (Result<(), TableError>,) =
-            ic_cdk::call(ic_cdk::api::id(), "start_new_betting_round", ())
-                .await
-                .map_err(|e| TableError::CanisterCallError(format!("{:?} {}", e.0, e.1)))?;
-        if let Err(e) = res {
+        if let Err(e) = start_new_betting_round_wrapper(
+            ic_cdk::api::canister_self(),
+        )
+        .await {
             ic_cdk::println!("Error resuming table: {:?}", e);
             return Ok(());
         }
@@ -1689,7 +1647,7 @@ async fn set_as_final_table() -> Result<(), TableError> {
     }) = table.config.table_type
     {
         table.config.table_type = Some(TableType::Tournament {
-            tournament_id: ic_cdk::api::caller(),
+            tournament_id: ic_cdk::api::msg_caller(),
             is_final_table: true,
         });
     } else {

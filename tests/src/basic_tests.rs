@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use candid::{decode_one, encode_args, Principal};
-use pocket_ic::WasmResult;
 use serial_test::serial;
 use table::poker::game::table_functions::table::TableConfig;
 
@@ -51,8 +50,8 @@ fn test_create_table() {
         encode_args(()).unwrap(),
     );
 
-    match table_state.expect("Failed to ping table") {
-        WasmResult::Reply(arg) => {
+    match table_state {
+        Ok(arg) => {
             let response: String = decode_one(&arg).unwrap();
             assert_eq!(response, "Ok");
         }

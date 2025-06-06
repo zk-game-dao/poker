@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use candid::Principal;
 use errors::{game_error::GameError, table_error::TableError};
-use ic_cdk::spawn;
+use ic_cdk::futures::spawn;
 
 use super::table::Table;
 
@@ -32,10 +32,10 @@ impl Table {
                     match handle_inactive_user(table_principal, user_id).await {
                         Ok(_) => return,
                         Err(err) => {
-                            ic_cdk::print(format!(
+                            ic_cdk::println!(
                                     "Error handling inactive user: {:?}\nAttempting retry after delay...",
                                     err
-                                ));
+                                );
                         }
                     }
 
@@ -79,10 +79,10 @@ impl Table {
                             {
                                 return;
                             }
-                            ic_cdk::print(format!(
+                            ic_cdk::println!(
                                 "Error starting new betting round: {:?}\nAttempting retry after delay...",
                                 err
-                            ));
+                            );
                         }
                     }
 
@@ -109,12 +109,12 @@ async fn handle_inactive_user(
         match ic_cdk::call(table_principal, "handle_timer_expiration", (user_id,)).await {
             Ok(res) => res,
             Err(err) => {
-                ic_cdk::print(format!("Error calling handle_timer_expiration: {:?}", err));
+                ic_cdk::println!("Error calling handle_timer_expiration: {:?}", err);
                 return Err(TableError::CanisterCallError(format!("{:?}", err)));
             }
         };
     if let Err(err) = res {
-        ic_cdk::print(format!("Error handling timer expiration: {:?}", err));
+        ic_cdk::println!("Error handling timer expiration: {:?}", err);
         return Err(err);
     }
     Ok(())

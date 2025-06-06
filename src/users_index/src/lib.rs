@@ -22,7 +22,6 @@ use user_index::{get_position_in_leaderboard, UserIndex};
 
 use std::sync::Mutex;
 
-pub mod canister_geek;
 mod memory;
 mod query;
 pub mod reset_xp_utils;
@@ -37,7 +36,7 @@ pub struct CanisterState {
 }
 
 async fn handle_cycle_check() -> Result<(), UserError> {
-    let id = ic_cdk::api::id();
+    let id = ic_cdk::api::canister_self();
     let cycle_dispenser_canister_id =
         if id == Principal::from_text("lvq5c-nyaaa-aaaam-qdswa-cai").unwrap() {
             *CYCLE_DISPENSER_CANISTER_PROD
@@ -86,7 +85,7 @@ lazy_static! {
 }
 
 fn get_canister_state() -> CanisterState {
-    let owner_principal = ic_cdk::api::id();
+    let owner_principal = ic_cdk::api::canister_self();
 
     let account_identifier = AccountIdentifier::new(&owner_principal, &DEFAULT_SUBACCOUNT);
     CanisterState {
@@ -98,13 +97,13 @@ fn get_canister_state() -> CanisterState {
 
 #[ic_cdk::init]
 fn init() {
-    let id = ic_cdk::api::id();
+    let id = ic_cdk::api::canister_self();
     ic_cdk::println!("Users index canister {id} initialized");
     let canister_state = get_canister_state();
     let mut canister_state_mutex = match CANISTER_STATE.lock() {
         Ok(canister_state) => canister_state,
         Err(_) => {
-            ic_cdk::print("Failed to acquire lock");
+            ic_cdk::println!("Failed to acquire lock");
             return;
         }
     };
@@ -441,7 +440,7 @@ async fn transfer(
 
 #[ic_cdk::query]
 fn get_cycles() -> String {
-    let cycles = ic_cdk::api::canister_balance();
+    let cycles = ic_cdk::api::canister_cycle_balance();
     format!("Cycles: {}", cycles)
 }
 
@@ -497,8 +496,8 @@ const CYCLES_TOP_UP_AMOUNT: u64 = 750_000_000_000;
 
 #[ic_cdk::update]
 async fn request_cycles() -> Result<(), UserError> {
-    let cycles = ic_cdk::api::canister_balance();
-    let caller = ic_cdk::api::caller();
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    let caller = ic_cdk::api::msg_caller();
     if cycles < CYCLES_TOP_UP_AMOUNT {
         return Err(UserError::ManagementCanisterError(
             CanisterManagementError::InsufficientCycles,
@@ -748,7 +747,7 @@ fn get_leaderboard_length() -> Result<usize, UserError> {
 async fn upgrade_all_user_canisters() -> Result<Vec<(Principal, CanisterManagementError)>, UserError>
 {
     // Validate caller permissions
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
         return Err(UserError::AuthorizationError);
     }
@@ -807,7 +806,7 @@ async fn upgrade_user_canister(
     user_canister: Principal,
 ) -> Result<(), UserError> {
     // Validate caller permissions
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
         return Err(UserError::AuthorizationError);
     }

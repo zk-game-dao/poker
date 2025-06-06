@@ -11,7 +11,7 @@ pub async fn query_one_block(
         length: 1,
     };
 
-    let blocks_result = match query_blocks(ledger, args.clone()).await {
+    let blocks_result = match query_blocks(ledger, &args).await {
         Ok(blocks) => blocks,
         Err(e) => {
             return Err(UserError::QueryError(format!(
@@ -29,7 +29,7 @@ pub async fn query_one_block(
     if let Some(func) = blocks_result.archived_blocks.into_iter().find_map(|b| {
         (b.start <= block_index && (block_index - b.start) < b.length).then_some(b.callback)
     }) {
-        match query_archived_blocks(&func, args).await {
+        match query_archived_blocks(&func, &args).await {
             Ok(blocks) => match blocks {
                 Ok(range) => return Ok(range.blocks.into_iter().next()),
                 Err(e) => {

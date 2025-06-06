@@ -4,6 +4,7 @@ members = [
     "libraries/canister_functions",
     "libraries/chat",
     "libraries/errors",
+    "libraries/intercanister_call_wrappers",
     "libraries/table",
     "libraries/table_index_types",
     "libraries/tournaments",
