@@ -8,7 +8,7 @@ use currency::{state::TransactionState, types::currency_manager::CurrencyManager
 use errors::{
     canister_management_error::CanisterManagementError, tournament_error::TournamentError,
 };
-use intercanister_call_wrappers::{table_canister::{clear_table, join_table, leave_table_wrapper}, tournament_canister::{add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller, handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper, user_leave_tournament_wrapper}, users_canister::get_user};
+use intercanister_call_wrappers::{table_canister::{clear_table, join_table, leave_table_wrapper}, tournament_canister::{add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller, handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper, user_leave_tournament_wrapper}, users_canister::get_user_wrapper};
 use lazy_static::lazy_static;
 use std::{
     collections::HashSet,
@@ -251,7 +251,7 @@ async fn user_join_tournament(
         .clone()
     };
     if tournament_state.require_proof_of_humanity {
-        let user = get_user(users_canister_principal, user_id).await?;
+        let user = get_user_wrapper(users_canister_principal, user_id).await?;
         if !user.is_verified.unwrap_or(false) {
             return Err(TournamentError::UserNotVerified);
         }
@@ -382,7 +382,7 @@ async fn handle_cancelled_tournament() -> Result<(), TournamentError> {
     update_tournament_state(TournamentState::Cancelled).await?;
 
     for (user_principal, tournament_data) in tournament.current_players.iter() {
-        let user = match get_user(tournament_data.users_canister_principal, *user_principal).await {
+        let user = match get_user_wrapper(tournament_data.users_canister_principal, *user_principal).await {
             Ok(user) => user,
             Err(e) => {
                 ic_cdk::println!("Error getting user: {:?}", e);

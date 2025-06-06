@@ -9,7 +9,7 @@ pub mod leaderboard_utils;
 pub mod rake_constants;
 pub mod rake_stats;
 
-const CYCLE_TOP_UP_AMOUNT: u128 = 1_000_000_000_000;
+const CYCLE_TOP_UP_AMOUNT: u128 = 500_000_000_000;
 
 /// Creates a new canister
 ///

@@ -13,7 +13,7 @@ use errors::{
     table_error::TableError
 };
 use ic_cdk::management_canister::{DepositCyclesArgs};
-use intercanister_call_wrappers::{log_store::log_actions_wrapper, table_canister::{kick_player_wrapper, leave_table_wrapper, start_new_betting_round_wrapper}, users_canister::{add_users_active_table, get_user, get_users_canister_principal_by_id_wrapper, remove_users_active_table}};
+use intercanister_call_wrappers::{log_store::log_actions_wrapper, table_canister::{kick_player_wrapper, leave_table_wrapper, start_new_betting_round_wrapper}, users_canister::{add_users_active_table, get_user_wrapper, get_users_canister_principal_by_id_wrapper, remove_users_active_table}};
 use lazy_static::lazy_static;
 use table::{
     poker::{
@@ -162,7 +162,7 @@ async fn join_table(
     };
 
     {
-        let user = get_user(users_canister_principal, user_id).await?;
+        let user = get_user_wrapper(users_canister_principal, user_id).await?;
         if let Some(require_proof_of_humanity) = table.config.require_proof_of_humanity {
             if require_proof_of_humanity && !user.is_verified.unwrap_or(false) {
                 return Err(TableError::UserNotVerified);
@@ -188,7 +188,7 @@ async fn join_table(
         CurrencyType::Fake => {}
     }
 
-    let user = add_users_active_table(users_canister_principal, ic_cdk::api::canister_self(), user_id).await;
+    let user = add_users_active_table(users_canister_principal, user_id, ic_cdk::api::canister_self()).await;
     let mut user = user?;
     user.balance = deposit_amount;
 
@@ -205,7 +205,7 @@ async fn join_table(
 
     if let Err(e) = ret {
         ic_cdk::println!("Error adding user to table: {:?}", e);
-        remove_users_active_table(users_canister_principal, user_id).await?;
+        remove_users_active_table(users_canister_principal, user_id, ic_cdk::api::canister_self()).await?;
         return Err(e.into());
     }
 
@@ -234,7 +234,7 @@ async fn join_table(
                 }
                 Err(e) => {
                     ic_cdk::println!("Error depositing: {:?}", e);
-                    remove_users_active_table(users_canister_principal, user_id).await?;
+                    remove_users_active_table(users_canister_principal, user_id, ic_cdk::api::canister_self()).await?;
 
                     let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
                     let table = table.as_mut().ok_or(TableError::TableNotFound)?;
@@ -335,7 +335,7 @@ async fn kick_player(
     }
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = remove_users_active_table(users_canister_principal, user_id).await {
+        if let Err(e) = remove_users_active_table(users_canister_principal, user_id, ic_cdk::api::canister_self()).await {
             ic_cdk::println!("Error removing active table: {}", e);
         }
     });
@@ -440,7 +440,7 @@ async fn leave_table(
     }
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = remove_users_active_table(users_canister_id, user_id).await {
+        if let Err(e) = remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self()).await {
             ic_cdk::println!("Error removing active table: {}", e);
         }
     });
@@ -508,7 +508,7 @@ async fn leave_table_for_table_balancing(
     };
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = remove_users_active_table(users_canister_id, user_id).await {
+        if let Err(e) = remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self()).await {
             ic_cdk::println!("Error removing active table: {}", e);
         }
     });
@@ -850,7 +850,7 @@ async fn player_sitting_in(
                 table_state
                     .kick_user(user_id, "Insufficient Funds".to_string())
                     .map_err(|e| e.into_inner())?;
-                remove_users_active_table(users_canister_id, user_id).await?;
+                remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self()).await?;
 
                 *TABLE.lock().map_err(|_| TableError::LockError)? = Some(table_state);
                 return Err(GameError::InsufficientFunds.into());
@@ -1269,7 +1269,7 @@ async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
                     let referrer = match referrers.get(&referrer_principal) {
                         Some(referrer) => referrer.clone(),
                         None => {
-                            let referrer = get_user(referrer_canister_id, referrer_principal).await?;
+                            let referrer = get_user_wrapper(referrer_canister_id, referrer_principal).await?;
                             referrers.insert(referrer_principal, referrer.clone());
                             referrer
                         }

@@ -8,14 +8,14 @@ use canister_functions::{
         top_up_canister,
     },
     install_wasm_code,
-    rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL,
     upgrade_wasm_code,
 };
 use currency::types::currency_manager::CurrencyManager;
 use errors::{canister_management_error::CanisterManagementError, user_error::UserError};
 use ic_ledger_types::{
-    AccountIdentifier, Subaccount, DEFAULT_SUBACCOUNT, MAINNET_LEDGER_CANISTER_ID,
+    AccountIdentifier, Subaccount, DEFAULT_SUBACCOUNT,
 };
+use intercanister_call_wrappers::users_canister::{create_user_wrapper, get_user_wrapper, update_user_wrapper};
 use lazy_static::lazy_static;
 use user::user::{User, UserAvatar};
 use user_index::{get_position_in_leaderboard, UserIndex};
@@ -23,7 +23,6 @@ use user_index::{get_position_in_leaderboard, UserIndex};
 use std::sync::Mutex;
 
 mod memory;
-mod query;
 pub mod reset_xp_utils;
 pub mod user_index;
 
@@ -168,13 +167,15 @@ async fn create_user(
         }
     };
 
-    let (res,): (Result<(User, usize), UserError>,) = ic_cdk::call(
+    let res = create_user_wrapper(
         user_canister,
-        "create_user",
-        (user_name, address, principal_id, avatar, None::<String>, referrer),
+        user_name,
+        address,
+        principal_id,
+        avatar,
+        referrer,
     )
-    .await
-    .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
+    .await;
 
     let mut user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
 
@@ -221,20 +222,17 @@ async fn update_user(
     validate_caller(vec![principal_id]);
     handle_cycle_check().await?;
 
-    let (res,): (Result<User, UserError>,) = ic_cdk::call(
+    let res = update_user_wrapper(
         user_canister_principal_id,
-        "update_user",
-        (
-            user_name,
-            balance,
-            address,
-            principal_id,
-            wallet_principal_id,
-            avatar,
-        ),
+        user_name,
+        balance,
+        address,
+        principal_id,
+        wallet_principal_id,
+        avatar,
     )
-    .await
-    .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
+    .await;
+
     res
 }
 
@@ -247,195 +245,7 @@ async fn get_user(user_id: Principal) -> Result<User, UserError> {
             .get_users_canister_principal(user_id)
             .ok_or(UserError::UserNotFound)?
     };
-    let (res,): (Result<User, UserError>,) =
-        ic_cdk::call(user_canister_principal_id, "get_user", ())
-            .await
-            .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-
-    res
-}
-
-#[ic_cdk::update]
-async fn get_user_by_principal(user_principal: Principal) -> Result<User, UserError> {
-    handle_cycle_check().await?;
-    let (res,): (Result<User, UserError>,) = ic_cdk::call(user_principal, "get_user", ())
-        .await
-        .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-
-    res
-}
-
-#[ic_cdk::update]
-async fn deposit(
-    user_principal: Principal,
-    amount: u64,
-    block_number: u64,
-) -> Result<User, UserError> {
-    handle_cycle_check().await?;
-    let block: Option<ic_ledger_types::Block> =
-        query::query_one_block(MAINNET_LEDGER_CANISTER_ID, block_number)
-            .await
-            .map_err(|e| UserError::BlockQueryFailed(e.to_string()))?;
-
-    let canister_state = get_canister_state();
-    let (tx_id, block) = {
-        // Lock the global state to access the game state and canister state
-        let user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
-
-        // Query the block by block number from the ledger canister
-        // Check if the block exists
-        let block = block.ok_or(UserError::BlockNotFound)?;
-
-        let tx_id = format!(
-            "{}-{:?}-{}",
-            block_number, block.transaction.memo, block.transaction.created_at_time.timestamp_nanos
-        );
-        if user_index_state.transaction_exists(&tx_id) {
-            return Err(UserError::DuplicateTransaction);
-        }
-        (tx_id, block)
-    };
-
-    // Retrieve the transaction within the block and ensure it is a transfer to the canister's account
-    match &block.transaction.operation {
-        Some(ic_ledger_types::Operation::Transfer {
-            to,
-            amount: tx_amount,
-            ..
-        }) => {
-            handle_cycle_check().await?;
-            let expected_amount = ic_ledger_types::Tokens::from_e8s(amount);
-
-            // Check if the transaction is to the correct account and the amount matches
-            if &canister_state.account_identifier == to && *tx_amount == expected_amount {
-                {
-                    let mut user_index_state =
-                        USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
-                    user_index_state.add_transaction(tx_id);
-                }
-                // Valid transaction: proceed with depositing the amount to the user's balance
-                let (res,): (Result<User, UserError>,) =
-                    ic_cdk::call(user_principal, "deposit", (amount,))
-                        .await
-                        .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-                res
-            } else {
-                // Return an error if the recipient or amount does not match
-                Err(UserError::InvalidTransactionDetails)
-            }
-        }
-        _ => {
-            handle_cycle_check().await?;
-            // The transaction is not a Transfer, or is not to the intended recipient, or amount does not match
-            Err(UserError::InvalidTransactionType)
-        }
-    }
-}
-
-#[ic_cdk::update]
-async fn withdraw(
-    user_principal: Principal,
-    wallet_principal_id: Principal,
-    amount: u64,
-) -> Result<User, UserError> {
-    handle_cycle_check().await?;
-    // validate_caller(vec![user_principal]);
-
-    let user = {
-        let (user,): (Result<User, UserError>,) = ic_cdk::call(user_principal, "get_user", ())
-            .await
-            .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-        let user = user?;
-        user.clone()
-    };
-
-    if user.balance < amount {
-        return Err(UserError::InsufficientFunds);
-    }
-
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| UserError::LockError)?
-            .clone()
-    };
-    currency_manager
-        .withdraw(&currency::Currency::ICP, wallet_principal_id, amount)
-        .await
-        .map_err(|e| {
-            UserError::ManagementCanisterError(CanisterManagementError::Transfer(format!(
-                "Failed to withdraw: {}",
-                e
-            )))
-        })?;
-
-    let (res,): (Result<User, UserError>,) = ic_cdk::call(user_principal, "withdraw", (amount,))
-        .await
-        .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-    res
-}
-
-#[ic_cdk::update]
-async fn support_us(user_principal: Principal, amount: u64) -> Result<(), UserError> {
-    handle_cycle_check().await?;
-    let user = {
-        let (user,): (Result<User, UserError>,) = ic_cdk::call(user_principal, "get_user", ())
-            .await
-            .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-        let user = user?;
-        user.clone()
-    };
-
-    if user.balance < amount {
-        return Err(UserError::InsufficientFunds);
-    }
-
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| UserError::LockError)?
-            .clone()
-    };
-    currency_manager
-        .withdraw_rake(
-            &currency::Currency::ICP,
-            Principal::from_text(RAKE_WALLET_ADDRESS_PRINCIPAL).unwrap(),
-            amount,
-        )
-        .await
-        .map_err(|e| {
-            UserError::ManagementCanisterError(CanisterManagementError::Transfer(format!(
-                "Failed to withdraw: {}",
-                e
-            )))
-        })?;
-
-    let (res,): (Result<User, UserError>,) = ic_cdk::call(user_principal, "withdraw", (amount,))
-        .await
-        .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-    let _res = res?;
-    Ok(())
-}
-
-#[ic_cdk::update]
-async fn transfer(
-    user_principal: Principal,
-    to_user_principal: Principal,
-    amount: u64,
-) -> Result<(), UserError> {
-    handle_cycle_check().await?;
-    // validate_caller(vec![user_principal]);
-
-    let (res,): (Result<User, UserError>,) = ic_cdk::call(user_principal, "withdraw", (amount,))
-        .await
-        .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-    let _res = res?;
-
-    let (res,): (Result<User, UserError>,) = ic_cdk::call(to_user_principal, "deposit", (amount,))
-        .await
-        .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-    let _res = res?;
-    Ok(())
+    get_user_wrapper(user_canister_principal_id, user_id).await
 }
 
 #[ic_cdk::query]

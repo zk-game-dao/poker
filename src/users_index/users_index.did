@@ -93,7 +93,6 @@ service : () -> {
   create_user : (text, opt text, principal, opt UserAvatar, opt principal) -> (
       Result,
     );
-  deposit : (principal, nat64, nat64) -> (Result);
   get_account_number : () -> (Result_1) query;
   get_cycles : () -> (text) query;
   get_experience_points_leaderboard : (nat64, nat64) -> (Result_2);
@@ -104,7 +103,6 @@ service : () -> {
   get_pure_poker_position : (principal) -> (Result_3);
   get_stable_storage_stats : () -> (text) query;
   get_user : (principal) -> (Result);
-  get_user_by_principal : (principal) -> (Result);
   get_user_canister_cycles : (principal) -> (Result_5) query;
   get_user_canisters : () -> (Result_6) query;
   get_user_canisters_cycles : () -> (Result_7) query;
@@ -115,9 +113,7 @@ service : () -> {
   monitor_and_top_up_user_canisters : () -> (Result_9);
   ping : () -> (text) query;
   request_cycles : () -> (Result_9);
-  support_us : (principal, nat64) -> (Result_9);
   top_up_user_canister : (principal, nat) -> (Result_9);
-  transfer : (principal, principal, nat64) -> (Result_9);
   update_user : (
       principal,
       opt text,
@@ -129,5 +125,4 @@ service : () -> {
     ) -> (Result);
   upgrade_all_user_canisters : () -> (Result_10);
   upgrade_user_canister : (principal) -> (Result_9);
-  withdraw : (principal, principal, nat64) -> (Result);
 }

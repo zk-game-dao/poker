@@ -5,7 +5,7 @@ use canister_functions::leaderboard_utils::{
 };
 use errors::user_error::UserError;
 use ic_cdk_timers::TimerId;
-use intercanister_call_wrappers::users_canister::get_user;
+use intercanister_call_wrappers::users_canister::{clear_experience_points_wrapper, clear_pure_poker_experience_points_wrapper, get_user_wrapper};
 
 use crate::{CURRENCY_MANAGER, USER_INDEX_STATE};
 
@@ -92,7 +92,7 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
                 continue;
             }
         };
-        let user_obj = match get_user(*users_canister, user).await {
+        let user_obj = match get_user_wrapper(*users_canister, user).await {
             Ok(user) => user,
             Err(e) => {
                 ic_cdk::println!("Failed to get user {}: {:?}", user.to_text(), e);
@@ -123,20 +123,10 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
         user_index_state.get_users_canisters()
     };
 
-    let mut results = Vec::new();
-
     for user_canister in user_canisters {
-        let (res,): (Result<(), UserError>,) =
-            ic_cdk::call(user_canister, "clear_experience_points", ())
-                .await
-                .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-        results.push(res);
-    }
-
-    for result in results {
-        match result {
-            Ok(_) => (),
-            Err(e) => ic_cdk::println!("Failed to reset experience points: {:?}", e),
+        if let Err(e) = clear_experience_points_wrapper(user_canister).await {
+            ic_cdk::println!("Failed to clear experience points for user canister {}: {:?}", user_canister.to_text(), e);
+            continue;
         }
     }
 
@@ -179,7 +169,7 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
                 continue;
             }
         };
-        let user_obj = match get_user(*users_canister, user).await {
+        let user_obj = match get_user_wrapper(*users_canister, user).await {
             Ok(user) => user,
             Err(e) => {
                 ic_cdk::println!("Failed to get user {}: {:?}", user.to_text(), e);
@@ -210,20 +200,10 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
         user_index_state.get_users_canisters()
     };
 
-    let mut results = Vec::new();
-
     for user_canister in user_canisters {
-        let (res,): (Result<(), UserError>,) =
-            ic_cdk::call(user_canister, "clear_pure_poker_experience_points", ())
-                .await
-                .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-        results.push(res);
-    }
-
-    for result in results {
-        match result {
-            Ok(_) => (),
-            Err(e) => ic_cdk::println!("Failed to reset experience points: {:?}", e),
+        if let Err(e) = clear_pure_poker_experience_points_wrapper(user_canister).await {
+            ic_cdk::println!("Failed to clear pure poker experience points for user canister {}: {:?}", user_canister.to_text(), e);
+            continue;
         }
     }
 
