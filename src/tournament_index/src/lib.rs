@@ -97,9 +97,11 @@ fn get_account_number() -> Result<Option<String>, TournamentIndexError> {
 
 #[ic_cdk::update]
 async fn create_tournament(
-    mut new_tournament: NewTournament,
-    mut table_config: TableConfig,
+    new_tournament: NewTournament,
+    table_config: TableConfig,
 ) -> Result<Principal, TournamentIndexError> {
+    let mut new_tournament = new_tournament;
+    let mut table_config = table_config;
     let tournament_canister = {
         handle_cycle_check().await?;
 

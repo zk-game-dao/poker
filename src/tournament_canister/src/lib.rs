@@ -80,9 +80,10 @@ fn init() {
 #[ic_cdk::update]
 async fn create_tournament(
     config: TournamentData,
-    mut table_config: TableConfig,
+    table_config: TableConfig,
     prize_pool: u64,
 ) -> Result<TournamentData, TournamentError> {
+    let mut table_config = table_config;
     config.validate()?;
     match &config.tournament_type {
         TournamentType::BuyIn(buy_in_type) => match buy_in_type {
