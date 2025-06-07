@@ -442,7 +442,6 @@ async fn handle_cancelled_tournament() -> Result<(), TournamentError> {
     ic_cdk::futures::spawn(async move {
         if let Err(e) = return_all_cycles_to_tournament_index_wrapper(ic_cdk::api::canister_self()).await {
             ic_cdk::println!("Error returning cycles to tournament index: {:?}", e);
-            return
         }
     });
     Ok(())
@@ -907,7 +906,6 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
     ic_cdk::futures::spawn(async move {
         if let Err(e) = return_all_cycles_to_tournament_index_wrapper(ic_cdk::api::canister_self()).await {
             ic_cdk::println!("Error returning cycles to tournament index: {:?}", e);
-            return;
         }
     });
     Ok(())
@@ -1039,7 +1037,7 @@ async fn return_all_cycles_to_tournament_index() -> Result<(), TournamentError> 
 
     // TODO: We are losing cycles on this we need to efficiently find a way to return all cycles to the index canister
     // Get the current balance of cycles in the canister
-    let all_cycles = ic_cdk::api::canister_cycle_balance().saturating_sub(100_000_000_000) as u128;
+    let all_cycles = ic_cdk::api::canister_cycle_balance().saturating_sub(100_000_000_000);
     if all_cycles == 0 {
         return Err(TournamentError::CanisterCallError(
             "No cycles available to send".to_string(),
@@ -1276,7 +1274,7 @@ async fn request_cycles() -> Result<(), TournamentError> {
         ));
     }
 
-    transfer_cycles(CYCLES_TOP_UP_AMOUNT as u128, caller).await
+    transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
 async fn transfer_cycles(cycles_amount: u128, caller: Principal) -> Result<(), TournamentError> {

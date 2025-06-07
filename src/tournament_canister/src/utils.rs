@@ -62,7 +62,7 @@ pub fn get_canister_state() -> CanisterState {
 
 pub fn handle_cycle_check() {
     let cycles = ic_cdk::api::canister_cycle_balance();
-    if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
+    if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
     ic_cdk::println!("%%%%%%%%%%% Cycles balance is low: {}", Nat::from(cycles));
@@ -103,7 +103,7 @@ pub fn handle_cycle_check() {
 
 pub async fn handle_cycle_check_async() {
     let cycles = ic_cdk::api::canister_cycle_balance();
-    if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
+    if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
     ic_cdk::println!("%%%%%%%%%%% Cycles balance is low: {}", Nat::from(cycles));
