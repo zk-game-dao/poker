@@ -122,6 +122,14 @@ fn test_late_registration() {
 
     test_env.transfer_approve_tokens_for_testing(id, late_user.principal_id, 1000.0, true);
 
+    for _ in 0..6 {
+        test_env.pocket_ic.advance_time(Duration::from_secs(60)); // 2 seconds
+        for _ in 0..6 {
+            test_env.pocket_ic.tick();
+        }
+        test_env.pocket_ic.tick();
+    }
+
     // Should succeed during late registration
     test_env
         .join_tournament(id, late_user.users_canister_id, late_user.principal_id)
