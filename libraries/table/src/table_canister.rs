@@ -1,8 +1,6 @@
 use candid::Principal;
-use canister_functions::rake_stats::RakeStats;
 use errors::table_error::TableError;
-use table::{poker::game::{table_functions::table::TableConfig, types::PublicTable}, types::ReturnResult};
-use tournaments::tournaments::blind_level::BlindLevel;
+use crate::{poker::game::{table_functions::table::TableConfig, types::PublicTable}, types::ReturnResult};
 
 pub async fn create_table_wrapper(table_id: Principal, config: TableConfig, raw_bytes: Vec<u8>) -> Result<PublicTable, TableError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(
@@ -534,22 +532,32 @@ pub async fn is_game_ongoing_wrapper(table_principal: Principal) -> Result<bool,
     }
 }
 
-pub async fn get_rake_stats(table_id: Principal) -> Result<RakeStats, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "get_rake_stats").await;
+pub async fn add_experience_points_wrapper(
+    users_canister_id: Principal,
+    user_principal: Principal,
+    experience_points: u64,
+    currency: String,
+) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(
+        users_canister_id,
+        "add_experience_points",
+    )
+    .with_args(&(experience_points, currency, user_principal))
+    .await;
 
     match call_result {
-        Ok(stats_result) => match stats_result.candid() {
-            Ok(stats) => stats,
+        Ok(res) => match res.candid() {
+            Ok(res) => res,
             Err(err) => {
-                ic_cdk::println!("Error getting rake stats: {:?}", err);
+                ic_cdk::println!("Error adding experience points: {:?}", err);
                 Err(TableError::CanisterCallError(format!(
-                    "Failed to decode get_rake_stats response: {:?}",
+                    "Failed to decode add_experience_points response: {:?}",
                     err
                 )))
             }
         },
         Err(err) => {
-            ic_cdk::println!("Error in get_rake_stats call: {:?}", err);
+            ic_cdk::println!("Error in add_experience_points call: {:?}", err);
             Err(TableError::CanisterCallError(format!(
                 "{:?}",
                 err
@@ -558,30 +566,30 @@ pub async fn get_rake_stats(table_id: Principal) -> Result<RakeStats, TableError
     }
 }
 
-pub async fn update_blinds(
-    table_id: Principal,
-    new_level: &BlindLevel,
+pub async fn handle_timer_expiration_wrapper(
+    table_principal: Principal,
+    user_id: Principal,
 ) -> Result<(), TableError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(
-        table_id,
-        "update_blinds",
+        table_principal,
+        "handle_timer_expiration",
     )
-    .with_args(&(new_level.small_blind, new_level.big_blind, new_level.ante_type.clone()))
+    .with_arg(user_id)
     .await;
 
     match call_result {
         Ok(res) => match res.candid() {
             Ok(res) => res,
             Err(err) => {
-                ic_cdk::println!("Error updating blinds: {:?}", err);
+                ic_cdk::println!("Error handling timer expiration: {:?}", err);
                 Err(TableError::CanisterCallError(format!(
-                    "Failed to decode update_blinds response: {:?}",
+                    "Failed to decode handle_timer_expiration response: {:?}",
                     err
                 )))
             }
         },
         Err(err) => {
-            ic_cdk::println!("Error in update_blinds call: {:?}", err);
+            ic_cdk::println!("Error in handle_timer_expiration call: {:?}", err);
             Err(TableError::CanisterCallError(format!(
                 "{:?}",
                 err

@@ -2,7 +2,8 @@ use std::{sync::atomic::Ordering, time::Duration};
 
 use candid::Principal;
 use errors::tournament_error::TournamentError;
-use intercanister_call_wrappers::{table_canister::{join_table, pause_table_for_addon_wrapper, resume_table_wrapper, update_blinds}, tournament_canister::{get_and_remove_from_pool_wrapper, handle_cancelled_tournament_wrapper}};
+use intercanister_call_wrappers::tournament_canister::{get_and_remove_from_pool_wrapper, update_blinds, handle_cancelled_tournament_wrapper};
+use table::table_canister::{join_table, pause_table_for_addon_wrapper, resume_table_wrapper};
 use tournaments::tournaments::{
     table_balancing::calculate_players_per_table,
     tournament_type::{TournamentSizeType, TournamentType},

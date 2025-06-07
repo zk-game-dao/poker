@@ -14,7 +14,8 @@ use errors::{
     table_index_error::TableIndexError,
 };
 use futures::future::join_all;
-use intercanister_call_wrappers::table_canister::{clear_table, create_table_wrapper, get_rake_stats, get_table_wrapper, is_game_ongoing_wrapper, join_table, return_all_cycles_to_index};
+use intercanister_call_wrappers::table_index::get_rake_stats;
+use table::table_canister::{clear_table, create_table_wrapper, get_table_wrapper, is_game_ongoing_wrapper, join_table, return_all_cycles_to_index};
 use lazy_static::lazy_static;
 use std::{cmp::Ordering, collections::HashMap, sync::Mutex};
 use table::poker::game::{

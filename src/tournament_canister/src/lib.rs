@@ -8,7 +8,7 @@ use currency::{state::TransactionState, types::currency_manager::CurrencyManager
 use errors::{
     canister_management_error::CanisterManagementError, tournament_error::TournamentError,
 };
-use intercanister_call_wrappers::{table_canister::{clear_table, join_table, leave_table_wrapper}, tournament_canister::{add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller, handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper, user_leave_tournament_wrapper}, users_canister::get_user_wrapper};
+use intercanister_call_wrappers::{tournament_canister::{add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller, handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper, user_leave_tournament_wrapper}, users_canister::get_user_wrapper};
 use lazy_static::lazy_static;
 use std::{
     collections::HashSet,
@@ -17,13 +17,13 @@ use std::{
         Mutex,
     },
 };
-use table::poker::game::{
+use table::{poker::game::{
     table_functions::{
         table::{TableConfig, TableType},
-        types::CurrencyType, utils::get_table,
+        types::CurrencyType
     },
     types::PublicTable,
-};
+}, table_canister::{clear_table, get_table_wrapper, join_table, leave_table_wrapper}};
 use table_balancing::{check_and_balance_tables, move_player_to_table};
 use tournaments::tournaments::{
     table_balancing::get_balance_interval,
@@ -949,7 +949,7 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
             .0
     };
     update_tournament_state(TournamentState::Completed).await?;
-    let table = get_table(table).await?;
+    let table = get_table_wrapper(table).await?;
 
     ic_cdk::futures::spawn(async move {
         if let Err(e) = distribute_winnings_wrapper(ic_cdk::api::canister_self(), table).await {
@@ -1230,7 +1230,7 @@ async fn move_player_from_to_table(
             .ok_or(TournamentError::TournamentNotFound)?
     };
 
-    let table = get_table(from_table).await?;
+    let table = get_table_wrapper(from_table).await?;
 
     // Get Big blind UID as thats the one that usually gets moved.
     let big_blind_principal = table.get_big_blind_user_principal();

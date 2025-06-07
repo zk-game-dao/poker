@@ -14,11 +14,11 @@ use errors::{
 };
 use ic_cdk::management_canister::DepositCyclesArgs;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
-use intercanister_call_wrappers::{table_canister::{create_table_wrapper, deposit_to_table, get_table_wrapper, is_game_ongoing_wrapper, join_table, leave_table_wrapper, return_all_cycles_to_index}, tournament_canister::{handle_tournament_end_wrapper, update_tournament_state_icc_wrapper}};
-use table::poker::game::{
+use intercanister_call_wrappers::tournament_canister::{handle_tournament_end_wrapper, update_tournament_state_icc_wrapper};
+use table::{poker::game::{
     table_functions::{table::TableConfig, types::CurrencyType},
     types::PublicTable,
-};
+}, table_canister::{create_table_wrapper, deposit_to_table, get_table_wrapper, is_game_ongoing_wrapper, join_table, leave_table_wrapper, return_all_cycles_to_index}};
 use tournaments::tournaments::{
     tournament_type::{TournamentSizeType, TournamentType},
     types::{TournamentData, TournamentState},

@@ -13,7 +13,7 @@ use errors::{
     table_error::TableError
 };
 use ic_cdk::management_canister::{DepositCyclesArgs};
-use intercanister_call_wrappers::{log_store::log_actions_wrapper, table_canister::{kick_player_wrapper, leave_table_wrapper, start_new_betting_round_wrapper}, users_canister::{add_users_active_table, get_user_wrapper, get_users_canister_principal_by_id_wrapper, remove_users_active_table}};
+use intercanister_call_wrappers::{log_store::log_actions_wrapper, users_canister::{add_users_active_table, get_user_wrapper, get_users_canister_principal_by_id_wrapper, remove_users_active_table}};
 use lazy_static::lazy_static;
 use table::{
     poker::{
@@ -29,6 +29,7 @@ use table::{
             utils::rank_hand,
         },
     },
+    table_canister::{kick_player_wrapper, leave_table_wrapper, start_new_betting_round_wrapper},
     types::ReturnResult,
     utils::is_table_game_ongoing,
 };

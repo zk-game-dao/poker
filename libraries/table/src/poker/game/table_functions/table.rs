@@ -15,6 +15,7 @@ use crate::poker::game::types::TableStatus;
 use crate::poker::game::users::Users;
 
 use crate::poker::game::types::{GameType, QueueItem, UserCards};
+use crate::table_canister::add_experience_points_wrapper;
 
 use super::action_log::{ActionLog, ActionType};
 use super::ante::AnteType;
@@ -632,12 +633,8 @@ impl Table {
                         CurrencyType::Fake => {}
                         CurrencyType::Real(currency) => {
                             ic_cdk::futures::spawn(async move {
-                                match ic_cdk::call(
-                                    users_canister_id,
-                                    "add_experience_points",
-                                    (experience_points, currency.to_string(), user_principal),
-                                )
-                                .await
+                                match add_experience_points_wrapper(users_canister_id, user_principal, experience_points, currency.to_string())
+                                    .await
                                 {
                                     Ok(res) => res,
                                     Err(_err) => {}

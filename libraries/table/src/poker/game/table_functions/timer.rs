@@ -4,6 +4,8 @@ use candid::Principal;
 use errors::{game_error::GameError, table_error::TableError};
 use ic_cdk::futures::spawn;
 
+use crate::table_canister::{handle_timer_expiration_wrapper, start_new_betting_round_wrapper};
+
 use super::table::Table;
 
 impl Table {
@@ -29,7 +31,7 @@ impl Table {
             spawn(async move {
                 let mut retries = 0;
                 while retries < 5 {
-                    match handle_inactive_user(table_principal, user_id).await {
+                    match handle_timer_expiration_wrapper(table_principal, user_id).await {
                         Ok(_) => return,
                         Err(err) => {
                             ic_cdk::println!(
@@ -60,7 +62,7 @@ impl Table {
             spawn(async move {
                 let mut retries = 0;
                 while retries < 3 {
-                    match try_start_new_betting_round(table_principal).await {
+                    match start_new_betting_round_wrapper(table_principal).await {
                         Ok(_) => return,
                         Err(err) => {
                             if err
@@ -99,35 +101,4 @@ impl Table {
             self.timer = None;
         }
     }
-}
-
-async fn handle_inactive_user(
-    table_principal: Principal,
-    user_id: Principal,
-) -> Result<(), TableError> {
-    let (res,): (Result<(), TableError>,) =
-        match ic_cdk::call(table_principal, "handle_timer_expiration", (user_id,)).await {
-            Ok(res) => res,
-            Err(err) => {
-                ic_cdk::println!("Error calling handle_timer_expiration: {:?}", err);
-                return Err(TableError::CanisterCallError(format!("{:?}", err)));
-            }
-        };
-    if let Err(err) = res {
-        ic_cdk::println!("Error handling timer expiration: {:?}", err);
-        return Err(err);
-    }
-    Ok(())
-}
-
-async fn try_start_new_betting_round(table_principal: Principal) -> Result<(), TableError> {
-    let (res,): (Result<(), TableError>,) =
-        ic_cdk::call(table_principal, "start_new_betting_round", ())
-            .await
-            .map_err(|e| {
-                ic_cdk::println!("Error calling start_new_betting_round: {:?}", e);
-                TableError::CanisterCallError(format!("{:?}", e))
-            })?;
-
-    res
 }
