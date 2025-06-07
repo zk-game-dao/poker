@@ -252,7 +252,15 @@ async fn join_table(
     let is_paused = table_state.config.is_paused.unwrap_or(false);
 
     if table_state.number_of_players() >= 2 && !table_state.is_game_ongoing() && !is_paused {
-        start_new_betting_round_wrapper(ic_cdk::api::canister_self()).await?;
+        if let Err(e) = start_new_betting_round_wrapper(
+            ic_cdk::api::canister_self(),
+        )
+        .await {
+            ic_cdk::println!("Error starting new betting round: {:?}", e);
+            if matches!(e, TableError::CanisterCallError(_)) {
+                return Err(e);
+            }
+        }
     }
     let caller = ic_cdk::api::msg_caller();
     table_state.hide_cards(caller).map_err(|e| e.into_inner())?;
@@ -896,10 +904,15 @@ async fn player_sitting_in(
         && !table_state.is_game_ongoing()
         && auto_start
     {
-        start_new_betting_round_wrapper(
+        if let Err(e) = start_new_betting_round_wrapper(
             ic_cdk::api::canister_self(),
         )
-        .await?;
+        .await {
+            ic_cdk::println!("Error starting new betting round: {:?}", e);
+            if matches!(e, TableError::CanisterCallError(_)) {
+                return Err(e);
+            }
+        }
     }
 
     Ok(())

@@ -32,7 +32,7 @@ fn test_experience_points_reset_and_payout() {
             .add_experience_points(
                 user_canister.users_canister_id,
                 user_id,
-                currency::Currency::ICP,
+                currency::Currency::ICP.to_string(),
                 exp,
             )
             .unwrap();
@@ -55,10 +55,9 @@ fn test_experience_points_reset_and_payout() {
 
     // Get timestamp for Sunday 00:00:00 UTC
     let sunday_midnight = {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let current_time = test_env.pocket_ic.get_time();
+        let now = current_time
+            .as_nanos_since_unix_epoch() / 1_000_000_000;
         let days_since_epoch = now / 86400;
         let current_day = (days_since_epoch + 4) % 7;
         let days_to_sunday = (8 - current_day) % 7;
@@ -111,7 +110,7 @@ fn test_experience_points_reset_and_payout_btc() {
             .add_experience_points(
                 user_canister.users_canister_id,
                 user_id,
-                currency::Currency::BTC,
+                currency::Currency::BTC.to_string(),
                 exp,
             )
             .unwrap();
@@ -134,10 +133,9 @@ fn test_experience_points_reset_and_payout_btc() {
 
     // Get timestamp for Sunday 00:00:00 UTC
     let sunday_midnight = {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let current_time = test_env.pocket_ic.get_time();
+        let now = current_time
+            .as_nanos_since_unix_epoch() / 1_000_000_000;
         let days_since_epoch = now / 86400;
         let current_day = (days_since_epoch + 4) % 7;
         let days_to_sunday = (8 - current_day) % 7;

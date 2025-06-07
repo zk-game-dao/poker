@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use candid::{CandidType, Principal};
 use errors::game_error::GameError;
 #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
-use errors::tournament_error::TournamentError;
+use crate::table_canister::{add_experience_points_wrapper, withdraw_rake_wrapper, handle_user_losing_wrapper};
 use errors::trace_err;
 use errors::traced_error::TracedError;
 use ic_cdk_timers::TimerId;
@@ -15,7 +15,6 @@ use crate::poker::game::types::TableStatus;
 use crate::poker::game::users::Users;
 
 use crate::poker::game::types::{GameType, QueueItem, UserCards};
-use crate::table_canister::add_experience_points_wrapper;
 
 use super::action_log::{ActionLog, ActionType};
 use super::ante::AnteType;
@@ -615,7 +614,7 @@ impl Table {
 
         for user_principal in self.seats.clone().into_iter() {
             if let SeatStatus::Occupied(user_principal) = user_principal {
-                // #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+                #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
                 {
                     let experience_points =
                         if let Ok(table_data) = self.get_user_table_data(user_principal) {
@@ -696,10 +695,7 @@ impl Table {
             if rake_total > fee {
                 let id = self.id;
                 ic_cdk::futures::spawn(async move {
-                    match ic_cdk::call(id, "withdraw_rake", (rake_total,)).await {
-                        Ok(res) => res,
-                        Err(_err) => {}
-                    }
+                    let _ = withdraw_rake_wrapper(id, rake_total).await;
                 });
             }
         }
@@ -891,59 +887,16 @@ impl Table {
             {
                 ic_cdk::futures::spawn(async move {
                     ic_cdk::println!("Removing from tournament: {:?}", tournament_id.to_text());
-                    let res: Result<(Result<(), TournamentError>,), _> =
-                        ic_cdk::call(tournament_id, "handle_user_losing", (user_principal, id))
-                            .await;
-                    match res {
-                        Ok((Err(err),)) => {
-                            ic_cdk::println!(
-                                "Failed to handle user losing: {:?}\nRetrying...",
-                                err
-                            );
-                            let res: Result<(Result<(), TournamentError>,), _> = ic_cdk::call(
-                                tournament_id,
-                                "handle_user_losing",
-                                (user_principal, id),
-                            )
-                            .await;
-                            match res {
-                                Ok((Err(err),)) => {
-                                    ic_cdk::println!("Failed to handle user losing: {:?}", err);
-                                }
-                                Err(err) => {
-                                    ic_cdk::println!(
-                                        "Failed to handle user losing (Inter canister call): {:?}",
-                                        err
-                                    );
-                                }
-                                _ => {}
+                    for _ in 0..3 {
+                        match handle_user_losing_wrapper(tournament_id, user_principal, id).await {
+                            Ok(_) => return,
+                            Err(err) => {
+                                ic_cdk::println!(
+                                    "Failed to handle user losing (Inter canister call): {:?}\nRetrying...",
+                                    err
+                                );
                             }
                         }
-                        Err(err) => {
-                            ic_cdk::println!(
-                                "Failed to handle user losing (Inter canister call): {:?}\nRetrying...",
-                                err
-                            );
-                            let res: Result<(Result<(), TournamentError>,), _> = ic_cdk::call(
-                                tournament_id,
-                                "handle_user_losing",
-                                (user_principal, id),
-                            )
-                            .await;
-                            match res {
-                                Ok((Err(err),)) => {
-                                    ic_cdk::println!("Failed to handle user losing: {:?}", err);
-                                }
-                                Err(err) => {
-                                    ic_cdk::println!(
-                                        "Failed to handle user losing (Inter canister call): {:?}",
-                                        err
-                                    );
-                                }
-                                _ => {}
-                            }
-                        }
-                        _ => {}
                     }
                 });
             }

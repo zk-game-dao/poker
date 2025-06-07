@@ -1,5 +1,4 @@
 use candid::{decode_one, encode_args, Principal};
-use currency::Currency;
 use errors::user_error::UserError;
 use ic_ledger_types::{AccountIdentifier, Tokens};
 use user::user::User;
@@ -72,7 +71,7 @@ impl TestEnv {
         &self,
         users_canister_id: Principal,
         user_id: Principal,
-        currency: Currency,
+        currency: String,
         exp: u64,
     ) -> Result<User, UserError> {
         let user = self.pocket_ic.update_call(

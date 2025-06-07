@@ -1,5 +1,5 @@
 use candid::Principal;
-use errors::table_error::TableError;
+use errors::{table_error::TableError, tournament_error::TournamentError};
 use crate::{poker::game::{table_functions::table::TableConfig, types::PublicTable}, types::ReturnResult};
 
 pub async fn create_table_wrapper(table_id: Principal, config: TableConfig, raw_bytes: Vec<u8>) -> Result<PublicTable, TableError> {
@@ -590,6 +590,71 @@ pub async fn handle_timer_expiration_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in handle_timer_expiration call: {:?}", err);
+            Err(TableError::CanisterCallError(format!(
+                "{:?}",
+                err
+            )))
+        }
+    }
+}
+
+pub async fn handle_user_losing_wrapper(
+    tournament_id: Principal,
+    user_principal: Principal,
+    id: Principal,
+) -> Result<(), TournamentError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(
+        tournament_id,
+        "handle_user_losing",
+    )
+    .with_args(&(user_principal, id))
+    .await;
+
+    match call_result {
+        Ok(res) => match res.candid() {
+            Ok(res) => res,
+            Err(err) => {
+                ic_cdk::println!("Error handling user losing: {:?}", err);
+                Err(TournamentError::CanisterCallError(format!(
+                    "Failed to decode handle_user_losing response: {:?}",
+                    err
+                )))
+            }
+        },
+        Err(err) => {
+            ic_cdk::println!("Error in handle_user_losing call: {:?}", err);
+            Err(TournamentError::CanisterCallError(format!(
+                "{:?}",
+                err
+            )))
+        }
+    }
+}
+
+pub async fn withdraw_rake_wrapper(
+    table_id: Principal,
+    rake_total: u64,
+) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(
+        table_id,
+        "withdraw_rake",
+    )
+    .with_arg(rake_total)
+    .await;
+
+    match call_result {
+        Ok(res) => match res.candid() {
+            Ok(res) => res,
+            Err(err) => {
+                ic_cdk::println!("Error withdrawing rake: {:?}", err);
+                Err(TableError::CanisterCallError(format!(
+                    "Failed to decode withdraw_rake response: {:?}",
+                    err
+                )))
+            }
+        },
+        Err(err) => {
+            ic_cdk::println!("Error in withdraw_rake call: {:?}", err);
             Err(TableError::CanisterCallError(format!(
                 "{:?}",
                 err
