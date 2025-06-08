@@ -295,11 +295,6 @@ fn get_private_tables() -> Result<Vec<Principal>, TableIndexError> {
     Ok(private_table_index_state.keys().copied().collect())
 }
 
-#[ic_cdk::query]
-fn get_cycles() -> u128 {
-    ic_cdk::api::canister_cycle_balance()
-}
-
 #[ic_cdk::update]
 async fn remove_table_from_indexes(table_principal: Principal) -> Result<(), TableIndexError> {
     handle_cycle_check().await?;

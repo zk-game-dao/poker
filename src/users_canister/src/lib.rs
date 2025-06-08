@@ -233,12 +233,6 @@ fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
     Ok(user.active_tables)
 }
 
-#[ic_cdk::query]
-fn get_cycles() -> String {
-    let cycles = ic_cdk::api::canister_cycle_balance();
-    format!("Cycles: {}", cycles)
-}
-
 #[ic_cdk::update]
 fn add_experience_points(
     experience_points: u64,

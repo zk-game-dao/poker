@@ -229,11 +229,6 @@ fn ping() -> String {
     "Ok".to_string()
 }
 
-#[ic_cdk::query]
-fn get_cycles() -> u128 {
-    ic_cdk::api::canister_cycle_balance()
-}
-
 #[ic_cdk::update]
 async fn user_join_tournament(
     users_canister_principal: Principal,

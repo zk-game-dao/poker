@@ -1434,11 +1434,6 @@ async fn transfer_cycles_to_table_index(cycles_amount: u128) -> Result<(), Table
     }
 }
 
-#[ic_cdk::query]
-fn get_cycles() -> u128 {
-    ic_cdk::api::canister_cycle_balance()
-}
-
 #[ic_cdk::update]
 async fn update_blinds(small_blind: u64, big_blind: u64, ante: AnteType) -> Result<(), TableError> {
     handle_cycle_check();

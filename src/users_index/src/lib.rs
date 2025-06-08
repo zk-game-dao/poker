@@ -248,12 +248,6 @@ async fn get_user(user_id: Principal) -> Result<User, UserError> {
     get_user_wrapper(user_canister_principal_id, user_id).await
 }
 
-#[ic_cdk::query]
-fn get_cycles() -> String {
-    let cycles = ic_cdk::api::canister_cycle_balance();
-    format!("Cycles: {}", cycles)
-}
-
 #[ic_cdk::update]
 async fn top_up_user_canister(canister_id: Principal, amount: u128) -> Result<(), UserError> {
     handle_cycle_check().await?;
