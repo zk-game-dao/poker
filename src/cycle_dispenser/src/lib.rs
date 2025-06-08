@@ -82,9 +82,4 @@ async fn transfer_cycles(
     top_up_canister(destination, cycles_amount).await
 }
 
-#[ic_cdk::query]
-fn get_cycles() -> u128 {
-    ic_cdk::api::canister_cycle_balance()
-}
-
 ic_cdk::export_candid!();
