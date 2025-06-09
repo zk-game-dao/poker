@@ -360,34 +360,34 @@ Distribution:
 
         # Contributors
         - principal: x52vg-lbch4-ob4ft-lvtcq-fwb2o-6vm5m-odnji-a4htp-7ajof-cu2jt-yae
-          stake: 2_000_000
+          stake: 2_000_000 tokens
           dissolve_delay: 6 months
           vesting_period: 6 months
 
         - principal: vwa3i-6midp-7pstn-pechc-ygutg-6hqtp-icebw-5e2y6-v3aso-gm4sf-vqe
-          stake: 250_000
+          stake: 250_000 tokens
           dissolve_delay: 6 months
-          vesting_period: 0
+          vesting_period: 0 months
 
         - principal: bdjyr-r4v6q-l6yqs-i5nk4-zhmdw-nnymn-art62-nqog5-q4ktl-yq2iz-jae
-          stake: 250_000
+          stake: 250_000 tokens
           dissolve_delay: 6 months
-          vesting_period: 0
+          vesting_period: 0 months
 
         - principal: vehha-hzlos-fyexv-54yk7-ghyqe-h52vu-ysyvg-kc52f-6vojk-zvk4h-5qe
-          stake: 350_000 (0.035%)
+          stake: 350_000 tokens # (0.035%)
           dissolve_delay: 6 months
-          vesting_period: 0
+          vesting_period: 0 months
 
         - principal: nl32i-nuz3e-vfhhu-23525-7y5z5-2mvsl-5qwuj-nmese-a5wgj-7dkhn-xae
-          stake: 250_000 (0.025%)
+          stake: 250_000 tokens # (0.025%)
           dissolve_delay: 6 months
-          vesting_period: 0
+          vesting_period: 0 months
 
         - principal: r6mcb-fhzrt-rhe4q-bvqwz-pdzcg-6swy5-mrzpi-37zdl-ssln2-6cyt3-bae
-          stake: 500_000
+          stake: 500_000 tokens
           dissolve_delay: 6 months
-          vesting_period: 0
+          vesting_period: 0 months
 
 
         # Early Investors allocation (10% total)
