@@ -94,7 +94,6 @@ service : () -> {
       Result,
     );
   get_account_number : () -> (Result_1) query;
-  get_cycles : () -> (text) query;
   get_experience_points_leaderboard : (nat64, nat64) -> (Result_2);
   get_experience_points_position : (principal) -> (Result_3);
   get_leaderboard_length : () -> (Result_4) query;

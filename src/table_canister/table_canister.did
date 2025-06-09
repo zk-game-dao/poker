@@ -400,7 +400,6 @@ service : () -> {
   edit_chat_message : (principal, nat64, text) -> (Result_1);
   fold : (principal, bool) -> (Result);
   get_chat_messages_for_user : (principal) -> (Result_4) query;
-  get_cycles : () -> (nat) query;
   get_free_seat_index : () -> (Result_5) query;
   get_notifications : () -> (Result_6) query;
   get_players_on_table : () -> (Result_7);

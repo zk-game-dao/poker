@@ -99,7 +99,6 @@ service : () -> {
       opt principal,
     ) -> (Result_2);
   get_active_tables : (principal) -> (Result_3) query;
-  get_cycles : () -> (text) query;
   get_experience_points_by_uid : (principal) -> (Result_4) query;
   get_pure_poker_experience_points_by_uid : (principal) -> (Result_4) query;
   get_pure_poker_user_experience_points : () -> (Result_5) query;

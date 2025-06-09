@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-candid = "0.10"
-ic-cdk = "0.18.3"
+candid = { workspace = true }
+ic-cdk = { workspace = true }
 
 canister_functions = { path = "../canister_functions" }
 errors = { path = "../errors" }

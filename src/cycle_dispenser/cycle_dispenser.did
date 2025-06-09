@@ -11,7 +11,4 @@ type CanisterManagementError = variant {
   InstallCodeError : text;
 };
 type Result = variant { Ok; Err : CanisterManagementError };
-service : () -> {
-  get_cycles : () -> (nat) query;
-  request_cycles : () -> (Result);
-}
+service : () -> { request_cycles : () -> (Result) }

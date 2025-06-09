@@ -9,8 +9,8 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-candid = "0.10"
-ic-cdk = "0.18.3"
+candid = { workspace = true }
+ic-cdk = { workspace = true }
 getrandom = { version = "0.2.15", features = ["custom"] }
 thiserror = "1.0.57"
 serde = { version = "1.0.197", features = ["derive"] }
@@ -19,7 +19,7 @@ ic-ledger-types = "0.15.0"
 serde_bytes = "0.11.14"
 sha2 = "0.10.8"
 ic-verifiable-credentials = { git = "https://github.com/hanumetheus/verifiable-credentials-sdk.git", branch = "bump-ic-cdk" }
-ic-stable-structures = "0.6.5"
+ic-stable-structures = { workspace = true }
 ic-canister-sig-creation = "1.2.0"
 
 authentication = { path = "../../libraries/authentication" }
