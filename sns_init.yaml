@@ -177,7 +177,7 @@ Voting:
     #
     # Users cannot access the SNS tokens used to stake neurons (until the neuron
     # is dissolved). This field is specified as a duration. For example: "6 months".
-    minimum_dissolve_delay: 2 month
+    minimum_dissolve_delay: 2 months
 
     # Configuration of voting power bonuses that are applied to neurons to
     # incentivize alignment with the best interest of the DAO. Note, these
@@ -330,37 +330,37 @@ Distribution:
           vesting_period: 0 years
 
         - principal: f3edy-doi3q-pjieb-tmpmk-xdcht-qplkb-yp7y6-i3qv6-rhlgu-xcts7-eqe
-          stake: 35_000_000 tokens  # 3.5% of total supply
+          stake: 35_000_000 tokens
           memo: 1
           dissolve_delay: 2 years   
           vesting_period: 1 years   
           
         - principal: ksjxn-hcz5h-iirie-c27qk-6wtsn-3oz7r-wyhoi-vm22j-agdem-gunct-wqe
-          stake: 25_000_000 tokens  # 2.5% of total supply
+          stake: 25_000_000 tokens
           memo: 2
           dissolve_delay: 2 years
           vesting_period: 1 years
           
         - principal: 6hibv-lz3jv-p2ohj-vxock-qt6jq-hm6ro-6kv3a-4kwbd-rflzr-m7ody-6qe
-          stake: 35_000_000 tokens  # 3.5% of total supply
+          stake: 35_000_000 tokens
           memo: 3
           dissolve_delay: 2 years
           vesting_period: 1 years
 
         - principal: ktuio-kj7r3-r53il-rhydd-wdena-lfhji-isg7g-qdxad-cbgl4-jrlbv-bae
-          stake: 25_000_000 tokens  # 2.5% of total supply
+          stake: 25_000_000 tokens
           memo: 4
           dissolve_delay: 2 years
           vesting_period: 1 years
           
         - principal: ottho-tegw2-jz43o-7unl3-3rkr4-j6cqt-7r5vn-nxaxn-xeqhd-63bes-uqe
-          stake: 20_000_000 tokens  # 2% of total supply
+          stake: 20_000_000 tokens
           memo: 5
           dissolve_delay: 2 years
           vesting_period: 1 years
           
         - principal: dj2jt-5gwh7-nxeyp-cvm22-dclcm-yztq3-om652-t557i-4tkfp-uf347-aqe
-          stake: 6_400_000 tokens  # 0.64% of total supply
+          stake: 5_148_000 tokens
           memo: 6
           dissolve_delay: 2 years
           vesting_period: 1 years
@@ -369,57 +369,75 @@ Distribution:
         # Contributors
         - principal: x52vg-lbch4-ob4ft-lvtcq-fwb2o-6vm5m-odnji-a4htp-7ajof-cu2jt-yae
           stake: 2_000_000 tokens
+          memo: 7
           dissolve_delay: 6 months
           vesting_period: 6 months
 
         - principal: vwa3i-6midp-7pstn-pechc-ygutg-6hqtp-icebw-5e2y6-v3aso-gm4sf-vqe
           stake: 250_000 tokens
+          memo: 8
           dissolve_delay: 6 months
           vesting_period: 0 months
 
         - principal: bdjyr-r4v6q-l6yqs-i5nk4-zhmdw-nnymn-art62-nqog5-q4ktl-yq2iz-jae
           stake: 250_000 tokens
+          memo: 9
           dissolve_delay: 6 months
           vesting_period: 0 months
 
         - principal: vehha-hzlos-fyexv-54yk7-ghyqe-h52vu-ysyvg-kc52f-6vojk-zvk4h-5qe
-          stake: 350_000 tokens # (0.035%)
+          stake: 350_000 tokens
+          memo: 10
           dissolve_delay: 6 months
           vesting_period: 0 months
 
         - principal: nl32i-nuz3e-vfhhu-23525-7y5z5-2mvsl-5qwuj-nmese-a5wgj-7dkhn-xae
-          stake: 250_000 tokens # (0.025%)
+          stake: 250_000 tokens
+          memo: 11
           dissolve_delay: 6 months
           vesting_period: 0 months
 
         - principal: r6mcb-fhzrt-rhe4q-bvqwz-pdzcg-6swy5-mrzpi-37zdl-ssln2-6cyt3-bae
           stake: 500_000 tokens
+          memo: 12
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
+        - principal: gvkpc-ktlbn-l3jer-6pcxq-hbulf-vklai-lbyqs-wg3wh-aeo3g-oh2je-zqe
+          stake: 1_000_000 tokens
+          memo: 13
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
+        - principal: uwy3x-roxnk-43zlt-qdgyo-f5s6t-jlyn3-fhmn7-kdn7d-vcrat-jpkht-nqe
+          stake: 250_000 tokens
+          memo: 14
           dissolve_delay: 6 months
           vesting_period: 0 months
 
 
         # Early Investors allocation (10% total)
         - principal: ujdwa-celkx-ttr7b-u7poa-cxa4o-adqgo-3wg73-zbzto-5leaj-by4e4-uqe
-          stake: 25_000_000 tokens  # 2.5% of total supply
-          memo: 12
+          stake: 25_000_000 tokens
+          memo: 15
           dissolve_delay: 1 year
           vesting_period: 3 years
           
         - principal: 2yxsw-5kvxb-qexlb-k5cy2-ydbu2-yziqx-mp4c5-c3qpm-wfxn3-mdjix-uqe
-          stake: 25_000_000 tokens  # 2.5% of total supply
-          memo: 13
+          stake: 25_000_000 tokens
+          memo: 16
           dissolve_delay: 1 year
           vesting_period: 3 years
           
         - principal: daghh-ci3aj-kobgm-34lb6-edw6f-6ditj-fc3c4-2poq7-j5dqo-k6rff-zae
-          stake: 25_000_000 tokens  # 2.5% of total supply
-          memo: 14
+          stake: 25_000_000 tokens
+          memo: 17
           dissolve_delay: 1 year
           vesting_period: 2 years
           
         - principal: poal6-7shsv-hvoji-2qbdf-xce6g-ofsk3-cw4ss-zaq5g-kxuzh-nbowe-lae
-          stake: 25_000_000 tokens  # 2.5% of total supply
-          memo: 15
+          stake: 25_000_000 tokens
+          memo: 18
           dissolve_delay: 1 year
           vesting_period: 1 years
 
