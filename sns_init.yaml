@@ -56,11 +56,11 @@ NnsProposal:
         
         The SNS token (ZKG) will serve as both governance and utility token. Initial total supply will be 1,000,000,000 tokens allocated as follows:
         - Treasury: 50% (500,000,000)
-          - Protection Fund: 25% (300,000,000)
+          - Protection Fund: 25% (250,000,000)
           - Ecosystem Incentives: 5% (50,000,000)
           - Strategic Reserve: 20% (200,000,000)
-        - Early Investors & Contributors: 10% (100,000,000)
-        - Team: 15% (150,000,000)
+        - Early Investors & Contributors: 10.5% (104,850,000)
+        - Team: 14.5% (145,150,000)
         - SNS Launchpad: 25% (250,000,000)
         
         The SNS will be initialized with neurons for the core team and early contributors with appropriate dissolve delays and vesting periods to ensure long-term alignment with the project's success.
