@@ -382,6 +382,7 @@ service : () -> {
   deposit_to_table : (principal, principal, nat64, bool) -> (Result_3);
   edit_chat_message : (principal, nat64, text) -> (Result_1);
   fold : (principal, bool) -> (Result);
+  get_canister_status_formatted : () -> (Result);
   get_chat_messages_for_user : (principal) -> (Result_4) query;
   get_free_seat_index : () -> (Result_5) query;
   get_notifications : () -> (Result_6) query;

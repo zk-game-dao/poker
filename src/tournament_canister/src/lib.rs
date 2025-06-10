@@ -1,5 +1,5 @@
 use authentication::validate_caller;
-use candid::Principal;
+use candid::{Nat, Principal};
 use canister_functions::{
     cycle::top_up_canister,
     rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL,
@@ -8,6 +8,7 @@ use currency::{state::TransactionState, types::currency_manager::CurrencyManager
 use errors::{
     canister_management_error::CanisterManagementError, tournament_error::TournamentError,
 };
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
 use intercanister_call_wrappers::{tournament_canister::{add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller, handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper, user_leave_tournament_wrapper}, users_canister::get_user_wrapper};
 use lazy_static::lazy_static;
 use std::{
@@ -1289,6 +1290,57 @@ async fn transfer_cycles(cycles_amount: u128, caller: Principal) -> Result<(), T
     }
 
     top_up_canister(caller, cycles_amount).await?;
+    Ok(())
+}
+
+
+#[ic_cdk::update]
+async fn get_canister_status_formatted() -> Result<(), TournamentError> {
+    // Validate caller is a controller
+    let controllers = (*CONTROLLER_PRINCIPALS).clone();
+    validate_caller(controllers);
+
+    handle_cycle_check();
+
+    // Call the management canister to get status
+    let canister_status_arg = CanisterStatusArgs { canister_id: ic_cdk::api::canister_self() };
+    
+    let status_response = canister_status(&canister_status_arg)
+        .await
+        .map_err(|e| TournamentError::CanisterCallError(format!("Failed to get canister status: {:?}", e)))?;
+
+    // Format the status into a readable string
+    let formatted_status = format!(
+        "📊 Canister Status Report
+════════════════════════════════════════════════════════════════
+🆔 Canister ID: {}
+🔄 Status: {:?}
+💾 Memory Size: {} bytes ({:.2} MB)
+⚡ Cycles: {} ({:.2} T cycles)
+🎛️  Controllers: {}
+📈 Compute Allocation: {}
+🧠 Memory Allocation: {} bytes
+🧊 Freezing Threshold: {}
+📊 Reserved Cycles Limit: {}
+════════════════════════════════════════════════════════════════",
+        ic_cdk::api::canister_self().to_text(),
+        status_response.status,
+        status_response.memory_size,
+        status_response.memory_size.clone() / Nat::from(1_048_576 as u64), // Convert to MB
+        status_response.cycles,
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000 as u64), // Convert to T cycles
+        status_response.settings.controllers
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(", "),
+        status_response.settings.compute_allocation,
+        status_response.settings.memory_allocation,
+        status_response.settings.freezing_threshold,
+        status_response.settings.reserved_cycles_limit
+    );
+
+    ic_cdk::println!("{}", formatted_status);
     Ok(())
 }
 

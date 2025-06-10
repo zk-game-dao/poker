@@ -78,6 +78,7 @@ service : () -> {
     );
   delete_users_canister : (principal) -> (Result_1);
   get_account_number : () -> (Result_2) query;
+  get_canister_status_formatted : () -> (Result_1);
   get_experience_points_leaderboard : (nat64, nat64) -> (Result_3);
   get_experience_points_position : (principal) -> (Result_4);
   get_leaderboard_length : () -> (Result_5) query;

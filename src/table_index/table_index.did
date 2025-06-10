@@ -404,6 +404,7 @@ service : () -> {
   get_all_public_tables : () -> (Result_4) query;
   get_all_rake_stats : () -> (Result_5);
   get_all_table_principals : () -> (Result_6) query;
+  get_canister_status_formatted : () -> (Result_1);
   get_private_tables : () -> (Result_6) query;
   get_rake : (nat64, Currency, GameType) -> (opt Rake) query;
   get_rake_wallet_info : () -> (principal, text) query;

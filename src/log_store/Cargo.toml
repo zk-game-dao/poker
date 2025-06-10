@@ -10,16 +10,17 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid = { workspace = true }
-errors = { path = "../../libraries/errors" }
 ic-cdk = { workspace = true }
 thiserror = "1.0.57"
 serde = { version = "1.0.197", features = ["derive"] }
 lazy_static = "1.4.0"
 serde_bytes = "0.11.14"
-
 ic-stable-structures = { workspace = true }
-table = { path = "../../libraries/table" }
 serde_cbor = "0.11.2"
+
+authentication = { path = "../../libraries/authentication" }
+errors = { path = "../../libraries/errors" }
+table = { path = "../../libraries/table" }
 
 [features]
 default = []

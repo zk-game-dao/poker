@@ -309,6 +309,7 @@ type TournamentIndexError = variant {
   CanisterCallFailed : text;
   TournamentNotFound;
   InsufficientLiquidity;
+  CanisterCallError : text;
 };
 type TournamentSizeType = variant {
   MultiTable : record { BuyInOptions; TableBalancer };
@@ -376,6 +377,7 @@ service : () -> {
       nat64,
       nat64,
     ) -> (opt BlindLevel) query;
+  get_canister_status_formatted : () -> (Result);
   get_ckbtc_balance : () -> (Result_4);
   get_cketh_balance : () -> (Result_4);
   get_ckusdc_balance : () -> (Result_4);

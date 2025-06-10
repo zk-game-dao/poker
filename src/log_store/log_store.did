@@ -65,6 +65,7 @@ service : () -> {
   get_action_logs : (principal, nat64, nat64, opt nat32, opt nat32) -> (
       Result_1,
     ) query;
+  get_canister_status_formatted : () -> (Result);
   log_action : (principal, ActionLog) -> (Result);
   log_actions : (principal, vec ActionLog) -> (Result);
 }

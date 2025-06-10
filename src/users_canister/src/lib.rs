@@ -1,7 +1,8 @@
 use authentication::validate_caller;
-use candid::Principal;
+use candid::{CandidType, Nat, Principal};
 use canister_functions::cycle::check_and_top_up_canister;
 use errors::user_error::UserError;
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
 use ic_ledger_types::{AccountIdentifier, Subaccount};
 use ic_verifiable_credentials::{
     issuer_api::CredentialSpec, validate_ii_presentation_and_claims, VcFlowSigners,
@@ -14,6 +15,53 @@ use std::{collections::HashMap, sync::Mutex};
 mod memory;
 
 const MINIMUM_CYCLE_THRESHOLD: u128 = 350_000_000_000;
+
+#[derive(Debug, Clone, CandidType, serde::Serialize, serde::Deserialize)]
+pub struct Users {
+    pub users: HashMap<Principal, User>,
+}
+
+impl Users {
+    pub fn new() -> Self {
+        Users {
+            users: HashMap::new(),
+        }
+    }
+
+    pub fn insert(&mut self, principal: Principal, user: User) {
+        self.users.insert(principal, user);
+    }
+
+    pub fn get(&self, principal: &Principal) -> Option<&User> {
+        self.users.get(principal)
+    }
+
+    pub fn get_mut(&mut self, principal: &Principal) -> Option<&mut User> {
+        self.users.get_mut(principal)
+    }
+
+    pub fn len(&self) -> usize {
+        self.users.len()
+    }
+
+    // Add iter method for immutable iteration
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, Principal, User> {
+        self.users.iter()
+    }
+
+    // Add iter_mut method for mutable iteration
+    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<'_, Principal, User> {
+        self.users.iter_mut()
+    }
+
+    pub fn into_values(self) -> impl Iterator<Item = User> {
+        self.users.into_values()
+    }
+
+    pub fn into_iter(self) -> impl Iterator<Item = (Principal, User)> {
+        self.users.into_iter()
+    }
+}
 
 /// A structure to hold canister settings or state.
 pub struct CanisterState {
@@ -37,7 +85,7 @@ lazy_static! {
     ];
     static ref USER_INDEX_PRINCIPAL: Mutex<Option<Principal>> = Mutex::new(None);
 
-    static ref USERS: Mutex<HashMap<Principal, User>> = Mutex::new(HashMap::new());
+    static ref USERS: Mutex<Users> = Mutex::new(Users::new());
 }
 
 fn handle_cycle_check() {
@@ -385,7 +433,7 @@ fn get_referred_users(user_id: Principal) -> Result<Vec<Principal>, UserError> {
     let user = users.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
     
-    Ok(user.referred_users.clone().unwrap_or(HashMap::new()).keys().cloned().collect())
+    Ok(user.referred_users.clone().unwrap_or_default().keys().cloned().collect())
 }
 
 #[ic_cdk::query]
@@ -415,6 +463,56 @@ fn get_referrer(user_id: Principal) -> Result<Option<Principal>, UserError> {
         .ok_or(UserError::UserNotFound)?;
     
     Ok(user.referrer)
+}
+
+#[ic_cdk::update]
+async fn get_canister_status_formatted() -> Result<(), UserError> {
+    // Validate caller is a controller
+    let controllers = (*CONTROLLER_PRINCIPALS).clone();
+    validate_caller(controllers);
+
+    handle_cycle_check();
+
+    // Call the management canister to get status
+    let canister_status_arg = CanisterStatusArgs { canister_id: ic_cdk::api::canister_self() };
+
+    let status_response = canister_status(&canister_status_arg)
+        .await
+        .map_err(|e| UserError::CanisterCallFailed(format!("Failed to get canister status: {:?}", e)))?;
+
+    // Format the status into a readable string
+    let formatted_status = format!(
+        "📊 Canister Status Report
+════════════════════════════════════════════════════════════════
+🆔 Canister ID: {}
+🔄 Status: {:?}
+💾 Memory Size: {} bytes ({:.2} MB)
+⚡ Cycles: {} ({:.2} T cycles)
+🎛️  Controllers: {}
+📈 Compute Allocation: {}
+🧠 Memory Allocation: {} bytes
+🧊 Freezing Threshold: {}
+📊 Reserved Cycles Limit: {}
+════════════════════════════════════════════════════════════════",
+        ic_cdk::api::canister_self().to_text(),
+        status_response.status,
+        status_response.memory_size,
+        status_response.memory_size.clone() / Nat::from(1_048_576 as u64), // Convert to MB
+        status_response.cycles,
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000 as u64), // Convert to T cycles
+        status_response.settings.controllers
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(", "),
+        status_response.settings.compute_allocation,
+        status_response.settings.memory_allocation,
+        status_response.settings.freezing_threshold,
+        status_response.settings.reserved_cycles_limit
+    );
+
+    ic_cdk::println!("{}", formatted_status);
+    Ok(())
 }
 
 ic_cdk::export_candid!();
