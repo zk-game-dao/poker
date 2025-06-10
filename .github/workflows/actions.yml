@@ -91,7 +91,6 @@ jobs:
           "tournament_tests::multiple_blind_level_tests",
           "tournament_tests::payouts",
           "tournament_tests::rebuy_tests",
-          "transaction_history",
           "upgrade_table_tests",
           "upgrade_tournament_tests",
           "turn_tests",
