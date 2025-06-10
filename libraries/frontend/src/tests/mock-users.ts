@@ -20,7 +20,6 @@ export const mockUser = (u: Partial<User>): User => ({
   active_tables: [],
   enlarge_text: [false],
   volume_level: [],
-  transaction_history: [],
   experience_points: [10n],
   experience_points_pure_poker: [10n],
   eth_wallet_address: [],
