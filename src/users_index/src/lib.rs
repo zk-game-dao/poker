@@ -652,6 +652,8 @@ async fn delete_users_canister(
                 user_index_state.user_to_canister.remove(user_id);
             }
         }
+
+        user_index_state.canister_user_count.remove(&user_canister);
     }
 
     handle_cycle_check().await?;
@@ -662,6 +664,8 @@ async fn delete_users_canister(
         .map_err(|e| UserError::ManagementCanisterError(CanisterManagementError::DeleteCanisterError(
             format!("Failed to delete canister {}: {:?}", user_canister, e)
         )))?;
+
+    
 
     Ok(())
 }
