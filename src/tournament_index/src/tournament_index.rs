@@ -4,7 +4,9 @@ use std::collections::HashMap;
 use candid::{CandidType, Principal};
 use currency::Currency;
 use errors::tournament_index_error::TournamentIndexError;
-use intercanister_call_wrappers::tournament_canister::{create_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper};
+use intercanister_call_wrappers::tournament_canister::{
+    create_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper,
+};
 use serde::{Deserialize, Serialize};
 use table::poker::game::table_functions::{table::TableConfig, types::CurrencyType};
 use tournaments::tournaments::{
@@ -111,11 +113,18 @@ impl TournamentIndex {
                 // Try to return cycles first
                 match return_all_cycles_to_tournament_index_wrapper(tournament_id).await {
                     Ok(_) => {
-                        ic_cdk::println!("Successfully returned cycles from tournament {}", tournament_id);
-                    },
+                        ic_cdk::println!(
+                            "Successfully returned cycles from tournament {}",
+                            tournament_id
+                        );
+                    }
                     Err(e) => {
                         // Log error but continue with deletion
-                        ic_cdk::println!("Error returning cycles from tournament {}: {:?}", tournament_id, e);
+                        ic_cdk::println!(
+                            "Error returning cycles from tournament {}: {:?}",
+                            tournament_id,
+                            e
+                        );
                     }
                 }
 
@@ -240,7 +249,9 @@ pub async fn create_spin_go_tournament(buy_in: u64) -> Result<Principal, Tournam
     // Validate tournament configuration
     tournament.validate()?;
 
-    let tournament = create_tournament_wrapper(tournament_canister, tournament, table_config, prize_pool).await?;
+    let tournament =
+        create_tournament_wrapper(tournament_canister, tournament, table_config, prize_pool)
+            .await?;
 
     {
         let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;

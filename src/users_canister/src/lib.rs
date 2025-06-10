@@ -21,6 +21,12 @@ pub struct Users {
     pub users: HashMap<Principal, User>,
 }
 
+impl Default for Users {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Users {
     pub fn new() -> Self {
         Users {
@@ -78,13 +84,13 @@ lazy_static! {
     static ref SUPPORT_US_WALLET: Principal =
         Principal::from_text("amwxf-a2rkd-b42qc-jwbst-oy3co-d5ues-jgfcp-khbg4-zdxoa-n66ja-2ae")
             .unwrap();
-
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
-        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe").unwrap(),
-        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae").unwrap(),
+        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe")
+            .unwrap(),
+        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
+            .unwrap(),
     ];
     static ref USER_INDEX_PRINCIPAL: Mutex<Option<Principal>> = Mutex::new(None);
-
     static ref USERS: Mutex<Users> = Mutex::new(Users::new());
 }
 
@@ -109,8 +115,12 @@ fn handle_cycle_check() {
             }
         };
 
-        if let Err(e) =
-            check_and_top_up_canister(ic_cdk::api::canister_self(), user_index, MINIMUM_CYCLE_THRESHOLD).await
+        if let Err(e) = check_and_top_up_canister(
+            ic_cdk::api::canister_self(),
+            user_index,
+            MINIMUM_CYCLE_THRESHOLD,
+        )
+        .await
         {
             ic_cdk::println!("Failed to top up canister: {:?}", e);
         }
@@ -120,10 +130,7 @@ fn handle_cycle_check() {
 #[ic_cdk::init]
 fn init() {
     let principal = ic_cdk::api::canister_self();
-    ic_cdk::println!(
-        "Users canister {} initialized",
-        principal.to_text()
-    );
+    ic_cdk::println!("Users canister {} initialized", principal.to_text());
 }
 
 #[ic_cdk::query]
@@ -222,8 +229,7 @@ fn update_user(
 #[ic_cdk::query]
 fn get_user(user_id: Principal) -> Result<User, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.clone())
 }
 
@@ -231,8 +237,7 @@ fn get_user(user_id: Principal) -> Result<User, UserError> {
 fn get_user_icc(user_id: Principal) -> Result<User, UserError> {
     handle_cycle_check();
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.clone())
 }
 
@@ -241,8 +246,7 @@ fn add_active_table(table_principal: Principal, user_id: Principal) -> Result<Us
     handle_cycle_check();
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = user.get_mut(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get_mut(&user_id).ok_or(UserError::UserNotFound)?;
     user.active_tables.push(table_principal);
     Ok(user.clone())
 }
@@ -252,8 +256,7 @@ fn remove_active_table(table_principal: Principal, user_id: Principal) -> Result
     handle_cycle_check();
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = user.get_mut(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get_mut(&user_id).ok_or(UserError::UserNotFound)?;
     user.active_tables.retain(|table| *table != table_principal);
     Ok(user.clone())
 }
@@ -263,8 +266,7 @@ fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
     handle_cycle_check();
 
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.active_tables.clone())
 }
 
@@ -276,15 +278,14 @@ fn add_experience_points(
 ) -> Result<User, UserError> {
     handle_cycle_check();
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = user.get_mut(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get_mut(&user_id).ok_or(UserError::UserNotFound)?;
 
     if currency == *"BTC" {
         user.add_pure_poker_experience_points(experience_points);
     } else {
         user.add_experience_points(experience_points);
     }
-    
+
     Ok(user.clone())
 }
 
@@ -313,15 +314,16 @@ fn clear_pure_poker_experience_points() -> Result<(), UserError> {
 #[ic_cdk::query]
 fn get_user_level(user_id: Principal) -> Result<f64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.get_level())
 }
 
 #[ic_cdk::query]
 fn get_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let experience_points = user.into_values().map(|user| (user.principal_id, user.get_experience_points()))
+    let experience_points = user
+        .into_values()
+        .map(|user| (user.principal_id, user.get_experience_points()))
         .collect();
     Ok(experience_points)
 }
@@ -329,7 +331,9 @@ fn get_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
 #[ic_cdk::query]
 fn get_pure_poker_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let experience_points = user.into_values().map(|user| (user.principal_id, user.get_pure_poker_experience_points()))
+    let experience_points = user
+        .into_values()
+        .map(|user| (user.principal_id, user.get_pure_poker_experience_points()))
         .collect();
     Ok(experience_points)
 }
@@ -359,16 +363,14 @@ fn get_verified_pure_poker_user_experience_points() -> Result<Vec<(Principal, u6
 #[ic_cdk::query]
 fn get_experience_points_by_uid(user_id: Principal) -> Result<u64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.get_experience_points())
 }
 
 #[ic_cdk::query]
 fn get_pure_poker_experience_points_by_uid(user_id: Principal) -> Result<u64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.get_pure_poker_experience_points())
 }
 
@@ -419,8 +421,7 @@ async fn verify_credential(
         .lock()
         .map_err(|_| UserError::LockError)
         .map_err(|_| "Lock error")?;
-    let user = user.get_mut(&user_id)
-        .ok_or("User not found")?;
+    let user = user.get_mut(&user_id).ok_or("User not found")?;
     user.is_verified = Some(true);
 
     Ok(())
@@ -430,18 +431,22 @@ async fn verify_credential(
 #[ic_cdk::query]
 fn get_referred_users(user_id: Principal) -> Result<Vec<Principal>, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = users.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
-    
-    Ok(user.referred_users.clone().unwrap_or_default().keys().cloned().collect())
+    let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
+
+    Ok(user
+        .referred_users
+        .clone()
+        .unwrap_or_default()
+        .keys()
+        .cloned()
+        .collect())
 }
 
 #[ic_cdk::query]
 fn get_referral_tier(user_id: Principal) -> Result<u8, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = users.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
-    
+    let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
+
     Ok(user.get_referral_tier())
 }
 
@@ -449,9 +454,8 @@ fn get_referral_tier(user_id: Principal) -> Result<u8, UserError> {
 fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
     handle_cycle_check();
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = users.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
-    
+    let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
+
     Ok(user.get_referral_rake_percentage())
 }
 
@@ -459,9 +463,8 @@ fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
 fn get_referrer(user_id: Principal) -> Result<Option<Principal>, UserError> {
     handle_cycle_check();
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = users.get(&user_id)
-        .ok_or(UserError::UserNotFound)?;
-    
+    let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
+
     Ok(user.referrer)
 }
 
@@ -474,11 +477,13 @@ async fn get_canister_status_formatted() -> Result<(), UserError> {
     handle_cycle_check();
 
     // Call the management canister to get status
-    let canister_status_arg = CanisterStatusArgs { canister_id: ic_cdk::api::canister_self() };
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
 
-    let status_response = canister_status(&canister_status_arg)
-        .await
-        .map_err(|e| UserError::CanisterCallFailed(format!("Failed to get canister status: {:?}", e)))?;
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        UserError::CanisterCallFailed(format!("Failed to get canister status: {:?}", e))
+    })?;
 
     // Format the status into a readable string
     let formatted_status = format!(
@@ -497,10 +502,12 @@ async fn get_canister_status_formatted() -> Result<(), UserError> {
         ic_cdk::api::canister_self().to_text(),
         status_response.status,
         status_response.memory_size,
-        status_response.memory_size.clone() / Nat::from(1_048_576 as u64), // Convert to MB
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
         status_response.cycles,
-        status_response.cycles.clone() / Nat::from(1_000_000_000_000 as u64), // Convert to T cycles
-        status_response.settings.controllers
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
             .iter()
             .map(|p| p.to_string())
             .collect::<Vec<_>>()

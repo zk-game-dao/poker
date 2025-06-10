@@ -208,17 +208,21 @@ impl User {
     }
 
     pub fn get_referral_tier(&self) -> u8 {
-        let referral_count = self.referred_users.as_ref().unwrap_or(&HashMap::new()).len();
+        let referral_count = self
+            .referred_users
+            .as_ref()
+            .unwrap_or(&HashMap::new())
+            .len();
         match referral_count {
             0..=3 => 1,
             4..=9 => 2,
             10..=19 => 3,
             20..=49 => 4,
             50..=99 => 5,
-            _ => 6
+            _ => 6,
         }
     }
-    
+
     pub fn get_referral_rake_percentage(&self) -> u8 {
         match self.get_referral_tier() {
             1 => 10,
@@ -227,21 +231,19 @@ impl User {
             4 => 18,
             5 => 20,
             6 => 25,
-            _ => 10 // Default to 10% for safety
+            _ => 10, // Default to 10% for safety
         }
     }
-    
+
     pub fn add_referred_user(&mut self, user_id: Principal) {
         let referred_users = self.referred_users.get_or_insert_with(HashMap::new);
         let timestamp = ic_cdk::api::time();
         referred_users.entry(user_id).or_insert(timestamp);
 
         // Check for all referred users and remove those who are no longer within the referral period
-        referred_users.retain(|_, &mut time| {
-            timestamp + REFERRAL_PERIOD > time 
-        });
+        referred_users.retain(|_, &mut time| timestamp + REFERRAL_PERIOD > time);
     }
-    
+
     pub fn is_within_referral_period(&self) -> bool {
         if let Some(start_date) = self.referral_start_date {
             let now = ic_cdk::api::time();

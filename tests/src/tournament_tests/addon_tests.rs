@@ -179,7 +179,10 @@ fn test_addon_for_tournament() {
     let tournament_table = new_tournament.tables.keys().next().unwrap();
 
     let table = test_env.get_table(*tournament_table).unwrap();
-    assert!(table.users.get(&user_1.principal_id).unwrap().balance == 990 || table.users.get(&user_1.principal_id).unwrap().balance == 995);
+    assert!(
+        table.users.get(&user_1.principal_id).unwrap().balance == 990
+            || table.users.get(&user_1.principal_id).unwrap().balance == 995
+    );
 
     test_env
         .user_refill_chips(
@@ -201,7 +204,10 @@ fn test_addon_for_tournament() {
         test_env.pocket_ic.tick();
     }
     let table = test_env.get_table(*tournament_table).unwrap();
-    assert!(table.users.get(&user_1.principal_id).unwrap().balance == 1997 || table.users.get(&user_1.principal_id).unwrap().balance == 1994);
+    assert!(
+        table.users.get(&user_1.principal_id).unwrap().balance == 1997
+            || table.users.get(&user_1.principal_id).unwrap().balance == 1994
+    );
 }
 
 #[test]
@@ -256,7 +262,10 @@ fn test_invalid_buyin_addon_for_tournament() {
     let new_tournament = test_env.get_tournament(id).unwrap();
     let tournament_table = new_tournament.tables.keys().next().unwrap();
     let table = test_env.get_table(*tournament_table).unwrap();
-    assert!(table.users.get(&user_1.principal_id).unwrap().balance == 990 || table.users.get(&user_1.principal_id).unwrap().balance == 995);
+    assert!(
+        table.users.get(&user_1.principal_id).unwrap().balance == 990
+            || table.users.get(&user_1.principal_id).unwrap().balance == 995
+    );
 
     let res = test_env.user_refill_chips(
         id,
@@ -266,7 +275,10 @@ fn test_invalid_buyin_addon_for_tournament() {
     );
     assert!(res.is_err());
     let table = test_env.get_table(*tournament_table).unwrap();
-    assert!(table.users.get(&user_1.principal_id).unwrap().balance == 990 || table.users.get(&user_1.principal_id).unwrap().balance == 995);
+    assert!(
+        table.users.get(&user_1.principal_id).unwrap().balance == 990
+            || table.users.get(&user_1.principal_id).unwrap().balance == 995
+    );
 }
 
 #[test]
@@ -322,7 +334,10 @@ fn test_addon_time_passed_for_tournament() {
     let tournament_table = new_tournament.tables.keys().next().unwrap();
 
     let table = test_env.get_table(*tournament_table).unwrap();
-    assert!(table.users.get(&user_1.principal_id).unwrap().balance == 990 || table.users.get(&user_1.principal_id).unwrap().balance == 995);
+    assert!(
+        table.users.get(&user_1.principal_id).unwrap().balance == 990
+            || table.users.get(&user_1.principal_id).unwrap().balance == 995
+    );
 
     let res = test_env.user_refill_chips(
         id,
@@ -332,7 +347,10 @@ fn test_addon_time_passed_for_tournament() {
     );
     assert!(res.is_err());
     let table = test_env.get_table(*tournament_table).unwrap();
-    assert!(table.users.get(&user_1.principal_id).unwrap().balance == 990 || table.users.get(&user_1.principal_id).unwrap().balance == 995);
+    assert!(
+        table.users.get(&user_1.principal_id).unwrap().balance == 990
+            || table.users.get(&user_1.principal_id).unwrap().balance == 995
+    );
 }
 
 #[test]
@@ -388,7 +406,10 @@ fn test_addon_time_hasnt_started_for_tournament() {
     let tournament_table = new_tournament.tables.keys().next().unwrap();
 
     let table = test_env.get_table(*tournament_table).unwrap();
-    assert!(table.users.get(&user_1.principal_id).unwrap().balance == 990 || table.users.get(&user_1.principal_id).unwrap().balance == 995);
+    assert!(
+        table.users.get(&user_1.principal_id).unwrap().balance == 990
+            || table.users.get(&user_1.principal_id).unwrap().balance == 995
+    );
 
     let res = test_env.user_refill_chips(
         id,
@@ -398,5 +419,8 @@ fn test_addon_time_hasnt_started_for_tournament() {
     );
     assert!(res.is_err());
     let table = test_env.get_table(*tournament_table).unwrap();
-    assert!(table.users.get(&user_1.principal_id).unwrap().balance == 990 || table.users.get(&user_1.principal_id).unwrap().balance == 995);
+    assert!(
+        table.users.get(&user_1.principal_id).unwrap().balance == 990
+            || table.users.get(&user_1.principal_id).unwrap().balance == 995
+    );
 }

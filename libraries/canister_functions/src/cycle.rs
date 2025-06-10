@@ -1,6 +1,8 @@
 use candid::{Nat, Principal};
 use errors::canister_management_error::CanisterManagementError;
-use ic_cdk::management_canister::{canister_status, deposit_cycles, CanisterStatusArgs, DepositCyclesArgs};
+use ic_cdk::management_canister::{
+    canister_status, deposit_cycles, CanisterStatusArgs, DepositCyclesArgs,
+};
 
 const MINIMUM_CYCLE_THRESHOLD: u128 = 100_000_000_000;
 const TOP_UP_AMOUNT: u128 = 900_000_000_000;
@@ -124,11 +126,8 @@ pub async fn check_and_top_up_canister(
 pub async fn request_cycles_wrapper(
     cycle_dispenser_canister: Principal,
 ) -> Result<(), CanisterManagementError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        cycle_dispenser_canister,
-        "request_cycles",
-    )
-    .await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(cycle_dispenser_canister, "request_cycles").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -150,4 +149,3 @@ pub async fn request_cycles_wrapper(
         }
     }
 }
-

@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
 use candid::{CandidType, Principal};
-use errors::{
-    game_error::GameError, trace_err, traced_error::TracedError,
-};
+use errors::{game_error::GameError, trace_err, traced_error::TracedError};
 use serde::{Deserialize, Serialize};
 use user::user::User;
 

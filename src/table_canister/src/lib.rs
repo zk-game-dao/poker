@@ -2,18 +2,18 @@ use std::{collections::HashMap, sync::Mutex};
 
 use authentication::validate_caller;
 use candid::{Nat, Principal};
-use canister_functions::{
-    rake_constants,
-    rake_stats::RakeStats,
-};
+use canister_functions::{rake_constants, rake_stats::RakeStats};
 use chat::{ChatHistory, ChatMessage, ChatMessageType};
 use currency::{state::TransactionState, types::currency_manager::CurrencyManager};
-use errors::{
-    chat_error::ChatError, game_error::GameError,
-    table_error::TableError
-};
+use errors::{chat_error::ChatError, game_error::GameError, table_error::TableError};
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, DepositCyclesArgs};
-use intercanister_call_wrappers::{log_store::log_actions_wrapper, users_canister::{add_users_active_table, get_user_wrapper, get_users_canister_principal_by_id_wrapper, remove_users_active_table}};
+use intercanister_call_wrappers::{
+    log_store::log_actions_wrapper,
+    users_canister::{
+        add_users_active_table, get_user_wrapper, get_users_canister_principal_by_id_wrapper,
+        remove_users_active_table,
+    },
+};
 use lazy_static::lazy_static;
 use table::{
     poker::{
@@ -36,7 +36,8 @@ use table::{
 use tournaments::tournaments::types::UserTournamentAction;
 use user::user::{User, REFERRAL_PERIOD};
 use utils::{
-    get_user_index_principal, handle_cycle_check, handle_last_user_leaving, handle_table_validity_check, update_player_count_tournament, update_table_player_count
+    get_user_index_principal, handle_cycle_check, handle_last_user_leaving,
+    handle_table_validity_check, update_player_count_tournament, update_table_player_count,
 };
 
 mod memory;
@@ -53,11 +54,13 @@ lazy_static! {
         Principal::from_text(rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL).unwrap();
     static ref RAKE_STATS: Mutex<RakeStats> = Mutex::new(RakeStats::new());
     static ref CHAT_HISTORY: Mutex<ChatHistory> = Mutex::new(ChatHistory::new(1000));
-
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
-        Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe").unwrap(),
-        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe").unwrap(),
-        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae").unwrap(),
+        Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe")
+            .unwrap(),
+        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe")
+            .unwrap(),
+        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
+            .unwrap(),
     ];
 }
 
@@ -73,7 +76,7 @@ async fn create_table(config: TableConfig, bytes: Vec<u8>) -> Result<PublicTable
         let mut backend_principal = BACKEND_PRINCIPAL
             .lock()
             .map_err(|_| TableError::LockError)?;
-        
+
         if let Some(backend_principal) = *backend_principal {
             validate_caller(vec![backend_principal]);
         }
@@ -190,7 +193,12 @@ async fn join_table(
         CurrencyType::Fake => {}
     }
 
-    let user = add_users_active_table(users_canister_principal, user_id, ic_cdk::api::canister_self()).await;
+    let user = add_users_active_table(
+        users_canister_principal,
+        user_id,
+        ic_cdk::api::canister_self(),
+    )
+    .await;
     let mut user = user?;
     user.balance = deposit_amount;
 
@@ -207,7 +215,12 @@ async fn join_table(
 
     if let Err(e) = ret {
         ic_cdk::println!("Error adding user to table: {:?}", e);
-        remove_users_active_table(users_canister_principal, user_id, ic_cdk::api::canister_self()).await?;
+        remove_users_active_table(
+            users_canister_principal,
+            user_id,
+            ic_cdk::api::canister_self(),
+        )
+        .await?;
         return Err(e.into());
     }
 
@@ -236,7 +249,12 @@ async fn join_table(
                 }
                 Err(e) => {
                     ic_cdk::println!("Error depositing: {:?}", e);
-                    remove_users_active_table(users_canister_principal, user_id, ic_cdk::api::canister_self()).await?;
+                    remove_users_active_table(
+                        users_canister_principal,
+                        user_id,
+                        ic_cdk::api::canister_self(),
+                    )
+                    .await?;
 
                     let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
                     let table = table.as_mut().ok_or(TableError::TableNotFound)?;
@@ -253,10 +271,7 @@ async fn join_table(
     let is_paused = table_state.config.is_paused.unwrap_or(false);
 
     if table_state.number_of_players() >= 2 && !table_state.is_game_ongoing() && !is_paused {
-        if let Err(e) = start_new_betting_round_wrapper(
-            ic_cdk::api::canister_self(),
-        )
-        .await {
+        if let Err(e) = start_new_betting_round_wrapper(ic_cdk::api::canister_self()).await {
             ic_cdk::println!("Error starting new betting round: {:?}", e);
             if matches!(e, TableError::CanisterCallError(_)) {
                 return Err(e);
@@ -345,7 +360,13 @@ async fn kick_player(
     }
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = remove_users_active_table(users_canister_principal, user_id, ic_cdk::api::canister_self()).await {
+        if let Err(e) = remove_users_active_table(
+            users_canister_principal,
+            user_id,
+            ic_cdk::api::canister_self(),
+        )
+        .await
+        {
             ic_cdk::println!("Error removing active table: {}", e);
         }
     });
@@ -363,8 +384,7 @@ async fn kick_player(
     let _ = update_table_player_count(table.users.len());
 
     if table.users.users.is_empty() {
-        handle_last_user_leaving()
-            .await?;
+        handle_last_user_leaving().await?;
     }
 
     Ok(table.into())
@@ -450,7 +470,10 @@ async fn leave_table(
     }
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self()).await {
+        if let Err(e) =
+            remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self())
+                .await
+        {
             ic_cdk::println!("Error removing active table: {}", e);
         }
     });
@@ -474,8 +497,7 @@ async fn leave_table(
     }
 
     if table.users.users.is_empty() {
-        handle_last_user_leaving()
-            .await?;
+        handle_last_user_leaving().await?;
     }
 
     Ok(table.into())
@@ -518,7 +540,10 @@ async fn leave_table_for_table_balancing(
     };
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self()).await {
+        if let Err(e) =
+            remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self())
+                .await
+        {
             ic_cdk::println!("Error removing active table: {}", e);
         }
     });
@@ -545,10 +570,7 @@ async fn leave_table_for_table_balancing(
 }
 
 #[ic_cdk::update]
-async fn withdraw_from_table(
-    user_id: Principal,
-    amount: u64,
-) -> Result<(), TableError> {
+async fn withdraw_from_table(user_id: Principal, amount: u64) -> Result<(), TableError> {
     handle_cycle_check();
     handle_table_validity_check()?;
     if amount == 0 {
@@ -860,7 +882,8 @@ async fn player_sitting_in(
                 table_state
                     .kick_user(user_id, "Insufficient Funds".to_string())
                     .map_err(|e| e.into_inner())?;
-                remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self()).await?;
+                remove_users_active_table(users_canister_id, user_id, ic_cdk::api::canister_self())
+                    .await?;
 
                 *TABLE.lock().map_err(|_| TableError::LockError)? = Some(table_state);
                 return Err(GameError::InsufficientFunds.into());
@@ -905,10 +928,7 @@ async fn player_sitting_in(
         && !table_state.is_game_ongoing()
         && auto_start
     {
-        if let Err(e) = start_new_betting_round_wrapper(
-            ic_cdk::api::canister_self(),
-        )
-        .await {
+        if let Err(e) = start_new_betting_round_wrapper(ic_cdk::api::canister_self()).await {
             ic_cdk::println!("Error starting new betting round: {:?}", e);
             if matches!(e, TableError::CanisterCallError(_)) {
                 return Err(e);
@@ -1064,10 +1084,9 @@ async fn start_new_betting_round() -> Result<(), TableError> {
     handle_cycle_check();
 
     let raw_bytes = ic_cdk::management_canister::raw_rand().await;
-    let raw_bytes = raw_bytes
-        .map_err(|e| {
-            TableError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
-        })?;
+    let raw_bytes = raw_bytes.map_err(|e| {
+        TableError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
+    })?;
 
     let (kicked_players, action_logs, table_id, total_users, seated_out_kicked_players, users) = {
         let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
@@ -1165,7 +1184,14 @@ async fn start_new_betting_round() -> Result<(), TableError> {
 
     ic_cdk::futures::spawn(async move {
         for (user, balance) in total_kicked_users {
-            match kick_player_wrapper(ic_cdk::api::canister_self(), user.users_canister_id, user.principal_id, balance).await {
+            match kick_player_wrapper(
+                ic_cdk::api::canister_self(),
+                user.users_canister_id,
+                user.principal_id,
+                balance,
+            )
+            .await
+            {
                 Ok(_) => {
                     ic_cdk::println!("Kicked player: {}", user.principal_id);
                 }
@@ -1198,7 +1224,8 @@ async fn start_new_betting_round() -> Result<(), TableError> {
                 table_id,
                 action_logs,
             )
-            .await {
+            .await
+            {
                 ic_cdk::println!("Error storing logs: {:?}", e);
             }
         } else if backend_principal == Principal::from_text("e4yx7-lqaaa-aaaah-qdslq-cai").unwrap()
@@ -1208,7 +1235,8 @@ async fn start_new_betting_round() -> Result<(), TableError> {
                 table_id,
                 action_logs,
             )
-            .await {
+            .await
+            {
                 ic_cdk::println!("Error storing logs: {:?}", e);
             }
         } else if backend_principal == Principal::from_text("by6od-j4aaa-aaaaa-qaadq-cai").unwrap()
@@ -1218,7 +1246,8 @@ async fn start_new_betting_round() -> Result<(), TableError> {
                 table_id,
                 action_logs,
             )
-            .await {
+            .await
+            {
                 ic_cdk::println!("Error storing logs: {:?}", e);
             }
         }
@@ -1272,26 +1301,33 @@ async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
             let mut house_rake = rake_amount / 2;
             rake_amount -= house_rake;
             let mut referrers: HashMap<Principal, User> = HashMap::new();
-            
+
             // For each player at the table, check if they were referred
-            for user in table.users.users.values() {                
+            for user in table.users.users.values() {
                 if let Some(referrer_principal) = user.referrer {
                     // Get referrer's canister and check if referral is still active
-                    let referrer_canister_id = match get_users_canister_principal_by_id_wrapper(user_index, referrer_principal).await {
+                    let referrer_canister_id = match get_users_canister_principal_by_id_wrapper(
+                        user_index,
+                        referrer_principal,
+                    )
+                    .await
+                    {
                         Ok(canister_id) => canister_id,
                         Err(_) => continue,
                     };
                     let referrer = match referrers.get(&referrer_principal) {
                         Some(referrer) => referrer.clone(),
                         None => {
-                            let referrer = get_user_wrapper(referrer_canister_id, referrer_principal).await?;
+                            let referrer =
+                                get_user_wrapper(referrer_canister_id, referrer_principal).await?;
                             referrers.insert(referrer_principal, referrer.clone());
                             referrer
                         }
                     };
 
                     // Check if referral is active
-                    let is_active = user.referral_start_date.unwrap_or(0) + REFERRAL_PERIOD > ic_cdk::api::time();
+                    let is_active = user.referral_start_date.unwrap_or(0) + REFERRAL_PERIOD
+                        > ic_cdk::api::time();
 
                     if is_active {
                         // Get referrer's rake percentage based on tier
@@ -1323,19 +1359,31 @@ async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
                 table.config.is_shared_rake
             {
                 if let Err(e) = currency_manager
-                    .withdraw_rake(&currency, *RAKE_WALLET_ADDRESS_PRINCIPAL, house_rake - ic_ledger_types::DEFAULT_FEE.e8s())
+                    .withdraw_rake(
+                        &currency,
+                        *RAKE_WALLET_ADDRESS_PRINCIPAL,
+                        house_rake - ic_ledger_types::DEFAULT_FEE.e8s(),
+                    )
                     .await
                 {
                     ic_cdk::println!("Error withdrawing rake: {:?}", e);
                 }
                 if let Err(e) = currency_manager
-                    .withdraw(&currency, rake_share_principal, rake_amount - ic_ledger_types::DEFAULT_FEE.e8s())
+                    .withdraw(
+                        &currency,
+                        rake_share_principal,
+                        rake_amount - ic_ledger_types::DEFAULT_FEE.e8s(),
+                    )
                     .await
                 {
                     ic_cdk::println!("Error withdrawing rake: {:?}", e);
                 }
             } else if let Err(e) = currency_manager
-                .withdraw_rake(&currency, *RAKE_WALLET_ADDRESS_PRINCIPAL, rake_amount + house_rake - ic_ledger_types::DEFAULT_FEE.e8s())
+                .withdraw_rake(
+                    &currency,
+                    *RAKE_WALLET_ADDRESS_PRINCIPAL,
+                    rake_amount + house_rake - ic_ledger_types::DEFAULT_FEE.e8s(),
+                )
                 .await
             {
                 ic_cdk::println!("Error withdrawing rake: {:?}", e);
@@ -1515,12 +1563,8 @@ async fn clear_table() -> Result<(), TableError> {
             .into_iter()
             .map(|(user_id, users_canister_id)| async move {
                 // TODO: Handle this properly
-                match leave_table_wrapper(
-                    ic_cdk::api::canister_self(),
-                    users_canister_id,
-                    user_id,
-                )
-                .await
+                match leave_table_wrapper(ic_cdk::api::canister_self(), users_canister_id, user_id)
+                    .await
                 {
                     Ok(_) => Ok(()),
                     Err(e) => {
@@ -1626,10 +1670,7 @@ async fn resume_table() -> Result<(), TableError> {
     };
 
     if !is_paused {
-        if let Err(e) = start_new_betting_round_wrapper(
-            ic_cdk::api::canister_self(),
-        )
-        .await {
+        if let Err(e) = start_new_betting_round_wrapper(ic_cdk::api::canister_self()).await {
             ic_cdk::println!("Error resuming table: {:?}", e);
             return Ok(());
         }
@@ -1866,11 +1907,13 @@ async fn get_canister_status_formatted() -> Result<(), TableError> {
     handle_cycle_check();
 
     // Call the management canister to get status
-    let canister_status_arg = CanisterStatusArgs { canister_id: ic_cdk::api::canister_self() };
-    
-    let status_response = canister_status(&canister_status_arg)
-        .await
-        .map_err(|e| TableError::CanisterCallError(format!("Failed to get canister status: {:?}", e)))?;
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
+
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        TableError::CanisterCallError(format!("Failed to get canister status: {:?}", e))
+    })?;
 
     // Format the status into a readable string
     let formatted_status = format!(
@@ -1889,10 +1932,12 @@ async fn get_canister_status_formatted() -> Result<(), TableError> {
         ic_cdk::api::canister_self().to_text(),
         status_response.status,
         status_response.memory_size,
-        status_response.memory_size.clone() / Nat::from(1_048_576 as u64), // Convert to MB
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
         status_response.cycles,
-        status_response.cycles.clone() / Nat::from(1_000_000_000_000 as u64), // Convert to T cycles
-        status_response.settings.controllers
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
             .iter()
             .map(|p| p.to_string())
             .collect::<Vec<_>>()

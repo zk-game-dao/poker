@@ -3,7 +3,11 @@ use std::collections::{HashMap, HashSet};
 use candid::{CandidType, Principal};
 use errors::user_error::UserError;
 use futures::future::join_all;
-use intercanister_call_wrappers::users_canister::{get_pure_poker_user_experience_points_wrapper, get_user_experience_points_wrapper, get_verified_pure_poker_user_experience_points_wrapper, get_verified_user_experience_points_wrapper};
+use intercanister_call_wrappers::users_canister::{
+    get_pure_poker_user_experience_points_wrapper, get_user_experience_points_wrapper,
+    get_verified_pure_poker_user_experience_points_wrapper,
+    get_verified_user_experience_points_wrapper,
+};
 use serde::Deserialize;
 
 use crate::{
@@ -104,7 +108,7 @@ impl UserIndex {
                                 e
                             );
                             vec![]
-                        },
+                        }
                     }
                 })
                 .collect();
@@ -142,7 +146,7 @@ impl UserIndex {
                                 e
                             );
                             vec![]
-                        },
+                        }
                     }
                 })
                 .collect();
@@ -180,7 +184,7 @@ impl UserIndex {
                                 e
                             );
                             vec![]
-                        },
+                        }
                     }
                 })
                 .collect();

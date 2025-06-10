@@ -41,11 +41,13 @@ lazy_static! {
         Principal::from_text("t63gs-up777-77776-aaaba-cai").unwrap();
     static ref USERS_INDEX_DEV: Principal =
         Principal::from_text("txyno-ch777-77776-aaaaq-cai").unwrap();
-
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
-        Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe").unwrap(),
-        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae").unwrap(),
-        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe").unwrap(),
+        Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe")
+            .unwrap(),
+        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
+            .unwrap(),
+        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe")
+            .unwrap(),
     ];
 }
 
@@ -97,11 +99,16 @@ async fn get_canister_status_formatted() -> Result<(), CanisterManagementError> 
     validate_caller(controllers);
 
     // Call the management canister to get status
-    let canister_status_arg = CanisterStatusArgs { canister_id: ic_cdk::api::canister_self() };
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
 
-    let status_response = canister_status(&canister_status_arg)
-        .await
-        .map_err(|e| CanisterManagementError::CanisterCallError(format!("Failed to get canister status: {:?}", e)))?;
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        CanisterManagementError::CanisterCallError(format!(
+            "Failed to get canister status: {:?}",
+            e
+        ))
+    })?;
 
     // Format the status into a readable string
     let formatted_status = format!(
@@ -120,10 +127,12 @@ async fn get_canister_status_formatted() -> Result<(), CanisterManagementError> 
         ic_cdk::api::canister_self().to_text(),
         status_response.status,
         status_response.memory_size,
-        status_response.memory_size.clone() / Nat::from(1_048_576 as u64), // Convert to MB
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
         status_response.cycles,
-        status_response.cycles.clone() / Nat::from(1_000_000_000_000 as u64), // Convert to T cycles
-        status_response.settings.controllers
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
             .iter()
             .map(|p| p.to_string())
             .collect::<Vec<_>>()

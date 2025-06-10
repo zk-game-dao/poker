@@ -230,7 +230,7 @@ pub fn get_fixed_limit_configs(small_blind: u64) -> Option<Rake> {
             max_small_blind: 2_999_999,         // $0.0299
             percentage_millipercent: 4500,      // 4.5%
             cap_2_3_players_min: 50_000,        // 5x min small blind
-            cap_2_3_players_max: 15_000_000,    // 5x max small blind 
+            cap_2_3_players_max: 15_000_000,    // 5x max small blind
             cap_4_plus_players_min: 100_000,    // 10x min small blind
             cap_4_plus_players_max: 30_000_000, // 10x max small blind
         },
@@ -246,31 +246,31 @@ pub fn get_fixed_limit_configs(small_blind: u64) -> Option<Rake> {
         },
         // Low Stakes (4.0%)
         RakeConfig {
-            min_small_blind: 25_000_000,         // ICP 0.25
-            max_small_blind: 99_999_999,         // ICP 0.99
-            percentage_millipercent: 4000,       // 4.0%
-            cap_2_3_players_min: 125_000_000,    // 5x min small blind
-            cap_2_3_players_max: 500_000_000,    // 5x max small blind
-            cap_4_plus_players_min: 250_000_000, // 10x min small blind
+            min_small_blind: 25_000_000,           // ICP 0.25
+            max_small_blind: 99_999_999,           // ICP 0.99
+            percentage_millipercent: 4000,         // 4.0%
+            cap_2_3_players_min: 125_000_000,      // 5x min small blind
+            cap_2_3_players_max: 500_000_000,      // 5x max small blind
+            cap_4_plus_players_min: 250_000_000,   // 10x min small blind
             cap_4_plus_players_max: 1_000_000_000, // 10x max small blind
         },
         // Mid Stakes (3.5%)
         RakeConfig {
-            min_small_blind: 100_000_000,        // ICP 1.00
-            max_small_blind: 299_999_999,        // ICP 2.99
-            percentage_millipercent: 3500,       // 3.5%
-            cap_2_3_players_min: 500_000_000,    // 5x min small blind
-            cap_2_3_players_max: 1_500_000_000,  // 5x max small blind
+            min_small_blind: 100_000_000,          // ICP 1.00
+            max_small_blind: 299_999_999,          // ICP 2.99
+            percentage_millipercent: 3500,         // 3.5%
+            cap_2_3_players_min: 500_000_000,      // 5x min small blind
+            cap_2_3_players_max: 1_500_000_000,    // 5x max small blind
             cap_4_plus_players_min: 1_000_000_000, // 10x min small blind
             cap_4_plus_players_max: 3_000_000_000, // 10x max small blind
         },
         // High Stakes (3.0%)
         RakeConfig {
-            min_small_blind: 300_000_000,         // ICP 3.00
-            max_small_blind: 499_999_999,         // ICP 4.99
-            percentage_millipercent: 3000,        // 3.0%
-            cap_2_3_players_min: 1_500_000_000,   // 5x min small blind
-            cap_2_3_players_max: 2_500_000_000,   // 5x max small blind
+            min_small_blind: 300_000_000,          // ICP 3.00
+            max_small_blind: 499_999_999,          // ICP 4.99
+            percentage_millipercent: 3000,         // 3.0%
+            cap_2_3_players_min: 1_500_000_000,    // 5x min small blind
+            cap_2_3_players_max: 2_500_000_000,    // 5x max small blind
             cap_4_plus_players_min: 3_000_000_000, // 10x min small blind
             cap_4_plus_players_max: 5_000_000_000, // 10x max small blind
         },

@@ -1,8 +1,16 @@
 use candid::Principal;
-use errors::{table_error::TableError, tournament_error::TournamentError, tournament_index_error::TournamentIndexError};
-use ic_cdk::management_canister::{canister_status, update_settings, CanisterSettings, CanisterStatusArgs, UpdateSettingsArgs};
+use errors::{
+    table_error::TableError, tournament_error::TournamentError,
+    tournament_index_error::TournamentIndexError,
+};
+use ic_cdk::management_canister::{
+    CanisterSettings, CanisterStatusArgs, UpdateSettingsArgs, canister_status, update_settings,
+};
 use table::poker::game::{table_functions::table::TableConfig, types::PublicTable};
-use tournaments::tournaments::{blind_level::BlindLevel, types::{TournamentData, TournamentState, UserTournamentAction}};
+use tournaments::tournaments::{
+    blind_level::BlindLevel,
+    types::{TournamentData, TournamentState, UserTournamentAction},
+};
 
 pub async fn create_tournament_wrapper(
     tournament_id: Principal,
@@ -10,12 +18,9 @@ pub async fn create_tournament_wrapper(
     table_config: TableConfig,
     prize_pool: u64,
 ) -> Result<TournamentData, TournamentError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        tournament_id,
-        "create_tournament"
-    )
-    .with_args(&(tournament_data, table_config, prize_pool))
-    .await;
+    let call_result = ic_cdk::call::Call::unbounded_wait(tournament_id, "create_tournament")
+        .with_args(&(tournament_data, table_config, prize_pool))
+        .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -30,10 +35,7 @@ pub async fn create_tournament_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in create_tournament call: {:?}", err);
-            Err(TournamentError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TournamentError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
@@ -44,12 +46,9 @@ pub async fn user_leave_tournament_wrapper(
     wallet_principal_id: Principal,
     table_id: Principal,
 ) -> Result<(), TournamentError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        tournament_id,
-        "user_leave_tournament"
-    )
-    .with_args(&(user_principal, wallet_principal_id, table_id))
-    .await;
+    let call_result = ic_cdk::call::Call::unbounded_wait(tournament_id, "user_leave_tournament")
+        .with_args(&(user_principal, wallet_principal_id, table_id))
+        .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -64,10 +63,7 @@ pub async fn user_leave_tournament_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in user_leave_tournament call: {:?}", err);
-            Err(TournamentError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TournamentError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
@@ -91,20 +87,17 @@ pub async fn handle_cancelled_tournament_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in handle_cancelled_tournament call: {:?}", err);
-            Err(TournamentError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TournamentError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
-
 
 pub async fn return_all_cycles_to_tournament_index_wrapper(
     tournament_id: Principal,
 ) -> Result<(), TournamentError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(tournament_id, "return_all_cycles_to_tournament_index").await;
+        ic_cdk::call::Call::unbounded_wait(tournament_id, "return_all_cycles_to_tournament_index")
+            .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -122,10 +115,7 @@ pub async fn return_all_cycles_to_tournament_index_wrapper(
                 "Error in return_all_cycles_to_tournament_index call: {:?}",
                 err
             );
-            Err(TournamentError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TournamentError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
@@ -134,8 +124,9 @@ pub async fn add_to_table_pool_wrapper(
     tournament_index_id: Principal,
     table_principal: Principal,
 ) -> Result<(), TournamentIndexError> {
-    let call_result =
-        ic_cdk::call::Call::unbounded_wait(tournament_index_id, "add_to_pool").with_arg(table_principal).await;
+    let call_result = ic_cdk::call::Call::unbounded_wait(tournament_index_id, "add_to_pool")
+        .with_arg(table_principal)
+        .await;
 
     match call_result {
         Ok(add_result) => match add_result.candid() {
@@ -192,18 +183,11 @@ pub async fn ensure_principal_is_controller(
     // Get the current canister status to check controllers
     let canister_status = match canister_status(&CanisterStatusArgs { canister_id }).await {
         Ok(status) => status,
-        Err(e) => {
-            return Err(format!(
-                "Failed to get canister status: {:?}",
-                e
-            ))
-        }
+        Err(e) => return Err(format!("Failed to get canister status: {:?}", e)),
     };
 
     // Check if the principal is already a controller
-    let is_already_controller = canister_status
-        .settings
-        .controllers.contains(&principal);
+    let is_already_controller = canister_status.settings.controllers.contains(&principal);
 
     // If principal is already a controller, we're done
     if is_already_controller {
@@ -249,10 +233,7 @@ pub async fn ensure_principal_is_controller(
             ic_cdk::println!("Successfully added principal as controller");
             Ok(())
         }
-        Err(e) => Err(format!(
-            "Failed to update canister settings: {:?}",
-            e
-        )),
+        Err(e) => Err(format!("Failed to update canister settings: {:?}", e)),
     }
 }
 
@@ -261,12 +242,9 @@ pub async fn user_join_tournament(
     user_principal: Principal,
     wallet_principal_id: Principal,
 ) -> Result<(), TournamentError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        tournament_id,
-        "user_join_tournament"
-    )
-    .with_args(&(user_principal, wallet_principal_id))
-    .await;
+    let call_result = ic_cdk::call::Call::unbounded_wait(tournament_id, "user_join_tournament")
+        .with_args(&(user_principal, wallet_principal_id))
+        .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -281,21 +259,20 @@ pub async fn user_join_tournament(
         },
         Err(err) => {
             ic_cdk::println!("Error in user_join_tournament call: {:?}", err);
-            Err(TournamentError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TournamentError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
 
-pub async fn update_player_count_tournament_wrapper(tournament_id: Principal, table_id: Principal, user_action: UserTournamentAction) -> Result<(), TournamentError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        tournament_id,
-        "update_player_count_tournament"
-    )
-    .with_args(&(table_id, user_action))
-    .await;
+pub async fn update_player_count_tournament_wrapper(
+    tournament_id: Principal,
+    table_id: Principal,
+    user_action: UserTournamentAction,
+) -> Result<(), TournamentError> {
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(tournament_id, "update_player_count_tournament")
+            .with_args(&(table_id, user_action))
+            .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -310,10 +287,7 @@ pub async fn update_player_count_tournament_wrapper(tournament_id: Principal, ta
         },
         Err(err) => {
             ic_cdk::println!("Error in update_player_count_tournament call: {:?}", err);
-            Err(TournamentError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TournamentError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
@@ -322,12 +296,9 @@ pub async fn distribute_winnings_wrapper(
     tournament_id: Principal,
     table: PublicTable,
 ) -> Result<(), TournamentError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        tournament_id,
-        "distribute_winnings"
-    )
-    .with_arg(table)
-    .await;
+    let call_result = ic_cdk::call::Call::unbounded_wait(tournament_id, "distribute_winnings")
+        .with_arg(table)
+        .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -342,10 +313,7 @@ pub async fn distribute_winnings_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in distribute_winnings call: {:?}", err);
-            Err(TournamentError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TournamentError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
@@ -353,11 +321,8 @@ pub async fn distribute_winnings_wrapper(
 pub async fn handle_tournament_end_wrapper(
     tournament_id: Principal,
 ) -> Result<(), TournamentError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        tournament_id,
-        "handle_tournament_end"
-    )
-    .await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(tournament_id, "handle_tournament_end").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -372,10 +337,7 @@ pub async fn handle_tournament_end_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in handle_tournament_end call: {:?}", err);
-            Err(TournamentError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TournamentError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
@@ -385,12 +347,10 @@ pub async fn update_tournament_state_icc_wrapper(
     tournament_id: Principal,
     new_state: TournamentState,
 ) -> Result<(), TournamentIndexError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        tournament_index,
-        "update_tournament_state"
-    )
-    .with_args(&(tournament_id, new_state))
-    .await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(tournament_index, "update_tournament_state")
+            .with_args(&(tournament_id, new_state))
+            .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -406,22 +366,21 @@ pub async fn update_tournament_state_icc_wrapper(
         Err(err) => {
             ic_cdk::println!("Error in update_tournament_state call: {:?}", err);
             Err(TournamentIndexError::CanisterCallFailed(format!(
-                "{:?}", err
+                "{:?}",
+                err
             )))
         }
     }
 }
 
-pub async fn update_blinds(
-    table_id: Principal,
-    new_level: &BlindLevel,
-) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        table_id,
-        "update_blinds",
-    )
-    .with_args(&(new_level.small_blind, new_level.big_blind, new_level.ante_type.clone()))
-    .await;
+pub async fn update_blinds(table_id: Principal, new_level: &BlindLevel) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "update_blinds")
+        .with_args(&(
+            new_level.small_blind,
+            new_level.big_blind,
+            new_level.ante_type.clone(),
+        ))
+        .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -436,10 +395,7 @@ pub async fn update_blinds(
         },
         Err(err) => {
             ic_cdk::println!("Error in update_blinds call: {:?}", err);
-            Err(TableError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TableError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }

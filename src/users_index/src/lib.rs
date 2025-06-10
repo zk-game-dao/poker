@@ -2,18 +2,20 @@ use authentication::validate_caller;
 // use authentication::validate_caller;
 use candid::{Nat, Principal};
 use canister_functions::{
-    create_canister_wrapper, cycle::{
+    create_canister_wrapper,
+    cycle::{
         check_and_top_up_canister, get_cycle_balances, monitor_and_top_up_canisters,
         top_up_canister,
-    }, install_wasm_code, stop_and_delete_canister, upgrade_wasm_code
+    },
+    install_wasm_code, stop_and_delete_canister, upgrade_wasm_code,
 };
 use currency::types::currency_manager::CurrencyManager;
 use errors::{canister_management_error::CanisterManagementError, user_error::UserError};
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
-use ic_ledger_types::{
-    AccountIdentifier, Subaccount, DEFAULT_SUBACCOUNT,
+use ic_ledger_types::{AccountIdentifier, Subaccount, DEFAULT_SUBACCOUNT};
+use intercanister_call_wrappers::users_canister::{
+    create_user_wrapper, get_user_wrapper, update_user_wrapper,
 };
-use intercanister_call_wrappers::users_canister::{create_user_wrapper, get_user_wrapper, update_user_wrapper};
 use lazy_static::lazy_static;
 use user::user::{User, UserAvatar};
 use user_index::{get_position_in_leaderboard, UserIndex};
@@ -58,26 +60,31 @@ lazy_static! {
     static ref SUPPORT_US_WALLET: Principal =
         Principal::from_text("amwxf-a2rkd-b42qc-jwbst-oy3co-d5ues-jgfcp-khbg4-zdxoa-n66ja-2ae")
             .unwrap();
-
-    static ref CYCLE_DISPENSER_CANISTER_PROD: Principal = Principal::from_text("zuv6g-yaaaa-aaaam-qbeza-cai").unwrap();
-    static ref CYCLE_DISPENSER_CANISTER_TEST: Principal = Principal::from_text("ev34d-5yaaa-aaaah-qdska-cai").unwrap();
-    static ref CYCLE_DISPENSER_CANISTER_DEV: Principal = Principal::from_text("tz2ag-zx777-77776-aaabq-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_PROD: Principal =
+        Principal::from_text("zuv6g-yaaaa-aaaam-qbeza-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_TEST: Principal =
+        Principal::from_text("ev34d-5yaaa-aaaah-qdska-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_DEV: Principal =
+        Principal::from_text("tz2ag-zx777-77776-aaabq-cai").unwrap();
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
-        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe").unwrap(),
-        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae").unwrap(),
+        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe")
+            .unwrap(),
+        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
+            .unwrap(),
     ];
-    static ref USER_CANISTER_WASM: &'static [u8] = include_bytes!("../../../target/wasm32-unknown-unknown/release/users_canister.wasm");
-
+    static ref USER_CANISTER_WASM: &'static [u8] =
+        include_bytes!("../../../target/wasm32-unknown-unknown/release/users_canister.wasm");
     static ref LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> = Mutex::new(None);
     static ref LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
-    static ref PURE_POKER_LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> = Mutex::new(None);
+    static ref PURE_POKER_LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> =
+        Mutex::new(None);
     static ref PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
-
     static ref VERIFIED_LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> = Mutex::new(None);
     static ref VERIFIED_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
-    static ref VERIFIED_PURE_POKER_LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> = Mutex::new(None);
-    static ref VERIFIED_PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
-
+    static ref VERIFIED_PURE_POKER_LEADERBOARD_CACHE: Mutex<Option<Vec<(Principal, u64)>>> =
+        Mutex::new(None);
+    static ref VERIFIED_PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> =
+        Mutex::new(None);
     static ref CURRENCY_MANAGER: Mutex<CurrencyManager> = Mutex::new(CurrencyManager::new());
 }
 
@@ -405,7 +412,9 @@ async fn get_verified_experience_points_leaderboard(
         .lock()
         .map_err(|_| UserError::LockError)?
         .clone();
-    let leaderboard = user_index_state.get_verified_experience_points_leaderboard().await?;
+    let leaderboard = user_index_state
+        .get_verified_experience_points_leaderboard()
+        .await?;
 
     let mut leaderboard_cache = VERIFIED_LEADERBOARD_CACHE
         .lock()
@@ -442,7 +451,9 @@ async fn get_verified_experience_points_leaderboard_length() -> Result<usize, Us
         .lock()
         .map_err(|_| UserError::LockError)?
         .clone();
-    let leaderboard = user_index_state.get_verified_experience_points_leaderboard().await?;
+    let leaderboard = user_index_state
+        .get_verified_experience_points_leaderboard()
+        .await?;
 
     let mut leaderboard_cache = VERIFIED_LEADERBOARD_CACHE
         .lock()
@@ -604,9 +615,7 @@ async fn upgrade_all_user_canisters() -> Result<Vec<(Principal, CanisterManageme
 }
 
 #[ic_cdk::update]
-async fn upgrade_user_canister(
-    user_canister: Principal,
-) -> Result<(), UserError> {
+async fn upgrade_user_canister(user_canister: Principal) -> Result<(), UserError> {
     // Validate caller permissions
     let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
@@ -635,9 +644,7 @@ async fn get_pure_poker_position(user_principal: Principal) -> Result<Option<u64
 }
 
 #[ic_cdk::update]
-async fn delete_users_canister(
-    user_canister: Principal,
-) -> Result<(), UserError> {
+async fn delete_users_canister(user_canister: Principal) -> Result<(), UserError> {
     // Validate caller permissions
     let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
@@ -659,13 +666,12 @@ async fn delete_users_canister(
     handle_cycle_check().await?;
 
     // Delete the canister
-    stop_and_delete_canister(user_canister)
-        .await
-        .map_err(|e| UserError::ManagementCanisterError(CanisterManagementError::DeleteCanisterError(
-            format!("Failed to delete canister {}: {:?}", user_canister, e)
-        )))?;
-
-    
+    stop_and_delete_canister(user_canister).await.map_err(|e| {
+        UserError::ManagementCanisterError(CanisterManagementError::DeleteCanisterError(format!(
+            "Failed to delete canister {}: {:?}",
+            user_canister, e
+        )))
+    })?;
 
     Ok(())
 }
@@ -679,11 +685,13 @@ async fn get_canister_status_formatted() -> Result<(), UserError> {
     handle_cycle_check().await?;
 
     // Call the management canister to get status
-    let canister_status_arg = CanisterStatusArgs { canister_id: ic_cdk::api::canister_self() };
-    
-    let status_response = canister_status(&canister_status_arg)
-        .await
-        .map_err(|e| UserError::CanisterCallFailed(format!("Failed to get canister status: {:?}", e)))?;
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
+
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        UserError::CanisterCallFailed(format!("Failed to get canister status: {:?}", e))
+    })?;
 
     // Format the status into a readable string
     let formatted_status = format!(
@@ -702,10 +710,12 @@ async fn get_canister_status_formatted() -> Result<(), UserError> {
         ic_cdk::api::canister_self().to_text(),
         status_response.status,
         status_response.memory_size,
-        status_response.memory_size.clone() / Nat::from(1_048_576 as u64), // Convert to MB
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
         status_response.cycles,
-        status_response.cycles.clone() / Nat::from(1_000_000_000_000 as u64), // Convert to T cycles
-        status_response.settings.controllers
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
             .iter()
             .map(|p| p.to_string())
             .collect::<Vec<_>>()

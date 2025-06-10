@@ -34,9 +34,7 @@ fn upgrade_tournament_canister(env: &TestEnv, tournament_id: Principal) {
             tournament_id,
             wasms::TOURNAMENT.clone(),
             vec![], // empty args for upgrades
-            Some(
-                env.canister_ids.tournament_index,
-            ),
+            Some(env.canister_ids.tournament_index),
         )
         .expect("Failed to upgrade tournament canister");
 }

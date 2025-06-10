@@ -7,12 +7,10 @@ pub async fn update_table_player_count_wrapper(
     table_id: Principal,
     user_count: usize,
 ) -> Result<(), TableIndexError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(
-        backend_principal,
-        "update_table_player_count"
-    )
-    .with_args(&(table_id, user_count))
-    .await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(backend_principal, "update_table_player_count")
+            .with_args(&(table_id, user_count))
+            .await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -27,10 +25,7 @@ pub async fn update_table_player_count_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in update_table_player_count call: {:?}", err);
-            Err(TableIndexError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TableIndexError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }
@@ -51,10 +46,7 @@ pub async fn get_rake_stats(table_id: Principal) -> Result<RakeStats, TableError
         },
         Err(err) => {
             ic_cdk::println!("Error in get_rake_stats call: {:?}", err);
-            Err(TableError::CanisterCallError(format!(
-                "{:?}",
-                err
-            )))
+            Err(TableError::CanisterCallError(format!("{:?}", err)))
         }
     }
 }

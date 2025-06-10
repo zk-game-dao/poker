@@ -165,13 +165,12 @@ pub fn approve_icrc1_tokens(
 
 impl TestEnv {
     pub fn deposit_to_test_user_index(&self, block_index: u64, user: Principal, amount: f64) {
-        let user_state =
-            self.pocket_ic.update_call(
-                self.canister_ids.user_index,
-                Principal::anonymous(),
-                "deposit",
-                encode_args((user, convert_to_e8s(amount), block_index)).unwrap(),
-            );
+        let user_state = self.pocket_ic.update_call(
+            self.canister_ids.user_index,
+            Principal::anonymous(),
+            "deposit",
+            encode_args((user, convert_to_e8s(amount), block_index)).unwrap(),
+        );
 
         match user_state {
             Ok(arg) => {
