@@ -44,7 +44,7 @@ NnsProposal:
     # This will go in the `url` field of the proposal.
     # Must be a string of 10 to 2,048 bytes.
     # The protocol must be HTTPS, and the domain must be forum.dfinity.org.
-    url: "https://forum.dfinity.org/thread-where-this-sns-is-discussed"
+    url: "https://forum.dfinity.org/t/were-preparing-to-launch-zkgame-dao-on-the-sns/48128"
 
     # The description of the proposal. Must be a string of 10 to 2,000 bytes.
     summary: >
@@ -367,6 +367,16 @@ Distribution:
 
 
         # Contributors
+        - principal: gvkpc-ktlbn-l3jer-6pcxq-hbulf-vklai-lbyqs-wg3wh-aeo3g-oh2je-zqe
+          stake: 1_000_000 tokens
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
+        - principal: uwy3x-roxnk-43zlt-qdgyo-f5s6t-jlyn3-fhmn7-kdn7d-vcrat-jpkht-nqe
+          stake: 250_000 tokens
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
         - principal: x52vg-lbch4-ob4ft-lvtcq-fwb2o-6vm5m-odnji-a4htp-7ajof-cu2jt-yae
           stake: 2_000_000 tokens
           dissolve_delay: 6 months
