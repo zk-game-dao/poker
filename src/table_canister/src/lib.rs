@@ -55,7 +55,7 @@ lazy_static! {
     static ref CHAT_HISTORY: Mutex<ChatHistory> = Mutex::new(ChatHistory::new(1000));
 
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
-        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe").unwrap(),
+        Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe").unwrap(),
         Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae").unwrap(),
     ];
 }
@@ -1504,7 +1504,7 @@ async fn clear_table() -> Result<(), TableError> {
             .users
             .users
             .iter()
-            .map(|(principal, user)| (*principal, user.principal_id))
+            .map(|(principal, user)| (*principal, user.users_canister_id))
             .collect::<Vec<(Principal, Principal)>>()
     };
 
@@ -1512,18 +1512,18 @@ async fn clear_table() -> Result<(), TableError> {
     let leave_futures =
         users_to_remove
             .into_iter()
-            .map(|(user_principal, wallet_principal)| async move {
+            .map(|(user_id, users_canister_id)| async move {
                 // TODO: Handle this properly
                 match leave_table_wrapper(
                     ic_cdk::api::canister_self(),
-                    user_principal,
-                    wallet_principal,
+                    users_canister_id,
+                    user_id,
                 )
                 .await
                 {
                     Ok(_) => Ok(()),
                     Err(e) => {
-                        ic_cdk::println!("Error removing user {}: {:?}", user_principal, e);
+                        ic_cdk::println!("Error removing user {}: {:?}", users_canister_id, e);
                         Err(e)
                     }
                 }
