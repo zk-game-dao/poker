@@ -4,7 +4,7 @@ import { Meta, StoryObj } from '@storybook/react';
 import { ChipsStackComponent } from './chips-stack.component';
 import { CurrencyMeta } from '@zk-game-dao/currency';
 
-const _meta: CurrencyMeta = { decimals: 8, thousands: 10 ** 8, transactionFee: 10_000n, symbol: "ICP" };
+const _meta: CurrencyMeta = { decimals: 8, thousands: 10 ** 8, transactionFee: 10_000n, symbol: "ICP", isFetched: true };
 
 const meta: Meta<typeof ChipsStackComponent> = {
   title: "Table/Chips Stack",

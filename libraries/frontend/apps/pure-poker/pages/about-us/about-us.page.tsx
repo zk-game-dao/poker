@@ -197,7 +197,8 @@ export const AboutUsPage = memo(() => {
                   decimals: 8,
                   thousands: 10 ** 8,
                   transactionFee: 10000n,
-                  symbol: 'BTC'
+                  symbol: 'BTC',
+                  isFetched: true,
                 })}
               />
             </div>
