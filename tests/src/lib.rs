@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-// mod basic_tests;
+mod basic_tests;
 mod cycle_tests;
 mod deposit_tests;
 mod env;
