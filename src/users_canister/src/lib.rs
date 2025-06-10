@@ -9,7 +9,7 @@ use ic_verifiable_credentials::{
 use lazy_static::lazy_static;
 use user::user::{User, UserAvatar};
 
-use std::sync::Mutex;
+use std::{collections::HashMap, sync::Mutex};
 
 mod memory;
 
@@ -37,7 +37,7 @@ lazy_static! {
     ];
     static ref USER_INDEX_PRINCIPAL: Mutex<Option<Principal>> = Mutex::new(None);
 
-    static ref USERS: Mutex<Vec<User>> = Mutex::new(Vec::new());
+    static ref USERS: Mutex<HashMap<Principal, User>> = Mutex::new(HashMap::new());
 }
 
 fn handle_cycle_check() {
@@ -123,7 +123,7 @@ fn create_user(
     );
 
     let mut user_state = USERS.lock().map_err(|_| UserError::LockError)?;
-    user_state.push(user.clone());
+    user_state.insert(internet_identity_principal_id, user.clone());
     Ok((user, user_state.len()))
 }
 
@@ -141,10 +141,7 @@ fn update_user(
 ) -> Result<User, UserError> {
     handle_cycle_check();
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = user
-        .iter_mut()
-        .find(|user| user.principal_id == user_id)
-        .ok_or(UserError::UserNotFound)?;
+    let user = user.get_mut(&user_id).ok_or(UserError::UserNotFound)?;
     let user_index = (*USER_INDEX_PRINCIPAL
         .lock()
         .map_err(|_| UserError::LockError)?)
@@ -177,22 +174,18 @@ fn update_user(
 #[ic_cdk::query]
 fn get_user(user_id: Principal) -> Result<User, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user
-        .into_iter()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
-    Ok(user)
+    Ok(user.clone())
 }
 
 #[ic_cdk::update]
 fn get_user_icc(user_id: Principal) -> Result<User, UserError> {
     handle_cycle_check();
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user
-        .into_iter()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
-    Ok(user)
+    Ok(user.clone())
 }
 
 #[ic_cdk::update]
@@ -200,9 +193,7 @@ fn add_active_table(table_principal: Principal, user_id: Principal) -> Result<Us
     handle_cycle_check();
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = user
-        .iter_mut()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get_mut(&user_id)
         .ok_or(UserError::UserNotFound)?;
     user.active_tables.push(table_principal);
     Ok(user.clone())
@@ -213,9 +204,7 @@ fn remove_active_table(table_principal: Principal, user_id: Principal) -> Result
     handle_cycle_check();
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = user
-        .iter_mut()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get_mut(&user_id)
         .ok_or(UserError::UserNotFound)?;
     user.active_tables.retain(|table| *table != table_principal);
     Ok(user.clone())
@@ -226,11 +215,9 @@ fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
     handle_cycle_check();
 
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user
-        .into_iter()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
-    Ok(user.active_tables)
+    Ok(user.active_tables.clone())
 }
 
 #[ic_cdk::update]
@@ -241,9 +228,7 @@ fn add_experience_points(
 ) -> Result<User, UserError> {
     handle_cycle_check();
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = user
-        .iter_mut()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get_mut(&user_id)
         .ok_or(UserError::UserNotFound)?;
 
     if currency == *"BTC" {
@@ -259,7 +244,7 @@ fn add_experience_points(
 fn clear_experience_points() -> Result<(), UserError> {
     handle_cycle_check();
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
-    for user in users.iter_mut() {
+    for (_, user) in users.iter_mut() {
         user.clear_experience_points();
     }
 
@@ -270,7 +255,7 @@ fn clear_experience_points() -> Result<(), UserError> {
 fn clear_pure_poker_experience_points() -> Result<(), UserError> {
     handle_cycle_check();
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
-    for user in users.iter_mut() {
+    for (_, user) in users.iter_mut() {
         user.clear_pure_poker_experience_points();
     }
 
@@ -280,9 +265,7 @@ fn clear_pure_poker_experience_points() -> Result<(), UserError> {
 #[ic_cdk::query]
 fn get_user_level(user_id: Principal) -> Result<f64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user
-        .into_iter()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
     Ok(user.get_level())
 }
@@ -290,9 +273,7 @@ fn get_user_level(user_id: Principal) -> Result<f64, UserError> {
 #[ic_cdk::query]
 fn get_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let experience_points = user
-        .into_iter()
-        .map(|user| (user.principal_id, user.get_experience_points()))
+    let experience_points = user.into_values().map(|user| (user.principal_id, user.get_experience_points()))
         .collect();
     Ok(experience_points)
 }
@@ -300,9 +281,7 @@ fn get_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
 #[ic_cdk::query]
 fn get_pure_poker_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let experience_points = user
-        .into_iter()
-        .map(|user| (user.principal_id, user.get_pure_poker_experience_points()))
+    let experience_points = user.into_values().map(|user| (user.principal_id, user.get_pure_poker_experience_points()))
         .collect();
     Ok(experience_points)
 }
@@ -312,8 +291,8 @@ fn get_verified_user_experience_points() -> Result<Vec<(Principal, u64)>, UserEr
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let experience_points = user
         .into_iter()
-        .filter(|user| user.is_verified.unwrap_or(false))
-        .map(|user| (user.principal_id, user.get_experience_points()))
+        .filter(|(_, user)| user.is_verified.unwrap_or(false))
+        .map(|(_, user)| (user.principal_id, user.get_experience_points()))
         .collect();
     Ok(experience_points)
 }
@@ -323,8 +302,8 @@ fn get_verified_pure_poker_user_experience_points() -> Result<Vec<(Principal, u6
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let experience_points = user
         .into_iter()
-        .filter(|user| user.is_verified.unwrap_or(false))
-        .map(|user| (user.principal_id, user.get_pure_poker_experience_points()))
+        .filter(|(_, user)| user.is_verified.unwrap_or(false))
+        .map(|(_, user)| (user.principal_id, user.get_pure_poker_experience_points()))
         .collect();
     Ok(experience_points)
 }
@@ -332,9 +311,7 @@ fn get_verified_pure_poker_user_experience_points() -> Result<Vec<(Principal, u6
 #[ic_cdk::query]
 fn get_experience_points_by_uid(user_id: Principal) -> Result<u64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user
-        .into_iter()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
     Ok(user.get_experience_points())
 }
@@ -342,9 +319,7 @@ fn get_experience_points_by_uid(user_id: Principal) -> Result<u64, UserError> {
 #[ic_cdk::query]
 fn get_pure_poker_experience_points_by_uid(user_id: Principal) -> Result<u64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
-    let user = user
-        .into_iter()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
     Ok(user.get_pure_poker_experience_points())
 }
@@ -396,9 +371,7 @@ async fn verify_credential(
         .lock()
         .map_err(|_| UserError::LockError)
         .map_err(|_| "Lock error")?;
-    let user = user
-        .iter_mut()
-        .find(|user| user.principal_id == user_id)
+    let user = user.get_mut(&user_id)
         .ok_or("User not found")?;
     user.is_verified = Some(true);
 
@@ -409,20 +382,16 @@ async fn verify_credential(
 #[ic_cdk::query]
 fn get_referred_users(user_id: Principal) -> Result<Vec<Principal>, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = users
-        .iter()
-        .find(|user| user.principal_id == user_id)
+    let user = users.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
     
-    Ok(user.referred_users.clone().unwrap_or_default())
+    Ok(user.referred_users.clone().unwrap_or(HashMap::new()).keys().cloned().collect())
 }
 
 #[ic_cdk::query]
 fn get_referral_tier(user_id: Principal) -> Result<u8, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = users
-        .iter()
-        .find(|user| user.principal_id == user_id)
+    let user = users.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
     
     Ok(user.get_referral_tier())
@@ -432,9 +401,7 @@ fn get_referral_tier(user_id: Principal) -> Result<u8, UserError> {
 fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
     handle_cycle_check();
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = users
-        .iter()
-        .find(|user| user.principal_id == user_id)
+    let user = users.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
     
     Ok(user.get_referral_rake_percentage())
@@ -444,9 +411,7 @@ fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
 fn get_referrer(user_id: Principal) -> Result<Option<Principal>, UserError> {
     handle_cycle_check();
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    let user = users
-        .iter()
-        .find(|user| user.principal_id == user_id)
+    let user = users.get(&user_id)
         .ok_or(UserError::UserNotFound)?;
     
     Ok(user.referrer)

@@ -342,10 +342,9 @@ type User = record {
   referrer : opt principal;
   eth_wallet_address : opt text;
   balance : nat64;
-  referred_users : opt vec principal;
+  referred_users : opt vec record { principal; nat64 };
   is_verified : opt bool;
   address : opt text;
-  transaction_history : opt vec Transaction;
   principal_id : principal;
   referral_start_date : opt nat64;
   active_tables : vec principal;

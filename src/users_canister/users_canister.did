@@ -24,22 +24,20 @@ type Result_6 = variant { Ok : nat8; Err : UserError };
 type Result_7 = variant { Ok : opt principal; Err : UserError };
 type Result_8 = variant { Ok : float64; Err : UserError };
 type Result_9 = variant { Ok; Err : text };
-type Transaction = record {
-  transaction_id : nat64;
-  transaction_type : TransactionType;
-  currency : opt text;
-  timestamp : nat64;
-  amount : nat64;
+type StatusRequest = record {
+  memory_size : bool;
+  cycles : bool;
+  heap_memory_size : bool;
 };
-type TransactionType = variant {
-  Withdraw;
-  Deposit;
-  TableWithdraw : record { table_id : principal };
-  Transfer : record { recipient : principal; transfer_type : TransferType };
-  TableDeposit : record { table_id : principal };
-  Receive : record { sender : principal; transfer_type : TransferType };
+type StatusResponse = record {
+  memory_size : opt nat64;
+  cycles : opt nat64;
+  heap_memory_size : opt nat64;
 };
-type TransferType = variant { CardShowRequest };
+type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
+type UpdateInformationRequest = record {
+  metrics : opt CollectMetricsRequestType;
+};
 type User = record {
   experience_points_pure_poker : opt nat64;
   experience_points : opt nat64;
@@ -47,10 +45,9 @@ type User = record {
   referrer : opt principal;
   eth_wallet_address : opt text;
   balance : nat64;
-  referred_users : opt vec principal;
+  referred_users : opt vec record { principal; nat64 };
   is_verified : opt bool;
   address : opt text;
-  transaction_history : opt vec Transaction;
   principal_id : principal;
   referral_start_date : opt nat64;
   active_tables : vec principal;
