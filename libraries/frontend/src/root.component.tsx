@@ -25,7 +25,6 @@ import { ProvideSound } from './context/sound.context';
 import { ElementBoxProvider } from './hooks/element-box';
 import { ProvideUsersCanisters } from './lib/user/context/users-canisters.context';
 import { useUser } from './lib/user/types/user.context';
-import { useReferrer } from './hooks/referrer';
 
 const UserItem = memo(() => {
   const { shownCurrencyType } = useContext(ThemeContext);
@@ -98,7 +97,7 @@ export const RootComponent = memo<Omit<ThemeContextType, 'setShownCurrencyType'>
           }
         }}
       >
-        <ProvideUI theme={theme.isBTC ? 'purepoker' : 'zkpoker'}>
+        <ProvideUI theme={theme.isBTC ? 'purepoker' : 'zkpoker'} banner={theme.banner}>
           <ProvideCurrencyContext
             enabledNetworks={theme.isBTC ? ['btc'] : ['ic', 'eth']}
             siwbProviderCanisterId={'CANISTER_ID_IC_SIWB_PROVIDER' in process.env ? Principal.from(process.env.CANISTER_ID_IC_SIWB_PROVIDER) : undefined}
@@ -108,7 +107,7 @@ export const RootComponent = memo<Omit<ThemeContextType, 'setShownCurrencyType'>
                 // { type: "link", label: "Profile", onClick: () => theme.showProfile() },
                 { type: "link", label: "Cash games", href: "/cash-games" },
                 { type: "link", label: "Leaderboard", href: "/leaderboard" },
-                { type: "link", label: "Tournaments", comingSoon: theme.hideTournaments, href: "/tournaments" },
+                { type: "link", label: "Tournaments", href: "/tournaments" },
                 { type: "seperator" },
                 { type: "link", label: "Roadmap", href: "/roadmap" },
                 { type: "link", label: "Changelog", href: "/changelog" },

@@ -1,12 +1,31 @@
 # Changelog
 
+## [2.3.2] - 2025-06-10
+
+### Fixed
+- Internet identity idle timeout increased to 1 day.
+- Rendering of token icons now also shows in-line.
+- `"No EIP-6963 wallets found"` warning message improved.
+- Update `ic-cdk` to 0.18.3.
+- Make dev principals log viewers and not controllers in prep for the SNS.
+- Fix users canister memory overuse bug.
+- Fix table index dud table bug.
+
+## [2.3.1] - 2025-05-26
+
+### Added
+- Add DAO announcement banner.
+- Add upgrade canister functions.
+
+### Fixed
+- Leaderboard will only pay out to POH verified players.
+
 ## [2.3.0] - 2025-04-11
 
 ### Added
 
 - Add min max buttons for some token inputs.
 - Add new inline chat system.
-- 
 
 ### Fixed
 

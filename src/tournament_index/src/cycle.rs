@@ -7,12 +7,12 @@ use errors::{
 
 use crate::STATE;
 
-const CYCLES_TOP_UP_AMOUNT: u64 = 3_000_000_000_000;
+const CYCLES_TOP_UP_AMOUNT: u128 = 3_000_000_000_000;
 
 #[ic_cdk::update]
 async fn request_cycles() -> Result<(), TournamentIndexError> {
-    let cycles = ic_cdk::api::canister_balance();
-    let caller = ic_cdk::api::caller();
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    let caller = ic_cdk::api::msg_caller();
     ic_cdk::println!(
         "%%%%%%%%%%% Tournament Index: Requesting cycles: {} from caller: {}",
         cycles,
@@ -24,7 +24,7 @@ async fn request_cycles() -> Result<(), TournamentIndexError> {
         ));
     }
 
-    transfer_cycles(CYCLES_TOP_UP_AMOUNT as u128, caller).await
+    transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
 async fn transfer_cycles(

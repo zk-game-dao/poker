@@ -32,29 +32,6 @@ type AnteType = variant {
   Fixed : nat64;
 };
 type CKTokenSymbol = variant { ETH; USDC; USDT };
-type CanisterLogFeature = variant {
-  filterMessageByContains;
-  filterMessageByRegex;
-};
-type CanisterLogMessages = record {
-  data : vec LogMessageData;
-  lastAnalyzedMessageTimeNanos : opt nat64;
-};
-type CanisterLogMessagesInfo = record {
-  features : vec opt CanisterLogFeature;
-  lastTimeNanos : opt nat64;
-  count : nat32;
-  firstTimeNanos : opt nat64;
-};
-type CanisterLogRequest = variant {
-  getMessagesInfo;
-  getMessages : GetLogMessagesParameters;
-  getLatestMessages : GetLatestLogMessagesParameters;
-};
-type CanisterLogResponse = variant {
-  messagesInfo : CanisterLogMessagesInfo;
-  messages : CanisterLogMessages;
-};
 type CanisterManagementError = variant {
   CreateCanisterError : text;
   InsufficientCycles;
@@ -63,13 +40,9 @@ type CanisterManagementError = variant {
   StopCanisterError : text;
   Transfer : text;
   QueryError : text;
+  CanisterCallError : text;
   DeleteCanisterError : text;
   InstallCodeError : text;
-};
-type CanisterMetrics = record { data : CanisterMetricsData };
-type CanisterMetricsData = variant {
-  hourly : vec HourlyMetricsData;
-  daily : vec DailyMetricsData;
 };
 type Card = record { value : Value; suit : Suit };
 type CardRequestData = record {
@@ -91,7 +64,6 @@ type ChatError = variant {
   InternalError : text;
   MessageTooLong : record { max_size : nat64; current_size : nat64 };
 };
-type CollectMetricsRequestType = variant { force; normal };
 type Currency = variant {
   BTC;
   ICP;
@@ -123,13 +95,6 @@ type CurrencyError = variant {
   NoBlockNumberProvided;
 };
 type CurrencyType = variant { Fake; Real : Currency };
-type DailyMetricsData = record {
-  updateCalls : nat64;
-  canisterHeapMemorySize : NumericEntity;
-  canisterCycles : NumericEntity;
-  canisterMemorySize : NumericEntity;
-  timeMillis : int;
-};
 type DealStage = variant {
   Opening;
   Flop;
@@ -173,60 +138,10 @@ type GameType = variant {
   PotLimit : nat64;
   FixedLimit : record { nat64; nat64 };
 };
-type GetInformationRequest = record {
-  status : opt StatusRequest;
-  metrics : opt MetricsRequest;
-  logs : opt CanisterLogRequest;
-  version : bool;
-};
-type GetInformationResponse = record {
-  status : opt StatusResponse;
-  metrics : opt MetricsResponse;
-  logs : opt CanisterLogResponse;
-  version : opt nat;
-};
-type GetLatestLogMessagesParameters = record {
-  upToTimeNanos : opt nat64;
-  count : nat32;
-  filter : opt GetLogMessagesFilter;
-};
-type GetLogMessagesFilter = record {
-  analyzeCount : nat32;
-  messageRegex : opt text;
-  messageContains : opt text;
-};
-type GetLogMessagesParameters = record {
-  count : nat32;
-  filter : opt GetLogMessagesFilter;
-  fromTimeNanos : opt nat64;
-};
-type GetMetricsParameters = record {
-  dateToMillis : nat;
-  granularity : MetricsGranularity;
-  dateFromMillis : nat;
-};
 type GlobalRakeStats = record {
   table_stats : vec TableRakeStats;
   total_rake_collected : nat64;
   total_rake_shared : nat64;
-};
-type HourlyMetricsData = record {
-  updateCalls : vec nat64;
-  canisterHeapMemorySize : vec nat64;
-  canisterCycles : vec nat64;
-  canisterMemorySize : vec nat64;
-  timeMillis : int;
-};
-type LogMessageData = record { timeNanos : nat64; message : text };
-type MetricsGranularity = variant { hourly; daily };
-type MetricsRequest = record { parameters : GetMetricsParameters };
-type MetricsResponse = record { metrics : opt CanisterMetrics };
-type NumericEntity = record {
-  avg : nat64;
-  max : nat64;
-  min : nat64;
-  first : nat64;
-  last : nat64;
 };
 type PlayerAction = variant {
   Joining;
@@ -298,12 +213,11 @@ type Result_4 = variant {
 };
 type Result_5 = variant { Ok : GlobalRakeStats; Err : TableIndexError };
 type Result_6 = variant { Ok : vec principal; Err : TableIndexError };
-type Result_7 = variant { Ok : nat64; Err : TableIndexError };
-type Result_8 = variant {
+type Result_7 = variant {
   Ok : vec record { principal; CanisterManagementError };
   Err : TableIndexError;
 };
-type Result_9 = variant { Ok; Err : TableError };
+type Result_8 = variant { Ok; Err : TableError };
 type SeatStatus = variant {
   Empty;
   QueuedForNextRound : record { principal; User; bool };
@@ -315,16 +229,6 @@ type SidePot = record {
   confirmed_pot : nat64;
   highest_bet : nat64;
   user_principals : vec principal;
-};
-type StatusRequest = record {
-  memory_size : bool;
-  cycles : bool;
-  heap_memory_size : bool;
-};
-type StatusResponse = record {
-  memory_size : opt nat64;
-  cycles : opt nat64;
-  heap_memory_size : opt nat64;
 };
 type Suit = variant { Spade; Diamond; Club; Heart };
 type TableConfig = record {
@@ -383,7 +287,6 @@ type TableIndexError = variant {
   NoTableAvailable;
   BlockQueryFailed;
   LockError;
-  InterCanisterError : text;
   InvalidTransactionDetails;
   NoAvailableTables : text;
   ManagementCanisterError : CanisterManagementError;
@@ -394,6 +297,7 @@ type TableIndexError = variant {
   InvalidRequest : text;
   InvalidTransactionType;
   QueryError : text;
+  CanisterCallError : text;
   TableError : TableError;
   TableNotFound;
   InvalidBlinds;
@@ -415,25 +319,6 @@ type TableType = variant {
   Satellite;
 };
 type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
-type Transaction = record {
-  transaction_id : nat64;
-  transaction_type : TransactionType;
-  currency : opt text;
-  timestamp : nat64;
-  amount : nat64;
-};
-type TransactionType = variant {
-  Withdraw;
-  Deposit;
-  TableWithdraw : record { table_id : principal };
-  Transfer : record { recipient : principal; transfer_type : TransferType };
-  TableDeposit : record { table_id : principal };
-  Receive : record { sender : principal; transfer_type : TransferType };
-};
-type TransferType = variant { CardShowRequest };
-type UpdateInformationRequest = record {
-  metrics : opt CollectMetricsRequestType;
-};
 type User = record {
   experience_points_pure_poker : opt nat64;
   experience_points : opt nat64;
@@ -441,10 +326,9 @@ type User = record {
   referrer : opt principal;
   eth_wallet_address : opt text;
   balance : nat64;
-  referred_users : opt vec principal;
+  referred_users : opt vec record { principal; nat64 };
   is_verified : opt bool;
   address : opt text;
-  transaction_history : opt vec Transaction;
   principal_id : principal;
   referral_start_date : opt nat64;
   active_tables : vec principal;
@@ -516,21 +400,16 @@ service : () -> {
   create_table : (TableConfig, opt principal) -> (Result);
   delete_all_tables : () -> (Result_2);
   delete_table_by_id : (principal) -> (Result_1);
-  getCanistergeekInformation : (GetInformationRequest) -> (
-      GetInformationResponse,
-    ) query;
   get_account_number : () -> (Result_3) query;
   get_all_public_tables : () -> (Result_4) query;
   get_all_rake_stats : () -> (Result_5);
   get_all_table_principals : () -> (Result_6) query;
-  get_cycles : () -> (nat64) query;
+  get_canister_status_formatted : () -> (Result_1);
   get_private_tables : () -> (Result_6) query;
   get_rake : (nat64, Currency, GameType) -> (opt Rake) query;
   get_rake_wallet_info : () -> (principal, text) query;
   get_table : (principal) -> (Result);
-  get_table_cycles : (principal) -> (Result_7);
   get_tables : (opt FilterOptions, nat16, nat16) -> (Result_4);
-  join_random_table : (principal) -> (Result);
   monitor_and_top_up_table_canisters : () -> (Result_1);
   ping : () -> (text) query;
   purge_dud_tables : () -> (Result_1);
@@ -538,9 +417,8 @@ service : () -> {
   remove_table_from_indexes : (principal) -> (Result_1);
   request_cycles : () -> (Result_1);
   top_up_table_canister : (principal, nat) -> (Result_1);
-  transfer_cycles_from_table_to_index : (principal, nat) -> (Result_1);
-  updateCanistergeekInformation : (UpdateInformationRequest) -> ();
   update_table_player_count : (principal, nat64) -> (Result_1);
-  upgrade_all_table_canisters : () -> (Result_8);
-  withdraw_rake : (nat64) -> (Result_9);
+  upgrade_all_table_canisters : () -> (Result_7);
+  upgrade_table_canister : (principal) -> (Result_1);
+  withdraw_rake : (nat64) -> (Result_8);
 }

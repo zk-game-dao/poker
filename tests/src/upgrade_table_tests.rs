@@ -1,6 +1,5 @@
 use candid::{decode_one, encode_args, Principal};
 use errors::table_index_error::TableIndexError;
-use pocket_ic::WasmResult;
 use serial_test::serial;
 use std::collections::{HashMap, HashSet};
 use table::poker::game::table_functions::table::TableConfig;
@@ -54,8 +53,8 @@ fn get_all_public_tables(env: &TestEnv) -> Vec<(Principal, TableConfig)> {
         encode_args(()).unwrap(),
     );
 
-    match result.expect("Failed to get all public tables") {
-        WasmResult::Reply(arg) => {
+    match result {
+        Ok(arg) => {
             let tables: Result<Vec<(Principal, TableConfig)>, TableIndexError> =
                 decode_one(&arg).unwrap();
             tables.expect("Failed to decode tables")
@@ -73,8 +72,8 @@ fn get_all_table_principals(env: &TestEnv) -> Vec<Principal> {
         encode_args(()).unwrap(),
     );
 
-    match result.expect("Failed to get all table principals") {
-        WasmResult::Reply(arg) => {
+    match result {
+        Ok(arg) => {
             let tables: Result<Vec<Principal>, TableIndexError> = decode_one(&arg).unwrap();
             tables.expect("Failed to decode table principals")
         }
@@ -91,7 +90,7 @@ fn verify_table_exists(env: &TestEnv, table_principal: Principal) -> bool {
         encode_args(()).unwrap(),
     );
 
-    matches!(result, Ok(WasmResult::Reply(_)))
+    result.is_ok()
 }
 
 #[test]

@@ -1,6 +1,5 @@
 use candid::{decode_one, encode_args, Principal};
 use errors::tournament_index_error::TournamentIndexError;
-use pocket_ic::WasmResult;
 use serial_test::serial;
 use std::time::Duration;
 use table::poker::game::table_functions::table::TableConfig;
@@ -35,12 +34,7 @@ fn upgrade_tournament_canister(env: &TestEnv, tournament_id: Principal) {
             tournament_id,
             wasms::TOURNAMENT.clone(),
             vec![], // empty args for upgrades
-            Some(
-                Principal::from_text(
-                    "km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe",
-                )
-                .unwrap(),
-            ),
+            Some(env.canister_ids.tournament_index),
         )
         .expect("Failed to upgrade tournament canister");
 }
@@ -132,8 +126,8 @@ impl TestEnv {
             encode_args((filter_type,)).unwrap(),
         );
 
-        match result.expect("Failed to get active tournaments") {
-            WasmResult::Reply(arg) => decode_one(&arg).unwrap(),
+        match result {
+            Ok(arg) => decode_one(&arg).unwrap(),
             _ => panic!("Failed to get active tournaments"),
         }
     }
@@ -151,8 +145,8 @@ impl TestEnv {
             encode_args((tournament_id, new_state)).unwrap(),
         );
 
-        match result.expect("Failed to update tournament state") {
-            WasmResult::Reply(arg) => decode_one(&arg).unwrap(),
+        match result {
+            Ok(arg) => decode_one(&arg).unwrap(),
             _ => panic!("Failed to update tournament state"),
         }
     }

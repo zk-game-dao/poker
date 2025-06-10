@@ -27,7 +27,7 @@ description: >
 # Must have less than 341,334 bytes. The only supported format is PNG.
 # Consider that NNS dapp will render the image with a 1:1 aspect ratio and
 # cropped to a circle.
-logo: logo.png
+logo: ./src/app_frontend/public/logo.png
 
 # URL that represents the SNS, usually a dapp controlled by the SNS project.
 # Must be a string from 10 to 512 bytes, and the domain must be HTTPS.
@@ -123,7 +123,7 @@ Token:
     # Path to the SNS token logo on your local filesystem. The path is relative
     # to the configuration file location, unless an absolute path is given.
     # Must have less than 341,334 bytes. The only supported format is PNG.
-    logo: logo.png
+    logo: ./src/app_frontend/public/logo.png
 
 # Configures SNS proposal-related fields. These fields define the initial values
 # for some of the nervous system parameters related to SNS proposals. This will
@@ -320,7 +320,15 @@ Distribution:
         # principals of your intended genesis neurons.
         #
         # For testing, propose_sns.sh will fill this in automatically.
-        # Team allocations (15% total)
+        # Team allocations
+
+        # Dev identity
+        - principal: w3kjy-pitqg-dvab7-tb57q-63gnd-di4vo-loiiy-s6zm2-gqcmw-ixliz-aae
+          stake: 2_000 tokens # 10x the Proposal rejection fee of 100 tokens, allowing for 20 Concurrent proposals
+          memo: 0
+          dissolve_delay: 10 years   
+          vesting_period: 0 years
+
         - principal: f3edy-doi3q-pjieb-tmpmk-xdcht-qplkb-yp7y6-i3qv6-rhlgu-xcts7-eqe
           stake: 35_000_000 tokens  # 3.5% of total supply
           memo: 1
@@ -345,26 +353,51 @@ Distribution:
           dissolve_delay: 2 years
           vesting_period: 1 years
           
-        - principal: vfcho-ohyx7-fphjj-wtt2w-63j22-cmgzt-7bpio-umoiv-wmj67-wjlsl-aae 
+        - principal: ottho-tegw2-jz43o-7unl3-3rkr4-j6cqt-7r5vn-nxaxn-xeqhd-63bes-uqe
           stake: 20_000_000 tokens  # 2% of total supply
           memo: 5
           dissolve_delay: 2 years
           vesting_period: 1 years
           
-        - principal: 333bf-7baqo-luy5x-vtyjx-hfhcg-a6psm-i2lku-iofkr-p2ozx-qefzg-fqe
-          stake: 7_500_000 tokens  # 0.75% of total supply
+        - principal: dj2jt-5gwh7-nxeyp-cvm22-dclcm-yztq3-om652-t557i-4tkfp-uf347-aqe
+          stake: 6_400_000 tokens  # 0.64% of total supply
           memo: 6
           dissolve_delay: 2 years
           vesting_period: 1 years
 
-        - principal: mf7os-5mqei-5cksg-ohl3y-dtv52-fx4iv-pb7yz-b7voi-sotih-noymx-6ae
-          stake: 2_500_000 tokens  # 0.25% of total supply
-          memo: 7
-          dissolve_delay: 2 years
-          vesting_period: 1 years
-          
-        
-          
+
+        # Contributors
+        - principal: x52vg-lbch4-ob4ft-lvtcq-fwb2o-6vm5m-odnji-a4htp-7ajof-cu2jt-yae
+          stake: 2_000_000 tokens
+          dissolve_delay: 6 months
+          vesting_period: 6 months
+
+        - principal: vwa3i-6midp-7pstn-pechc-ygutg-6hqtp-icebw-5e2y6-v3aso-gm4sf-vqe
+          stake: 250_000 tokens
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
+        - principal: bdjyr-r4v6q-l6yqs-i5nk4-zhmdw-nnymn-art62-nqog5-q4ktl-yq2iz-jae
+          stake: 250_000 tokens
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
+        - principal: vehha-hzlos-fyexv-54yk7-ghyqe-h52vu-ysyvg-kc52f-6vojk-zvk4h-5qe
+          stake: 350_000 tokens # (0.035%)
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
+        - principal: nl32i-nuz3e-vfhhu-23525-7y5z5-2mvsl-5qwuj-nmese-a5wgj-7dkhn-xae
+          stake: 250_000 tokens # (0.025%)
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
+        - principal: r6mcb-fhzrt-rhe4q-bvqwz-pdzcg-6swy5-mrzpi-37zdl-ssln2-6cyt3-bae
+          stake: 500_000 tokens
+          dissolve_delay: 6 months
+          vesting_period: 0 months
+
+
         # Early Investors allocation (10% total)
         - principal: ujdwa-celkx-ttr7b-u7poa-cxa4o-adqgo-3wg73-zbzto-5leaj-by4e4-uqe
           stake: 25_000_000 tokens  # 2.5% of total supply
@@ -382,13 +415,13 @@ Distribution:
           stake: 25_000_000 tokens  # 2.5% of total supply
           memo: 14
           dissolve_delay: 1 year
-          vesting_period: 3 years
+          vesting_period: 2 years
           
         - principal: poal6-7shsv-hvoji-2qbdf-xce6g-ofsk3-cw4ss-zaq5g-kxuzh-nbowe-lae
           stake: 25_000_000 tokens  # 2.5% of total supply
           memo: 15
           dissolve_delay: 1 year
-          vesting_period: 3 years
+          vesting_period: 1 years
 
     # The initial SNS token balances of the various canisters of the SNS.
     InitialBalances:
@@ -405,7 +438,8 @@ Distribution:
 
     # Checksum of the total number of tokens distributed in this section.
     # This field is specified as a token. For instance, "1 token".
-    #         150_000_000    (team neurons)
+    #         146_400_000    (team neurons)
+    #         3_600_000      (contributors neurons)
     #         100_000_000    (seed investor neurons)
     #         500_000_000    (treasury)
     #       + 250_000_000    (swap)
@@ -428,7 +462,7 @@ Swap:
     # the swap to succeed. If this amount is not achieved, the swap will be
     # aborted (instead of committed) when the due date/time occurs.
     # Must be smaller than or equal than `maximum_direct_participation_icp`.
-    minimum_direct_participation_icp: 250_000 tokens
+    minimum_direct_participation_icp: 150_000 tokens
 
     # Maximum amount of ICP from direct participants. If this amount is achieved,
     # the swap will finalize immediately, without waiting for the due date/time;

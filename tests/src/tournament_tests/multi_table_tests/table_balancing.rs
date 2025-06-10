@@ -31,7 +31,7 @@ impl TestEnv {
             .as_nanos() as u64;
 
         let now = std::time::SystemTime::now();
-        self.pocket_ic.set_time(now);
+        self.pocket_ic.set_time(now.into());
 
         let tournament_config = NewTournament {
             name: "Multi-Table Test Tournament".to_string(),
@@ -112,8 +112,14 @@ impl TestEnv {
                 let table = self.get_table(*table_id).unwrap();
                 if !table.users.is_empty() {
                     let user = table.users.users.into_values().next().unwrap();
-                    if let Err(e) = self.handle_user_losing(tournament_id, user.principal_id, *table_id) {
-                        println!("Error eliminating player {}: {:?}", user.principal_id.to_text(), e);
+                    if let Err(e) =
+                        self.handle_user_losing(tournament_id, user.principal_id, *table_id)
+                    {
+                        println!(
+                            "Error eliminating player {}: {:?}",
+                            user.principal_id.to_text(),
+                            e
+                        );
                         continue;
                     }
                     println!("Eliminated player: {}", user.principal_id.to_text());
@@ -694,7 +700,8 @@ fn test_table_balancing_with_player_overflow_three() {
 
     // Total players across tables should match tournament players
     assert_eq!(
-        total_table_players, tournament.current_players.len(),
+        total_table_players,
+        tournament.current_players.len(),
         "Total table players should match tournament players"
     );
 
@@ -707,7 +714,7 @@ fn test_table_balancing_with_player_overflow_three() {
         "Should have eliminated 7 players"
     );
 
-    for _ in 0.. 10 {
+    for _ in 0..10 {
         test_env.pocket_ic.advance_time(Duration::from_secs(60));
         for _ in 0..30 {
             test_env.pocket_ic.tick();

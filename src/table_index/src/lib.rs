@@ -1,11 +1,9 @@
 use authentication::validate_caller;
-use candid::Principal;
+use candid::{Nat, Principal};
 use canister_functions::{
     create_canister_wrapper,
     cycle::{check_and_top_up_canister, monitor_and_top_up_canisters, top_up_canister},
-    install_wasm_code,
-    inter_canister_call_wrappers::join_table,
-    rake_constants,
+    install_wasm_code, rake_constants,
     rake_stats::{GlobalRakeStats, RakeStats, TableRakeStats},
     stop_and_delete_canister,
 };
@@ -15,17 +13,22 @@ use errors::{
     table_index_error::TableIndexError,
 };
 use futures::future::join_all;
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
+use intercanister_call_wrappers::table_index::get_rake_stats;
 use lazy_static::lazy_static;
 use std::{cmp::Ordering, collections::HashMap, sync::Mutex};
 use table::poker::game::{
     table_functions::{rake::Rake, table::TableConfig, types::CurrencyType},
     types::{GameType, PublicTable},
 };
+use table::table_canister::{
+    clear_table, create_table_wrapper, get_table_wrapper, is_game_ongoing_wrapper, join_table,
+    return_all_cycles_to_index,
+};
 use table_index::{PrivateTableIndex, PublicTableIndex};
 use table_index_types::filter::FilterOptions;
-use utils::{get_canister_state, get_table_wrapper, is_table_full};
+use utils::{get_canister_state, is_table_full};
 
-pub mod canister_geek;
 mod memory;
 pub mod table_index;
 pub mod utils;
@@ -33,7 +36,7 @@ pub mod utils;
 const MINIMUM_CYCLE_THRESHOLD: u128 = 2_000_000_000_000;
 
 async fn handle_cycle_check() -> Result<(), TableIndexError> {
-    let id = ic_cdk::api::id();
+    let id = ic_cdk::api::canister_self();
     let cycle_dispenser_canister_id =
         if id == Principal::from_text("zbspl-ziaaa-aaaam-qbe2q-cai").unwrap() {
             *CYCLE_DISPENSER_CANISTER_PROD
@@ -50,29 +53,38 @@ async fn handle_cycle_check() -> Result<(), TableIndexError> {
 
 // Define a global instance of GameState wrapped in a Mutex for safe concurrent access.
 lazy_static! {
-    static ref PUBLIC_TABLE_INDEX_STATE: Mutex<PublicTableIndex> = Mutex::new(PublicTableIndex::new());
-    static ref PRIVATE_TABLE_INDEX_STATE: Mutex<PrivateTableIndex> = Mutex::new(PrivateTableIndex::new());
-
+    static ref PUBLIC_TABLE_INDEX_STATE: Mutex<PublicTableIndex> =
+        Mutex::new(PublicTableIndex::new());
+    static ref PRIVATE_TABLE_INDEX_STATE: Mutex<PrivateTableIndex> =
+        Mutex::new(PrivateTableIndex::new());
     static ref TABLE_PLAYER_COUNTS: Mutex<HashMap<Principal, usize>> = Mutex::new(HashMap::new());
-
-    static ref CYCLE_DISPENSER_CANISTER_PROD: Principal = Principal::from_text("zuv6g-yaaaa-aaaam-qbeza-cai").unwrap();
-    static ref CYCLE_DISPENSER_CANISTER_TEST: Principal = Principal::from_text("ev34d-5yaaa-aaaah-qdska-cai").unwrap();
-    static ref CYCLE_DISPENSER_CANISTER_DEV: Principal = Principal::from_text("tz2ag-zx777-77776-aaabq-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_PROD: Principal =
+        Principal::from_text("zuv6g-yaaaa-aaaam-qbeza-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_TEST: Principal =
+        Principal::from_text("ev34d-5yaaa-aaaah-qdska-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_DEV: Principal =
+        Principal::from_text("tz2ag-zx777-77776-aaabq-cai").unwrap();
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
-        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe").unwrap(),
-        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae").unwrap(),
+        Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe")
+            .unwrap(),
+        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe")
+            .unwrap(),
+        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
+            .unwrap(),
     ];
-    static ref TABLE_CANISTER_WASM: &'static [u8] = include_bytes!("../../../target/wasm32-unknown-unknown/release/table_canister.wasm");
+    static ref TABLE_CANISTER_WASM: &'static [u8] =
+        include_bytes!("../../../target/wasm32-unknown-unknown/release/table_canister.wasm");
     static ref ENABLE_RAKE: bool = true;
     static ref CURRENCY_MANAGER: Mutex<CurrencyManager> = Mutex::new(CurrencyManager::new());
-    static ref RAKE_WALLET_PRINCIPAL_ID: Principal = Principal::from_text(rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL).unwrap();
+    static ref RAKE_WALLET_PRINCIPAL_ID: Principal =
+        Principal::from_text(rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL).unwrap();
     static ref RAKE_WALLET_ACCOUNT_ID: String = rake_constants::RAKE_WALLET_ACCOUNT_ID.to_string();
     static ref TRANSACTION_STATE: Mutex<TransactionState> = Mutex::new(TransactionState::new());
 }
 
 #[ic_cdk::init]
 fn init() {
-    let id = ic_cdk::api::id();
+    let id = ic_cdk::api::canister_self();
     ic_cdk::println!("Table index canister {id} initialized");
 }
 
@@ -97,12 +109,10 @@ async fn create_table(
     let wasm_module = TABLE_CANISTER_WASM.to_vec();
     let table_canister_principal = create_canister_wrapper(controllers, None).await?;
     install_wasm_code(table_canister_principal, wasm_module).await?;
-    let raw_bytes = ic_cdk::api::management_canister::main::raw_rand().await;
-    let raw_bytes = raw_bytes
-        .map_err(|e| {
-            TableIndexError::InterCanisterError(format!("Failed to generate random bytes: {:?}", e))
-        })?
-        .0;
+    let raw_bytes = ic_cdk::management_canister::raw_rand().await;
+    let raw_bytes = raw_bytes.map_err(|e| {
+        TableIndexError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
+    })?;
 
     let config = if *ENABLE_RAKE {
         TableConfig {
@@ -167,16 +177,12 @@ async fn create_table(
             .map_err(|_| TableIndexError::LockError)? = transaction_state;
     }
 
-    let (table,): (Result<PublicTable, TableError>,) = ic_cdk::call(
-        table_canister_principal,
-        "create_table",
-        (config.clone(), raw_bytes),
-    )
-    .await
-    .map_err(|e| {
-        TableIndexError::InterCanisterError(format!("Failed to create table canister: {:?}", e))
-    })?;
-    let table = table?;
+    let table = create_table_wrapper(table_canister_principal, config.clone(), raw_bytes)
+        .await
+        .map_err(|e| {
+            TableIndexError::CanisterCallError(format!("Failed to create table wrapper: {:?}", e))
+        })?;
+
     if config.is_private.unwrap_or(false) {
         PRIVATE_TABLE_INDEX_STATE
             .lock()
@@ -297,63 +303,6 @@ fn get_private_tables() -> Result<Vec<Principal>, TableIndexError> {
 }
 
 #[ic_cdk::update]
-async fn join_random_table(user_principal: Principal) -> Result<PublicTable, TableIndexError> {
-    validate_caller(vec![user_principal]);
-    handle_cycle_check().await?;
-    let table_to_join = {
-        let public_table_index_state = PUBLIC_TABLE_INDEX_STATE
-            .lock()
-            .map_err(|_| TableIndexError::LockError)?
-            .tables
-            .clone();
-
-        let mut table_to_join = None;
-        for (id, table_config) in public_table_index_state.iter() {
-            let is_full = match is_table_full(table_config, id).await {
-                Ok(is_full) => is_full,
-                Err(_) => continue,
-            };
-            if !is_full {
-                table_to_join = Some(*id);
-            }
-        }
-        table_to_join
-    }
-    .ok_or(TableIndexError::TableNotFound)?;
-
-    let (res,): (Result<PublicTable, TableError>,) =
-        ic_cdk::call(table_to_join, "join_table", (user_principal,))
-            .await
-            .map_err(|e| {
-                TableIndexError::InterCanisterError(format!(
-                    "Failed to join table canister: {:?}",
-                    e
-                ))
-            })?;
-    let table = res?;
-    Ok(table)
-}
-
-#[ic_cdk::query]
-fn get_cycles() -> u64 {
-    ic_cdk::api::canister_balance()
-}
-
-#[ic_cdk::update]
-async fn get_table_cycles(table_principal: Principal) -> Result<u64, TableIndexError> {
-    handle_cycle_check().await?;
-    let (res,): (u64,) = ic_cdk::call(table_principal, "get_cycles", ())
-        .await
-        .map_err(|e| {
-            TableIndexError::InterCanisterError(format!(
-                "Failed to get table canister cycles: {:?}",
-                e
-            ))
-        })?;
-    Ok(res)
-}
-
-#[ic_cdk::update]
 async fn remove_table_from_indexes(table_principal: Principal) -> Result<(), TableIndexError> {
     handle_cycle_check().await?;
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
@@ -390,19 +339,9 @@ async fn purge_dud_tables() -> Result<(), TableIndexError> {
             if table.seats == 0 || principal == Principal::anonymous() {
                 principals_to_delete.push(principal);
             } else {
-                let res: Result<
-                    (Result<PublicTable, TableError>,),
-                    (ic_cdk::api::call::RejectionCode, String),
-                > = ic_cdk::call(principal, "get_table", ()).await;
-                match res {
-                    Ok((table,)) => {
-                        if table.is_err() {
-                            principals_to_delete.push(principal);
-                        }
-                    }
-                    Err(_) => {
-                        principals_to_delete.push(principal);
-                    }
+                match get_table_wrapper(principal).await {
+                    Ok(_) => continue,                              // Table exists, no action needed
+                    Err(_) => principals_to_delete.push(principal), // Table does not exist, mark for deletion
                 }
             }
         }
@@ -488,26 +427,13 @@ async fn delete_table(table_principal: Principal) -> Result<(), TableIndexError>
             .tables
             .remove(&table_principal);
     }
-    let (res,): (Result<bool, TableError>,) = ic_cdk::call(table_principal, "is_game_ongoing", ())
-        .await
-        .map_err(|e| {
-            TableIndexError::InterCanisterError(format!("Failed to delete table canister: {:?}", e))
-        })?;
-    if res? {
+    let res = is_game_ongoing_wrapper(table_principal).await?;
+    if res {
         return Err(TableIndexError::InvalidRequest(
             "Cannot delete table with ongoing game".to_string(),
         ));
     } else {
-        let (res,): (Result<(), TableError>,) =
-            ic_cdk::call(table_principal, "return_all_cycles_to_index", ())
-                .await
-                .map_err(|e| {
-                    TableIndexError::InterCanisterError(format!(
-                        "Failed to cleanup table canister: {:?}",
-                        e
-                    ))
-                })?;
-        res?;
+        return_all_cycles_to_index(table_principal).await?;
         stop_and_delete_canister(table_principal).await?;
     }
     Ok(())
@@ -547,43 +473,19 @@ async fn delete_all_tables() -> Result<Vec<Result<(), TableIndexError>>, TableIn
         .into_iter()
         .map(|table_principal| async move {
             // First check if game is ongoing
-            let (is_game_ongoing_result,): (Result<bool, TableError>,) =
-                ic_cdk::call(table_principal, "is_game_ongoing", ())
-                    .await
-                    .map_err(|e| {
-                        TableIndexError::InterCanisterError(format!(
-                            "Failed to check game status: {:?}",
-                            e
-                        ))
-                    })?;
+            let is_game_ongoing = is_game_ongoing_wrapper(table_principal).await?;
 
-            if is_game_ongoing_result? {
+            if is_game_ongoing {
                 return Err(TableIndexError::InvalidRequest(format!(
                     "Cannot delete table {} with ongoing game",
                     table_principal
                 )));
             }
 
-            let (_clear_result,): (Result<(), TableError>,) =
-                ic_cdk::call(table_principal, "clear_table", ())
-                    .await
-                    .map_err(|e| {
-                        TableIndexError::InterCanisterError(format!(
-                            "Failed to clear table {}: {:?}",
-                            table_principal, e
-                        ))
-                    })?;
+            clear_table(table_principal).await?;
 
             // Return cycles to index
-            let (_return_cycles_result,): (Result<(), TableError>,) =
-                ic_cdk::call(table_principal, "return_all_cycles_to_index", ())
-                    .await
-                    .map_err(|e| {
-                        TableIndexError::InterCanisterError(format!(
-                            "Failed to return cycles: {:?}",
-                            e
-                        ))
-                    })?;
+            return_all_cycles_to_index(table_principal).await?;
 
             // Delete the canister
             stop_and_delete_canister(table_principal).await?;
@@ -613,37 +515,19 @@ async fn delete_all_tables() -> Result<Vec<Result<(), TableIndexError>>, TableIn
     Ok(results)
 }
 
-#[ic_cdk::update]
-async fn transfer_cycles_from_table_to_index(
-    table_principal: Principal,
-    amount: u128,
-) -> Result<(), TableIndexError> {
-    let (res,): (Result<(), TableError>,) =
-        ic_cdk::call(table_principal, "return_cycles_to_index", (amount,))
-            .await
-            .map_err(|e| {
-                TableIndexError::InterCanisterError(format!(
-                    "Failed to transfer cycles from table to index: {:?}",
-                    e
-                ))
-            })?;
-    res?;
-    Ok(())
-}
-
-const CYCLES_TOP_UP_AMOUNT: u64 = 750_000_000_000;
+const CYCLES_TOP_UP_AMOUNT: u128 = 750_000_000_000;
 
 #[ic_cdk::update]
 async fn request_cycles() -> Result<(), TableIndexError> {
-    let cycles = ic_cdk::api::canister_balance();
-    let caller = ic_cdk::api::caller();
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    let caller = ic_cdk::api::msg_caller();
     if cycles < CYCLES_TOP_UP_AMOUNT {
         return Err(TableIndexError::ManagementCanisterError(
             CanisterManagementError::InsufficientCycles,
         ));
     }
 
-    transfer_cycles(CYCLES_TOP_UP_AMOUNT as u128, caller).await
+    transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
 async fn transfer_cycles(cycles_amount: u128, caller: Principal) -> Result<(), TableIndexError> {
@@ -703,22 +587,7 @@ async fn get_all_rake_stats() -> Result<GlobalRakeStats, TableIndexError> {
         let stats_futures: Vec<_> = tables_chunk
             .iter()
             .map(|&table_id| async move {
-                let (stats_result,): (Result<RakeStats, TableError>,) =
-                    ic_cdk::call(table_id, "get_rake_stats", ())
-                        .await
-                        .map_err(|e| {
-                            TableIndexError::InterCanisterError(format!(
-                                "Failed to get rake stats from table {}: {:?}",
-                                table_id, e
-                            ))
-                        })?;
-
-                let stats = stats_result.map_err(|e| {
-                    TableIndexError::InterCanisterError(format!(
-                        "Table {} returned error: {:?}",
-                        table_id, e
-                    ))
-                })?;
+                let stats = get_rake_stats(table_id).await?;
 
                 Ok::<(Principal, RakeStats), TableIndexError>((table_id, stats))
             })
@@ -857,7 +726,7 @@ async fn quick_join_table(
 async fn upgrade_all_table_canisters(
 ) -> Result<Vec<(Principal, CanisterManagementError)>, TableIndexError> {
     // Validate caller permissions
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
         return Err(TableIndexError::InvalidRequest(
             "Unauthorized: caller is not a controller".to_string(),
@@ -935,6 +804,23 @@ async fn upgrade_all_table_canisters(
 }
 
 #[ic_cdk::update]
+async fn upgrade_table_canister(table_principal: Principal) -> Result<(), TableIndexError> {
+    // Validate caller permissions
+    let caller = ic_cdk::api::msg_caller();
+    if !CONTROLLER_PRINCIPALS.contains(&caller) {
+        return Err(TableIndexError::InvalidRequest(
+            "Unauthorized: caller is not a controller".to_string(),
+        ));
+    }
+
+    handle_cycle_check().await?;
+
+    let wasm_module = TABLE_CANISTER_WASM.to_vec();
+    canister_functions::upgrade_wasm_code(table_principal, wasm_module).await?;
+    Ok(())
+}
+
+#[ic_cdk::update]
 async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
     let currency_manager = {
         let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| TableError::LockError)?;
@@ -945,6 +831,60 @@ async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
         .withdraw_rake(&Currency::ICP, *RAKE_WALLET_PRINCIPAL_ID, rake_amount)
         .await?;
 
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn get_canister_status_formatted() -> Result<(), TableIndexError> {
+    // Validate caller is a controller
+    let controllers = (*CONTROLLER_PRINCIPALS).clone();
+    validate_caller(controllers);
+
+    handle_cycle_check().await?;
+
+    // Call the management canister to get status
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
+
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        TableIndexError::CanisterCallError(format!("Failed to get canister status: {:?}", e))
+    })?;
+
+    // Format the status into a readable string
+    let formatted_status = format!(
+        "📊 Canister Status Report
+════════════════════════════════════════════════════════════════
+🆔 Canister ID: {}
+🔄 Status: {:?}
+💾 Memory Size: {} bytes ({:.2} MB)
+⚡ Cycles: {} ({} B cycles)
+🎛️  Controllers: {}
+📈 Compute Allocation: {}
+🧠 Memory Allocation: {} bytes
+🧊 Freezing Threshold: {}
+📊 Reserved Cycles Limit: {}
+════════════════════════════════════════════════════════════════",
+        ic_cdk::api::canister_self().to_text(),
+        status_response.status,
+        status_response.memory_size,
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
+        status_response.cycles,
+        status_response.cycles.clone() / Nat::from(1_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(", "),
+        status_response.settings.compute_allocation,
+        status_response.settings.memory_allocation,
+        status_response.settings.freezing_threshold,
+        status_response.settings.reserved_cycles_limit
+    );
+
+    ic_cdk::println!("{}", formatted_status);
     Ok(())
 }
 

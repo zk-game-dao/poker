@@ -11,7 +11,9 @@ import {
   CurrencyToString, TokenAmountToString, useCurrencyManagerMeta, useIsBTC
 } from '@zk-game-dao/currency';
 import {
-  ErrorComponent, LayoutComponent, List, LoadingAnimationComponent, PaginationComponent
+  ErrorComponent, Interactable, LayoutComponent, List, LoadingAnimationComponent, PaginationComponent,
+  TabsComponent,
+  useRouting
 } from '@zk-game-dao/ui';
 
 import { useWording } from '../../hooks/wording';
@@ -19,24 +21,53 @@ import { callActorMutation } from '../../lib/utils/call-actor-mutation';
 import { useJackpot } from './data';
 import { LeaderboardEntry } from './leaderboard-entry.component';
 import { HowItWorksModal } from './leaderboard-how-it-works-modal.component';
+import { useNavigate, useNavigation, useParams, useSearchParams } from 'react-router-dom';
+import { useUser } from '@/src/lib/user';
 
-export const LeaderboardPage = memo(() => {
-  const [page, setPage] = useState(0n);
+const ENDPOINTS = {
+  verified: {
+    get_length: 'get_verified_experience_points_leaderboard_length' as const,
+    zkp: 'get_verified_experience_points_leaderboard' as const,
+    pp: 'get_verified_pure_poker_experience_points' as const,
+  },
+  all: {
+    get_length: 'get_leaderboard_length' as const,
+    zkp: 'get_experience_points_leaderboard' as const,
+    pp: 'get_pure_poker_experience_points' as const,
+  },
+};
+
+type LeaderboardType = keyof typeof ENDPOINTS;
+
+export const LeaderboardPage = memo<{ disableVerifiedLeaderboard?: boolean }>(({ disableVerifiedLeaderboard = false }) => {
+  // const [page, setPage] = useState(0n);
   const pageSize = useMemo(() => 50n, []);
+  const { show, user } = useUser();
   const isBTC = useIsBTC();
 
+  const [params, setParams] = useSearchParams();
+
+  const page = useMemo(() => {
+    const pageParam = params.get('page');
+    return pageParam ? BigInt(pageParam) : 0n;
+  }, [params]);
+  const setPage = (newPage: bigint) => setParams({ page: newPage.toString() });
+
+  const { type: _type = 'verified' } = useParams<{ type?: LeaderboardType }>()
+  const type = useMemo(() => disableVerifiedLeaderboard ? 'all' : _type, [_type, disableVerifiedLeaderboard]);
+
   const leaderboardSize = useQuery({
-    queryKey: Queries.leaderboardSize.key(),
-    queryFn: () => callActorMutation(users_index, 'get_leaderboard_length'),
+    queryKey: Queries.leaderboardSize.key(type),
+    queryFn: () => callActorMutation(users_index, ENDPOINTS[type].get_length),
     retry: false,
     initialData: 0n,
   });
 
   const leaderboardPrincipals = useQuery({
-    queryKey: Queries.leaderboard.key(page, pageSize),
+    queryKey: Queries.leaderboard.key(type, page, pageSize),
     queryFn: () =>
       callActorMutation(users_index,
-        isBTC ? 'get_pure_poker_experience_points' : 'get_experience_points_leaderboard',
+        ENDPOINTS[type][isBTC ? 'pp' : 'zkp'],
         page,
         pageSize
       ),
@@ -51,7 +82,6 @@ export const LeaderboardPage = memo(() => {
   const { currency, jackpots } = useJackpot();
   const jackpot = useMemo(() => Object.values(jackpots).flatMap(v => v).reduce((a, b) => a + b, 0n), [Object.values(jackpots)]);
   const meta = useCurrencyManagerMeta({ Real: currency });
-  console.log('jackpot', jackpot, jackpots);
 
   return (
     <LayoutComponent
@@ -61,7 +91,27 @@ export const LeaderboardPage = memo(() => {
         subTitle: (
           <>
             Track your progress and see how you stack up against other players in {wording.product}'s XP Rewards System.
+            <br />
+            {!disableVerifiedLeaderboard && user && (
+              <>
+                <Interactable
+                  className='inline underline hover:no-underline text-material-heavy-2 '
+                  onClick={show}
+                >
+                  Verify your account
+                </Interactable>
+                {' and compete '}
+              </>
+            )}
             Compete for a spot in the Top 5 to claim your share of the {TokenAmountToString(jackpot, meta)} {CurrencyToString(currency)} weekly prize pool!
+            {!disableVerifiedLeaderboard && (
+              <div className='type-body mt-4'>
+                You are currently {type === 'all' ? 'seeing all users' : 'only seeing verified users'}.
+                <Interactable className='underline hover:no-underline ml-1' href={`/leaderboard/${type === 'all' ? 'verified' : 'all'}`}>
+                  {type === 'all' ? 'Show verified users' : 'Show all users'}
+                </Interactable>
+              </div>
+            )}
           </>
         ),
         ctas: [

@@ -1,14 +1,14 @@
-use candid::Principal;
+use authentication::validate_caller;
+use candid::{Nat, Principal};
 use canister_functions::cycle::top_up_canister;
 use errors::canister_management_error::CanisterManagementError;
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
 use lazy_static::lazy_static;
-
-pub mod canister_geek;
 
 pub type PlayerId = u64;
 pub type TableId = u64;
 
-const CYCLES_TOP_UP_AMOUNT: u64 = 20_000_000_000_000;
+const CYCLES_TOP_UP_AMOUNT: u128 = 20_000_000_000_000;
 
 // Define a global instance of GameState wrapped in a Mutex for safe concurrent access.
 lazy_static! {
@@ -41,21 +41,29 @@ lazy_static! {
         Principal::from_text("t63gs-up777-77776-aaaba-cai").unwrap();
     static ref USERS_INDEX_DEV: Principal =
         Principal::from_text("txyno-ch777-77776-aaaaq-cai").unwrap();
+    static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
+        Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe")
+            .unwrap(),
+        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
+            .unwrap(),
+        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe")
+            .unwrap(),
+    ];
 }
 
 #[ic_cdk::init]
 fn init() {
-    let principal = ic_cdk::api::id();
-    ic_cdk::print(format!(
+    let principal = ic_cdk::api::canister_self();
+    ic_cdk::println!(
         "Cycle dispenser canister {} initialized",
         principal.to_text()
-    ));
+    );
 }
 
 #[ic_cdk::update]
 async fn request_cycles() -> Result<(), CanisterManagementError> {
-    let cycles = ic_cdk::api::canister_balance();
-    let caller = ic_cdk::api::caller();
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    let caller = ic_cdk::api::msg_caller();
 
     if cycles < CYCLES_TOP_UP_AMOUNT {
         ic_cdk::println!(
@@ -65,7 +73,7 @@ async fn request_cycles() -> Result<(), CanisterManagementError> {
         return Err(CanisterManagementError::InsufficientCycles);
     }
 
-    transfer_cycles(CYCLES_TOP_UP_AMOUNT as u128, caller).await
+    transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
 async fn transfer_cycles(
@@ -84,9 +92,59 @@ async fn transfer_cycles(
     top_up_canister(destination, cycles_amount).await
 }
 
-#[ic_cdk::query]
-fn get_cycles() -> u64 {
-    ic_cdk::api::canister_balance()
+#[ic_cdk::update]
+async fn get_canister_status_formatted() -> Result<(), CanisterManagementError> {
+    // Validate caller is a controller
+    let controllers = (*CONTROLLER_PRINCIPALS).clone();
+    validate_caller(controllers);
+
+    // Call the management canister to get status
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
+
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        CanisterManagementError::CanisterCallError(format!(
+            "Failed to get canister status: {:?}",
+            e
+        ))
+    })?;
+
+    // Format the status into a readable string
+    let formatted_status = format!(
+        "📊 Canister Status Report
+════════════════════════════════════════════════════════════════
+🆔 Canister ID: {}
+🔄 Status: {:?}
+💾 Memory Size: {} bytes ({:.2} MB)
+⚡ Cycles: {} ({:.2} T cycles)
+🎛️  Controllers: {}
+📈 Compute Allocation: {}
+🧠 Memory Allocation: {} bytes
+🧊 Freezing Threshold: {}
+📊 Reserved Cycles Limit: {}
+════════════════════════════════════════════════════════════════",
+        ic_cdk::api::canister_self().to_text(),
+        status_response.status,
+        status_response.memory_size,
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
+        status_response.cycles,
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(", "),
+        status_response.settings.compute_allocation,
+        status_response.settings.memory_allocation,
+        status_response.settings.freezing_threshold,
+        status_response.settings.reserved_cycles_limit
+    );
+
+    ic_cdk::println!("{}", formatted_status);
+    Ok(())
 }
 
 ic_cdk::export_candid!();

@@ -405,7 +405,7 @@ fn start_tournament() {
         .as_nanos() as u64;
 
     let now = std::time::SystemTime::now();
-    test_env.pocket_ic.set_time(now);
+    test_env.pocket_ic.set_time(now.into());
 
     // Create tournament config with start time 1 second in the future
     let tournament_config = NewTournament {

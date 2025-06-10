@@ -47,4 +47,7 @@ pub enum TournamentIndexError {
 
     #[error("Failed to add to user pool: {0}")]
     FailedToAddToUserPool(String),
+
+    #[error("Failed to make canister call: {0}")]
+    CanisterCallError(String),
 }

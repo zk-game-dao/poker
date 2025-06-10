@@ -1,11 +1,10 @@
-use candid::{Decode, Encode, Principal};
+use candid::{Decode, Encode};
 
 use currency::state::TransactionState;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::Cell;
-use ic_stable_structures::{storable::Bound, DefaultMemoryImpl, StableBTreeMap, Storable};
+use ic_stable_structures::{storable::Bound, DefaultMemoryImpl, Storable};
 use std::{borrow::Cow, cell::RefCell};
-use table::poker::game::table_functions::table::TableConfig;
 
 use crate::table_index::{PrivateTableIndex, PublicTableIndex};
 use crate::{PRIVATE_TABLE_INDEX_STATE, PUBLIC_TABLE_INDEX_STATE, TRANSACTION_STATE};
@@ -72,16 +71,18 @@ thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
-    static PUBLIC_TABLE_INDEX_STATE_MAP: RefCell<StableBTreeMap<Principal, TableConfig, Memory>> = RefCell::new(
-        StableBTreeMap::init(
+    static PUBLIC_TABLE_INDEX_STATE_MAP: RefCell<Cell<PublicTableIndex, Memory>> = RefCell::new(
+        Cell::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))),
-        )
+            PublicTableIndex::new()
+        ).unwrap()
     );
 
-    static PRIVATE_TABLE_INDEX_STATE_MAP: RefCell<StableBTreeMap<Principal, TableConfig, Memory>> = RefCell::new(
-        StableBTreeMap::init(
+    static PRIVATE_TABLE_INDEX_STATE_MAP: RefCell<Cell<PrivateTableIndex, Memory>> = RefCell::new(
+        Cell::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))),
-        )
+            PrivateTableIndex::new()
+        ).unwrap()
     );
 
     static TRANSACTION_STATE_CELL: RefCell<Cell<TransactionState, Memory>> = RefCell::new(
@@ -97,10 +98,8 @@ fn pre_upgrade() {
     let res = std::panic::catch_unwind(|| {
         if let Ok(index_state) = PUBLIC_TABLE_INDEX_STATE.lock() {
             PUBLIC_TABLE_INDEX_STATE_MAP.with(|p| {
-                let mut map = p.borrow_mut();
-                for (key, value) in index_state.tables.iter() {
-                    map.insert(*key, value.clone());
-                }
+                let mut cell = p.borrow_mut();
+                let _ = cell.set(index_state.clone());
             });
         } else {
             ic_cdk::println!("Failed to acquire PUBLIC_TABLE_INDEX_STATE lock");
@@ -108,10 +107,8 @@ fn pre_upgrade() {
 
         if let Ok(index_state) = PRIVATE_TABLE_INDEX_STATE.lock() {
             PRIVATE_TABLE_INDEX_STATE_MAP.with(|p| {
-                let mut map = p.borrow_mut();
-                for (key, value) in index_state.tables.iter() {
-                    map.insert(*key, value.clone());
-                }
+                let mut cell = p.borrow_mut();
+                let _ = cell.set(index_state.clone());
             });
         } else {
             ic_cdk::println!("Failed to acquire PRIVATE_TABLE_INDEX_STATE lock");
@@ -137,10 +134,8 @@ fn post_upgrade() {
     let res = std::panic::catch_unwind(|| {
         if let Ok(mut index_state) = PUBLIC_TABLE_INDEX_STATE.lock() {
             PUBLIC_TABLE_INDEX_STATE_MAP.with(|p| {
-                let map = p.borrow();
-                for (key, value) in map.iter() {
-                    index_state.tables.insert(key, value);
-                }
+                let cell = p.borrow();
+                index_state.clone_from(&cell.get().clone());
             });
         } else {
             ic_cdk::println!("Failed to acquire PUBLIC_TABLE_INDEX_STATE lock");
@@ -148,10 +143,8 @@ fn post_upgrade() {
 
         if let Ok(mut index_state) = PRIVATE_TABLE_INDEX_STATE.lock() {
             PRIVATE_TABLE_INDEX_STATE_MAP.with(|p| {
-                let map = p.borrow();
-                for (key, value) in map.iter() {
-                    index_state.tables.insert(key, value);
-                }
+                let cell = p.borrow();
+                index_state.clone_from(&cell.get().clone());
             });
         } else {
             ic_cdk::println!("Failed to acquire PRIVATE_TABLE_INDEX_STATE lock");

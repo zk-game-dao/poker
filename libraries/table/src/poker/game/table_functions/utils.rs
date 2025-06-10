@@ -2,11 +2,14 @@ use std::time::Duration;
 
 use candid::Principal;
 use errors::game_error::GameError;
-use errors::table_error::TableError;
 use errors::trace_err;
 use errors::traced_error::TracedError;
 
-use crate::poker::game::types::{GameType, PublicTable, QueueItem};
+use crate::poker::game::types::{GameType, QueueItem};
+use crate::table_canister::{
+    deposit_to_table, get_table_wrapper, join_table, resume_table_wrapper,
+    start_new_betting_round_wrapper,
+};
 
 use super::action_log::ActionType;
 use super::types::{CurrencyType, PlayerAction, SeatStatus, UserTableData};
@@ -710,9 +713,8 @@ impl Table {
                         .map_err(|e| trace_err!(e, ""))?;
                     if is_game_paused {
                         let table_principal = self.id;
-                        ic_cdk::spawn(async move {
-                            match ic_cdk::call(table_principal, "start_new_betting_round", ()).await
-                            {
+                        ic_cdk::futures::spawn(async move {
+                            match start_new_betting_round_wrapper(table_principal).await {
                                 Ok(res) => res,
                                 Err(_err) => {}
                             }
@@ -725,15 +727,19 @@ impl Table {
                         continue;
                     }
                     let table_principal = self.id;
-                    ic_cdk::spawn(async move {
-                        match ic_cdk::call(
+                    ic_cdk::futures::spawn(async move {
+                        match deposit_to_table(
                             table_principal,
-                            "deposit_to_table",
-                            (users_canister_id, user_id, amount, true),
+                            users_canister_id,
+                            user_id,
+                            amount,
+                            true,
                         )
                         .await
                         {
-                            Ok(res) => res,
+                            Ok(res) => {
+                                ic_cdk::println!("Deposit successful: {:?}", res);
+                            }
                             Err(err) => {
                                 ic_cdk::println!("Error depositing to table: {:?}", err);
                             }
@@ -781,8 +787,8 @@ impl Table {
                         .balance;
                     self.user_table_data.remove(&user_id);
                     self.users.remove_user(user_id);
-                    ic_cdk::spawn(async move {
-                        let table = get_table(to_table).await;
+                    ic_cdk::futures::spawn(async move {
+                        let table = get_table_wrapper(to_table).await;
                         match table {
                             Ok(_) => {
                                 // TODO: Very inefficient loop. We need a way to better ensure user gets placed at the table.
@@ -837,12 +843,12 @@ impl Table {
                         duration.as_secs()
                     );
                     let _ = ic_cdk_timers::set_timer(duration, move || {
-                        ic_cdk::spawn(async move {
+                        ic_cdk::futures::spawn(async move {
                             ic_cdk::println!(
                                 "Resuming table after addon period of {} seconds",
                                 duration.as_secs()
                             );
-                            match resume_table(table_id).await {
+                            match resume_table_wrapper(table_id).await {
                                 Ok(_) => {
                                     ic_cdk::println!("Table resumed");
                                 }
@@ -851,7 +857,7 @@ impl Table {
                                         "Error resuming table: {:?}\nRetrying...",
                                         err
                                     );
-                                    match resume_table(table_id).await {
+                                    match resume_table_wrapper(table_id).await {
                                         Ok(_) => {
                                             ic_cdk::println!("Table resumed");
                                         }
@@ -927,89 +933,5 @@ impl Table {
             .iter()
             .position(|seat| matches!(seat, SeatStatus::Empty));
         index.map(|i| i as u8)
-    }
-}
-
-// TODO: These need to be united with the ones in inter_canister_call_wrappers.rs
-pub async fn get_table(table_principal: Principal) -> Result<PublicTable, TableError> {
-    let call_result: Result<(Result<PublicTable, TableError>,), _> =
-        ic_cdk::call(table_principal, "get_table", ()).await;
-
-    match call_result {
-        Ok((table_result,)) => match table_result {
-            Ok(table) => Ok(table),
-            Err(err) => {
-                ic_cdk::println!("Error getting table: {:?}", err);
-                Err(err)
-            }
-        },
-        Err(err) => {
-            ic_cdk::println!("Error in get_table call: {:?}", err);
-            Err(TableError::CanisterCallError(format!(
-                "{:?}: {}",
-                err.0, err.1
-            )))
-        }
-    }
-}
-
-pub async fn join_table(
-    table_id: Principal,
-    users_canister_principal: Principal,
-    user_id: Principal,
-    seat_index: Option<u64>, // javascript can't send u8
-    deposit_amount: u64,
-    player_sitting_out: bool,
-) -> Result<PublicTable, TableError> {
-    let call_result: Result<(Result<PublicTable, TableError>,), _> = ic_cdk::call(
-        table_id,
-        "join_table",
-        (
-            users_canister_principal,
-            user_id,
-            seat_index,
-            deposit_amount,
-            player_sitting_out,
-        ),
-    )
-    .await;
-
-    match call_result {
-        Ok((join_result,)) => match join_result {
-            Ok(table) => Ok(table),
-            Err(err) => {
-                ic_cdk::println!("Error joining table: {:?}", err);
-                Err(err)
-            }
-        },
-        Err(err) => {
-            ic_cdk::println!("Error in join_table call: {:?}", err);
-            Err(TableError::CanisterCallError(format!(
-                "{:?}: {}",
-                err.0, err.1
-            )))
-        }
-    }
-}
-
-async fn resume_table(table_id: Principal) -> Result<(), TableError> {
-    let call_result: Result<(Result<(), TableError>,), _> =
-        ic_cdk::call(table_id, "resume_table", ()).await;
-
-    match call_result {
-        Ok((res,)) => match res {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                ic_cdk::println!("Error resuming table: {:?}", err);
-                Err(err)
-            }
-        },
-        Err(err) => {
-            ic_cdk::println!("Error in resume table call: {:?}", err);
-            Err(TableError::CanisterCallError(format!(
-                "{:?}: {}",
-                err.0, err.1
-            )))
-        }
     }
 }

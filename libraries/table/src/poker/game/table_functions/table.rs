@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
+#[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+use crate::table_canister::{
+    add_experience_points_wrapper, handle_user_losing_wrapper, withdraw_rake_wrapper,
+};
 use candid::{CandidType, Principal};
 use errors::game_error::GameError;
-#[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
-use errors::tournament_error::TournamentError;
 use errors::trace_err;
 use errors::traced_error::TracedError;
 use ic_cdk_timers::TimerId;
@@ -614,37 +616,40 @@ impl Table {
 
         for user_principal in self.seats.clone().into_iter() {
             if let SeatStatus::Occupied(user_principal) = user_principal {
-                #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
-                {
-                    let experience_points =
-                        if let Ok(table_data) = self.get_user_table_data(user_principal) {
-                            table_data.experience_points.clone()
-                        } else {
-                            continue;
-                        };
-                    
-                    let users_canister_id = match self.users.get(&user_principal) {
-                        Some(user) => user.users_canister_id.clone(),
-                        None => continue,
-                    };
+                if matches!(self.config.table_type, Some(TableType::Cash)) {
+                    #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+                    {
+                        let experience_points =
+                            if let Ok(table_data) = self.get_user_table_data(user_principal) {
+                                table_data.experience_points
+                            } else {
+                                continue;
+                            };
 
-                    match self.config.currency_type {
-                        CurrencyType::Fake => {}
-                        CurrencyType::Real(currency) => {
-                            ic_cdk::spawn(async move {
-                                match ic_cdk::call(
-                                    users_canister_id,
-                                    "add_experience_points",
-                                    (experience_points, currency, user_principal),
-                                )
-                                .await
-                                {
-                                    Ok(res) => res,
-                                    Err(_err) => {}
-                                }
-                            });
-                        }
-                    };
+                        let users_canister_id = match self.users.get(&user_principal) {
+                            Some(user) => user.users_canister_id,
+                            None => continue,
+                        };
+
+                        match self.config.currency_type {
+                            CurrencyType::Fake => {}
+                            CurrencyType::Real(currency) => {
+                                ic_cdk::futures::spawn(async move {
+                                    match add_experience_points_wrapper(
+                                        users_canister_id,
+                                        user_principal,
+                                        experience_points,
+                                        currency.to_string(),
+                                    )
+                                    .await
+                                    {
+                                        Ok(_res) => {}
+                                        Err(_err) => {}
+                                    }
+                                });
+                            }
+                        };
+                    }
                 }
                 self.clear_user_table_data(user_principal)
                     .map_err(|e| trace_err!(e, "Failed to clear user table data"))?;
@@ -698,11 +703,8 @@ impl Table {
             };
             if rake_total > fee {
                 let id = self.id;
-                ic_cdk::spawn(async move {
-                    match ic_cdk::call(id, "withdraw_rake", (rake_total,)).await {
-                        Ok(res) => res,
-                        Err(_err) => {}
-                    }
+                ic_cdk::futures::spawn(async move {
+                    let _ = withdraw_rake_wrapper(id, rake_total).await;
                 });
             }
         }
@@ -892,61 +894,18 @@ impl Table {
             if let Some(TableType::Tournament { tournament_id, .. }) =
                 self.config.table_type.clone()
             {
-                ic_cdk::spawn(async move {
+                ic_cdk::futures::spawn(async move {
                     ic_cdk::println!("Removing from tournament: {:?}", tournament_id.to_text());
-                    let res: Result<(Result<(), TournamentError>,), _> =
-                        ic_cdk::call(tournament_id, "handle_user_losing", (user_principal, id))
-                            .await;
-                    match res {
-                        Ok((Err(err),)) => {
-                            ic_cdk::println!(
-                                "Failed to handle user losing: {:?}\nRetrying...",
-                                err
-                            );
-                            let res: Result<(Result<(), TournamentError>,), _> = ic_cdk::call(
-                                tournament_id,
-                                "handle_user_losing",
-                                (user_principal, id),
-                            )
-                            .await;
-                            match res {
-                                Ok((Err(err),)) => {
-                                    ic_cdk::println!("Failed to handle user losing: {:?}", err);
-                                }
-                                Err(err) => {
-                                    ic_cdk::println!(
-                                        "Failed to handle user losing (Inter canister call): {:?}",
-                                        err
-                                    );
-                                }
-                                _ => {}
+                    for _ in 0..3 {
+                        match handle_user_losing_wrapper(tournament_id, user_principal, id).await {
+                            Ok(_) => return,
+                            Err(err) => {
+                                ic_cdk::println!(
+                                    "Failed to handle user losing (Inter canister call): {:?}\nRetrying...",
+                                    err
+                                );
                             }
                         }
-                        Err(err) => {
-                            ic_cdk::println!(
-                                "Failed to handle user losing (Inter canister call): {:?}\nRetrying...",
-                                err
-                            );
-                            let res: Result<(Result<(), TournamentError>,), _> = ic_cdk::call(
-                                tournament_id,
-                                "handle_user_losing",
-                                (user_principal, id),
-                            )
-                            .await;
-                            match res {
-                                Ok((Err(err),)) => {
-                                    ic_cdk::println!("Failed to handle user losing: {:?}", err);
-                                }
-                                Err(err) => {
-                                    ic_cdk::println!(
-                                        "Failed to handle user losing (Inter canister call): {:?}",
-                                        err
-                                    );
-                                }
-                                _ => {}
-                            }
-                        }
-                        _ => {}
                     }
                 });
             }

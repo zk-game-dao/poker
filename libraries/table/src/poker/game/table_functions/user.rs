@@ -7,11 +7,11 @@ use errors::traced_error::TracedError;
 use user::user::User;
 
 use crate::poker::game::types::QueueItem;
+use crate::table_canister::{get_table_wrapper, join_table};
 
 use super::action_log::ActionType;
 use super::table::Table;
 use super::types::{CardRequestData, PlayerAction, SeatStatus, UserTableData};
-use super::utils::{get_table, join_table};
 
 impl Table {
     /// Returns the [UserTableData] by `user_principal`.
@@ -342,8 +342,8 @@ impl Table {
                 .balance;
             self.user_table_data.remove(&user_id);
             self.users.remove_user(user_id);
-            ic_cdk::spawn(async move {
-                let table = get_table(table_to_move_to).await;
+            ic_cdk::futures::spawn(async move {
+                let table = get_table_wrapper(table_to_move_to).await;
                 match table {
                     Ok(_) => {
                         // TODO: Very inefficient loop. We need a way to better ensure user gets placed at the table.

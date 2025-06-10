@@ -29,7 +29,7 @@ impl TestEnv {
             .as_nanos() as u64;
 
         let now = std::time::SystemTime::now();
-        self.pocket_ic.set_time(now);
+        self.pocket_ic.set_time(now.into());
 
         let tournament_config = NewTournament {
             name: "Test Tournament".to_string(),

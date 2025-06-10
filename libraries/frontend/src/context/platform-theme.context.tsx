@@ -1,9 +1,9 @@
 import { createContext, Fragment, ReactElement } from 'react';
 
 import { CurrencyType } from '@zk-game-dao/currency';
+import { UIConfig } from '@zk-game-dao/ui';
 
 export type ThemeContextType = {
-  hideTournaments: boolean;
   isBTC: boolean;
   shownCurrencyType: CurrencyType;
 
@@ -13,10 +13,9 @@ export type ThemeContextType = {
   changelogMarkdown: string;
 
   setShownCurrencyType(type: CurrencyType): void;
-};
+} & Pick<UIConfig, 'banner'>;
 
 export const ThemeContext = createContext<ThemeContextType>({
-  hideTournaments: false,
   isBTC: false,
   shownCurrencyType: { Fake: null },
   setShownCurrencyType: () => { },

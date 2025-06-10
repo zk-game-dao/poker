@@ -173,15 +173,10 @@ impl SpinGoMultiplierDistribution {
     pub async fn select_random_multiplier(
         &self,
     ) -> Result<MultiplierWithProbability, TournamentError> {
-        let raw_bytes = ic_cdk::api::management_canister::main::raw_rand().await;
-        let raw_bytes = raw_bytes
-            .map_err(|e| {
-                TournamentError::CanisterCallError(format!(
-                    "Failed to generate random bytes: {:?}",
-                    e
-                ))
-            })?
-            .0;
+        let raw_bytes = ic_cdk::management_canister::raw_rand().await;
+        let raw_bytes = raw_bytes.map_err(|e| {
+            TournamentError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
+        })?;
 
         // Convert to a u64 number between 0 and 999,999
         let random_value = u64::from_be_bytes([

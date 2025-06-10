@@ -1,7 +1,6 @@
 use candid::{decode_one, encode_args, Principal};
 use currency::Currency;
 use errors::{table_error::TableError, table_index_error::TableIndexError};
-use pocket_ic::WasmResult;
 use table::{
     poker::game::{
         table_functions::{table::TableConfig, types::BetType},
@@ -24,8 +23,8 @@ impl TestEnv {
             encode_args((table_config.clone(), false)).unwrap(),
         );
 
-        match result.expect("Failed to create table") {
-            WasmResult::Reply(arg) => {
+        match result {
+            Ok(arg) => {
                 let table_id: Result<PublicTable, TableIndexError> = decode_one(&arg).unwrap();
                 table_id
             }
@@ -41,8 +40,8 @@ impl TestEnv {
             encode_args(()).unwrap(),
         );
 
-        match table_state.expect("Failed to get table") {
-            WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<PublicTable, TableError> = decode_one(&arg).unwrap();
                 table
             }
@@ -63,8 +62,8 @@ impl TestEnv {
             encode_args((filter_options, page_number, page_size)).unwrap(),
         );
 
-        match table_state.expect("Failed to get tables") {
-            WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let tables: Result<Vec<(Principal, TableConfig)>, TableIndexError> =
                     decode_one(&arg).unwrap();
                 tables
@@ -82,23 +81,22 @@ impl TestEnv {
         seat_index: u64,
         player_sitting_out: bool,
     ) -> Result<PublicTable, TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "join_table",
-                encode_args((
-                    user,               // user_principal
-                    user_id,            // wallet_principal_id
-                    Some(seat_index),   // seat_index as Option<u64>
-                    deposit_amount,     // deposit_amount
-                    player_sitting_out, // player_sitting_out
-                ))
-                .unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "join_table",
+            encode_args((
+                user,               // user_principal
+                user_id,            // wallet_principal_id
+                Some(seat_index),   // seat_index as Option<u64>
+                deposit_amount,     // deposit_amount
+                player_sitting_out, // player_sitting_out
+            ))
+            .unwrap(),
+        );
 
-        match table_state.expect("Failed to join table") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<PublicTable, TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -107,15 +105,12 @@ impl TestEnv {
     }
 
     pub fn pause_table(&self, table_id: Principal) -> Result<(), TableError> {
-        let res: Result<pocket_ic::WasmResult, pocket_ic::UserError> = self.pocket_ic.update_call(
-            table_id,
-            table_id,
-            "pause_table",
-            encode_args(()).unwrap(),
-        );
+        let res =
+            self.pocket_ic
+                .update_call(table_id, table_id, "pause_table", encode_args(()).unwrap());
 
-        match res.expect("Failed to pause table") {
-            WasmResult::Reply(arg) => {
+        match res {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -124,15 +119,15 @@ impl TestEnv {
     }
 
     pub fn unpause_table(&self, table_id: Principal) -> Result<(), TableError> {
-        let res: Result<pocket_ic::WasmResult, pocket_ic::UserError> = self.pocket_ic.update_call(
+        let res = self.pocket_ic.update_call(
             table_id,
             table_id,
             "resume_table",
             encode_args(()).unwrap(),
         );
 
-        match res.expect("Failed to unpause table") {
-            WasmResult::Reply(arg) => {
+        match res {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -146,16 +141,15 @@ impl TestEnv {
         user: Principal,
         wallet_principal_id: Principal,
     ) -> Result<PublicTable, TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                wallet_principal_id,
-                "leave_table",
-                encode_args((user, wallet_principal_id)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            wallet_principal_id,
+            "leave_table",
+            encode_args((user, wallet_principal_id)).unwrap(),
+        );
 
-        match table_state.expect("Failed to leave table") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<PublicTable, TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -164,16 +158,15 @@ impl TestEnv {
     }
 
     pub fn start_betting_round_test_table(&self, table_id: Principal) -> Result<(), TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                table_id,
-                "start_new_betting_round",
-                candid::encode_args(()).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            table_id,
+            "start_new_betting_round",
+            candid::encode_args(()).unwrap(),
+        );
 
-        match table_state.expect("Failed to start betting round") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -182,16 +175,15 @@ impl TestEnv {
     }
 
     pub fn player_sitting_out_test_table(&self, table_id: Principal, user_id: Principal) {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                user_id,
-                "player_sitting_out",
-                candid::encode_args((user_id,)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user_id,
+            "player_sitting_out",
+            candid::encode_args((user_id,)).unwrap(),
+        );
 
-        match table_state.expect("Failed to sit out") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table.unwrap();
             }
@@ -205,16 +197,15 @@ impl TestEnv {
         user: Principal,
         users_canister_id: Principal,
     ) -> Result<(), TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "player_sitting_in",
-                candid::encode_args((users_canister_id, user, true)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "player_sitting_in",
+            candid::encode_args((users_canister_id, user, true)).unwrap(),
+        );
 
-        match table_state.expect("Failed to sit in") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -228,16 +219,15 @@ impl TestEnv {
         user: Principal,
         bet_type: BetType,
     ) -> Result<(), TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "place_bet",
-                candid::encode_args((user, bet_type)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "place_bet",
+            candid::encode_args((user, bet_type)).unwrap(),
+        );
 
-        match table_state.expect("Failed to make move") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -246,16 +236,15 @@ impl TestEnv {
     }
 
     pub fn player_check(&self, table_id: Principal, user: Principal) -> Result<(), TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "check",
-                candid::encode_args((user,)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "check",
+            candid::encode_args((user,)).unwrap(),
+        );
 
-        match table_state.expect("Failed to make move") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -264,16 +253,15 @@ impl TestEnv {
     }
 
     pub fn player_fold(&self, table_id: Principal, user: Principal) -> Result<(), TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "fold",
-                candid::encode_args((user, false)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "fold",
+            candid::encode_args((user, false)).unwrap(),
+        );
 
-        match table_state.expect("Failed to make move") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -288,16 +276,15 @@ impl TestEnv {
         user_id: Principal,
         amount: u64,
     ) -> Result<ReturnResult, TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                user_id,
-                "deposit_to_table",
-                candid::encode_args((users_canister_id, user_id, amount, false)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user_id,
+            "deposit_to_table",
+            candid::encode_args((users_canister_id, user_id, amount, false)).unwrap(),
+        );
 
-        match table_state.expect("Failed to make move") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<ReturnResult, TableError> = candid::decode_one(&arg).unwrap();
                 println!("Deposit result: {:?}", table);
                 table
@@ -309,20 +296,18 @@ impl TestEnv {
     pub fn player_withdraw(
         &self,
         table_id: Principal,
-        user_principal: Principal,
         wallet_principal_id: Principal,
         amount: u64,
     ) -> Result<(), TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                wallet_principal_id,
-                "withdraw_from_table",
-                candid::encode_args((user_principal, wallet_principal_id, amount)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            wallet_principal_id,
+            "withdraw_from_table",
+            candid::encode_args((wallet_principal_id, amount)).unwrap(),
+        );
 
-        match table_state.expect("Failed to make move") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let table: Result<(), TableError> = candid::decode_one(&arg).unwrap();
                 table
             }
@@ -495,16 +480,15 @@ impl TestEnv {
         user: Principal,
         amount: u64,
     ) -> Result<table::types::ReturnResult, TableError> {
-        let table_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "deposit_to_table",
-                candid::encode_args((user, user, amount, false)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "deposit_to_table",
+            candid::encode_args((user, user, amount, false)).unwrap(),
+        );
 
-        match table_state.expect("Failed to deposit") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match table_state {
+            Ok(arg) => {
                 let result: Result<table::types::ReturnResult, TableError> =
                     candid::decode_one(&arg).unwrap();
                 result

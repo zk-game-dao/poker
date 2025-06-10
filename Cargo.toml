@@ -4,6 +4,7 @@ members = [
     "libraries/canister_functions",
     "libraries/chat",
     "libraries/errors",
+    "libraries/intercanister_call_wrappers",
     "libraries/table",
     "libraries/table_index_types",
     "libraries/tournaments",
@@ -20,3 +21,11 @@ members = [
     "webserver",
 ]
 resolver = "2"
+
+[workspace.dependencies]
+candid = "0.10.14"
+ic-cdk = "0.18.3"
+ic-ledger-types = "0.15.0"
+ic-stable-structures = "0.6.8"
+ic-cdk-timers = "0.12.0"
+

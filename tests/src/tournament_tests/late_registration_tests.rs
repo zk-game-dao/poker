@@ -26,7 +26,7 @@ fn test_late_registration() {
         .as_nanos() as u64;
 
     let now = std::time::SystemTime::now();
-    test_env.pocket_ic.set_time(now);
+    test_env.pocket_ic.set_time(now.into());
 
     // Create tournament config with late registration period of 10 seconds
     let tournament_config = NewTournament {
@@ -121,6 +121,14 @@ fn test_late_registration() {
         .expect("Failed to create user");
 
     test_env.transfer_approve_tokens_for_testing(id, late_user.principal_id, 1000.0, true);
+
+    for _ in 0..6 {
+        test_env.pocket_ic.advance_time(Duration::from_secs(60)); // 2 seconds
+        for _ in 0..6 {
+            test_env.pocket_ic.tick();
+        }
+        test_env.pocket_ic.tick();
+    }
 
     // Should succeed during late registration
     test_env

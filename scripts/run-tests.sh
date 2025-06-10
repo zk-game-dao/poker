@@ -1,7 +1,7 @@
 #!/bin/bash
 
 POCKET_IC_BIN=$(pwd)/tests/pocket-ic
-POCKET_IC_SERVER_VERSION="5.0.0"
+POCKET_IC_SERVER_VERSION="9.0.3"
 
 NNS_WASM_PATH="tests/wasms"
 WASM_URL="https://download.dfinity.systems/ic/0a51fd74f08b2e6f23d6e1d60f1f52eb73b40ccc/canisters"

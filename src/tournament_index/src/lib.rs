@@ -1,12 +1,7 @@
 use authentication::validate_caller;
-use candid::Principal;
+use candid::{Nat, Principal};
 use canister_functions::{
-    create_canister_wrapper,
-    cycle::check_and_top_up_canister,
-    install_wasm_code,
-    inter_canister_call_wrappers::{
-        ensure_principal_is_controller, return_all_cycles_to_tournament_index, user_join_tournament,
-    },
+    create_canister_wrapper, cycle::check_and_top_up_canister, install_wasm_code,
 };
 use currency::{
     types::{
@@ -17,7 +12,15 @@ use currency::{
     utils::get_canister_state,
     Currency,
 };
-use errors::{tournament_error::TournamentError, tournament_index_error::TournamentIndexError};
+use errors::{
+    canister_management_error::CanisterManagementError,
+    tournament_index_error::TournamentIndexError,
+};
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
+use intercanister_call_wrappers::tournament_canister::{
+    create_tournament_wrapper, ensure_principal_is_controller,
+    return_all_cycles_to_tournament_index_wrapper, user_join_tournament,
+};
 use lazy_static::lazy_static;
 use memory::TABLE_CANISTER_POOL;
 use std::sync::Mutex;
@@ -33,7 +36,6 @@ use tournaments::tournaments::{
     },
 };
 
-pub mod canister_geek;
 pub mod cycle;
 pub mod memory;
 pub mod tournament_index;
@@ -45,7 +47,7 @@ const SINGLE_TABLE_TOURNAMENT_CYCLE_START_AMOUNT: u128 = 3_000_000_000_000;
 // TODO update principals here to the correct tournament index principals
 async fn handle_cycle_check() -> Result<(), TournamentIndexError> {
     ic_cdk::println!("%%%%%%%%%%%% Checking and topping up canister");
-    let id = ic_cdk::api::id();
+    let id = ic_cdk::api::canister_self();
     let cycle_dispenser_canister_id =
         if id == Principal::from_text("zocwf-5qaaa-aaaam-qdfaq-cai").unwrap() {
             *CYCLE_DISPENSER_CANISTER_PROD
@@ -69,21 +71,26 @@ async fn handle_cycle_check() -> Result<(), TournamentIndexError> {
 lazy_static! {
     static ref STATE: Mutex<TournamentIndex> = Mutex::new(TournamentIndex::new());
     static ref CURRENCY_MANAGER: Mutex<CurrencyManager> = Mutex::new(CurrencyManager::new());
-
-    static ref CYCLE_DISPENSER_CANISTER_PROD: Principal = Principal::from_text("zuv6g-yaaaa-aaaam-qbeza-cai").unwrap();
-    static ref CYCLE_DISPENSER_CANISTER_TEST: Principal = Principal::from_text("ev34d-5yaaa-aaaah-qdska-cai").unwrap();
-    static ref CYCLE_DISPENSER_CANISTER_DEV: Principal = Principal::from_text("tz2ag-zx777-77776-aaabq-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_PROD: Principal =
+        Principal::from_text("zuv6g-yaaaa-aaaam-qbeza-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_TEST: Principal =
+        Principal::from_text("ev34d-5yaaa-aaaah-qdska-cai").unwrap();
+    static ref CYCLE_DISPENSER_CANISTER_DEV: Principal =
+        Principal::from_text("tz2ag-zx777-77776-aaabq-cai").unwrap();
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
-        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe").unwrap(),
-        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae").unwrap(),
+        Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe")
+            .unwrap(),
+        Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
+            .unwrap(),
     ];
-    static ref TOURNAMENT_CANISTER_WASM: &'static [u8] = include_bytes!("../../../target/wasm32-unknown-unknown/release/tournament_canister.wasm");
+    static ref TOURNAMENT_CANISTER_WASM: &'static [u8] =
+        include_bytes!("../../../target/wasm32-unknown-unknown/release/tournament_canister.wasm");
     static ref ENABLE_RAKE: bool = false;
 }
 
 #[ic_cdk::init]
 fn init() {
-    let id = ic_cdk::api::id();
+    let id = ic_cdk::api::canister_self();
     ic_cdk::println!("Tournament index canister {id} initialized");
 }
 
@@ -100,9 +107,11 @@ fn get_account_number() -> Result<Option<String>, TournamentIndexError> {
 
 #[ic_cdk::update]
 async fn create_tournament(
-    mut new_tournament: NewTournament,
-    mut table_config: TableConfig,
+    new_tournament: NewTournament,
+    table_config: TableConfig,
 ) -> Result<Principal, TournamentIndexError> {
+    let mut new_tournament = new_tournament;
+    let mut table_config = table_config;
     let tournament_canister = {
         handle_cycle_check().await?;
 
@@ -153,7 +162,7 @@ async fn create_tournament(
             match tournament.currency {
                 CurrencyType::Real(currency) => {
                     let balance = currency_manager
-                        .get_balance(&currency, ic_cdk::api::id())
+                        .get_balance(&currency, ic_cdk::api::canister_self())
                         .await
                         .map_err(|e| {
                             TournamentIndexError::CanisterCallFailed(format!("{:?}", e))
@@ -183,14 +192,9 @@ async fn create_tournament(
         table_config.game_type =
             NoLimit(tournament.speed_type.get_params().blind_levels[0].small_blind);
 
-        let (res,): (Result<TournamentData, TournamentError>,) = ic_cdk::call(
-            tournament_canister,
-            "create_tournament",
-            (tournament, table_config, prize_pool),
-        )
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-        let tournament = res?;
+        let tournament =
+            create_tournament_wrapper(tournament_canister, tournament, table_config, prize_pool)
+                .await?;
 
         // Store tournament info
         let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
@@ -240,7 +244,7 @@ async fn delete_tournament(tournament_id: Principal) -> Result<(), TournamentInd
     let valid_callers = CONTROLLER_PRINCIPALS.clone();
     validate_caller(valid_callers);
 
-    if let Err(e) = return_all_cycles_to_tournament_index(tournament_id)
+    if let Err(e) = return_all_cycles_to_tournament_index_wrapper(tournament_id)
         .await
         .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))
     {
@@ -355,7 +359,9 @@ fn add_to_pool(principal: Principal) -> Result<(), TournamentIndexError> {
     {
         let tournament_index = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
         let valid_callers: Vec<Principal> = tournament_index
-            .tournaments.values().map(|t| t.id)
+            .tournaments
+            .values()
+            .map(|t| t.id)
             .collect();
         validate_caller(valid_callers);
     }
@@ -370,7 +376,9 @@ async fn get_and_remove_from_pool() -> Result<Option<Principal>, TournamentIndex
     {
         let tournament_index = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
         let valid_callers: Vec<Principal> = tournament_index
-            .tournaments.values().map(|t| t.id)
+            .tournaments
+            .values()
+            .map(|t| t.id)
             .collect();
 
         validate_caller(valid_callers);
@@ -387,7 +395,7 @@ async fn get_and_remove_from_pool() -> Result<Option<Principal>, TournamentIndex
 
     // If we got a canister, set the caller as its controller
     if let Some(canister_id) = res {
-        ensure_principal_is_controller(canister_id, ic_cdk::api::caller())
+        ensure_principal_is_controller(canister_id, ic_cdk::api::msg_caller())
             .await
             .map_err(|e| {
                 ic_cdk::println!("Error setting caller as controller: {:?}", e);
@@ -425,7 +433,7 @@ async fn get_icp_balance() -> Result<u64, TournamentIndexError> {
             .clone()
     };
     let balance = currency_manager
-        .get_balance(&Currency::ICP, ic_cdk::api::id())
+        .get_balance(&Currency::ICP, ic_cdk::api::canister_self())
         .await
         .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
     Ok(balance as u64)
@@ -456,7 +464,7 @@ async fn get_ckbtc_balance() -> Result<u64, TournamentIndexError> {
             .clone()
     };
     let balance = currency_manager
-        .get_balance(&Currency::BTC, ic_cdk::api::id())
+        .get_balance(&Currency::BTC, ic_cdk::api::canister_self())
         .await
         .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
     Ok(balance as u64)
@@ -489,7 +497,7 @@ async fn get_ckusdc_balance() -> Result<u64, TournamentIndexError> {
     let balance = currency_manager
         .get_balance(
             &Currency::CKETHToken(CKTokenSymbol::USDC),
-            ic_cdk::api::id(),
+            ic_cdk::api::canister_self(),
         )
         .await
         .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
@@ -527,7 +535,7 @@ async fn get_ckusdt_balance() -> Result<u64, TournamentIndexError> {
     let balance = currency_manager
         .get_balance(
             &Currency::CKETHToken(CKTokenSymbol::USDT),
-            ic_cdk::api::id(),
+            ic_cdk::api::canister_self(),
         )
         .await
         .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
@@ -563,7 +571,10 @@ async fn get_cketh_balance() -> Result<u64, TournamentIndexError> {
             .clone()
     };
     let balance = currency_manager
-        .get_balance(&Currency::CKETHToken(CKTokenSymbol::ETH), ic_cdk::api::id())
+        .get_balance(
+            &Currency::CKETHToken(CKTokenSymbol::ETH),
+            ic_cdk::api::canister_self(),
+        )
         .await
         .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
     Ok(balance as u64)
@@ -650,6 +661,141 @@ fn get_completed_tournaments() -> Vec<TournamentData> {
         .filter_map(|id| state.tournaments.get(id))
         .cloned()
         .collect()
+}
+
+#[ic_cdk::update]
+async fn upgrade_all_tournament_canisters(
+) -> Result<Vec<(Principal, CanisterManagementError)>, TournamentIndexError> {
+    // Validate caller permissions
+    let caller = ic_cdk::api::msg_caller();
+    if !CONTROLLER_PRINCIPALS.contains(&caller) {
+        return Err(TournamentIndexError::NotAuthorized);
+    }
+
+    handle_cycle_check().await?;
+
+    const BATCH_SIZE: usize = 30; // Process 30 tournaments at a time
+
+    let tournaments: Vec<Principal> = {
+        let state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
+        state.tournaments.keys().copied().collect()
+    };
+
+    let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
+    let mut failed_upgrades = Vec::new();
+
+    // Process tournaments in batches
+    for chunk in tournaments.chunks(BATCH_SIZE) {
+        let futures: Vec<_> = chunk
+            .iter()
+            .map(|&tournament_canister| {
+                let wasm_clone = wasm_module.clone();
+                async move {
+                    match canister_functions::upgrade_wasm_code(tournament_canister, wasm_clone)
+                        .await
+                    {
+                        Ok(_) => {
+                            ic_cdk::println!(
+                                "Successfully upgraded tournament canister {}",
+                                tournament_canister
+                            );
+                            Ok(tournament_canister)
+                        }
+                        Err(e) => {
+                            ic_cdk::println!(
+                                "Failed to upgrade tournament canister {}: {:?}",
+                                tournament_canister,
+                                e
+                            );
+                            Err((tournament_canister, e))
+                        }
+                    }
+                }
+            })
+            .collect();
+
+        // Execute batch of upgrades
+        let batch_results = futures::future::join_all(futures).await;
+        for result in batch_results {
+            if let Err((canister_id, error)) = result {
+                failed_upgrades.push((canister_id, error));
+            }
+        }
+    }
+
+    Ok(failed_upgrades)
+}
+
+#[ic_cdk::update]
+async fn upgrade_tournament_canister(
+    tournament_canister: Principal,
+) -> Result<(), TournamentIndexError> {
+    // Validate caller permissions
+    let caller = ic_cdk::api::msg_caller();
+    if !CONTROLLER_PRINCIPALS.contains(&caller) {
+        return Err(TournamentIndexError::NotAuthorized);
+    }
+
+    handle_cycle_check().await?;
+
+    let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
+    canister_functions::upgrade_wasm_code(tournament_canister, wasm_module).await?;
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn get_canister_status_formatted() -> Result<(), TournamentIndexError> {
+    // Validate caller is a controller
+    let controllers = (*CONTROLLER_PRINCIPALS).clone();
+    validate_caller(controllers);
+
+    handle_cycle_check().await?;
+
+    // Call the management canister to get status
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
+
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        TournamentIndexError::CanisterCallError(format!("Failed to get canister status: {:?}", e))
+    })?;
+
+    // Format the status into a readable string
+    let formatted_status = format!(
+        "📊 Canister Status Report
+════════════════════════════════════════════════════════════════
+🆔 Canister ID: {}
+🔄 Status: {:?}
+💾 Memory Size: {} bytes ({:.2} MB)
+⚡ Cycles: {} ({:.2} T cycles)
+🎛️  Controllers: {}
+📈 Compute Allocation: {}
+🧠 Memory Allocation: {} bytes
+🧊 Freezing Threshold: {}
+📊 Reserved Cycles Limit: {}
+════════════════════════════════════════════════════════════════",
+        ic_cdk::api::canister_self().to_text(),
+        status_response.status,
+        status_response.memory_size,
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
+        status_response.cycles,
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(", "),
+        status_response.settings.compute_allocation,
+        status_response.settings.memory_allocation,
+        status_response.settings.freezing_threshold,
+        status_response.settings.reserved_cycles_limit
+    );
+
+    ic_cdk::println!("{}", formatted_status);
+    Ok(())
 }
 
 ic_cdk::export_candid!();

@@ -5,6 +5,9 @@ use canister_functions::leaderboard_utils::{
 };
 use errors::user_error::UserError;
 use ic_cdk_timers::TimerId;
+use intercanister_call_wrappers::users_canister::{
+    clear_experience_points_wrapper, clear_pure_poker_experience_points_wrapper, get_user_wrapper,
+};
 
 use crate::{CURRENCY_MANAGER, USER_INDEX_STATE};
 
@@ -65,6 +68,13 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
         user_index_state.get_experience_points_leaderboard().await
     }?;
 
+    let users_index_state = {
+        USER_INDEX_STATE
+            .lock()
+            .map_err(|_| UserError::LockError)?
+            .clone()
+    };
+
     let currency_manager = {
         CURRENCY_MANAGER
             .lock()
@@ -72,21 +82,46 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
             .clone()
     };
 
-    let top_five = leaderboard
-        .iter()
-        .take(5)
-        .map(|(user, _)| *user)
-        .collect::<Vec<_>>();
+    let mut i = 0;
+    for (user, xp) in leaderboard {
+        if xp == 0 {
+            break;
+        }
+        let users_canister = match users_index_state.get_users_canister_principal(user) {
+            Some(canister) => canister,
+            None => {
+                ic_cdk::println!("User {} not found in users canisters", user.to_text());
+                continue;
+            }
+        };
+        let user_obj = match get_user_wrapper(*users_canister, user).await {
+            Ok(user) => user,
+            Err(e) => {
+                ic_cdk::println!("Failed to get user {}: {:?}", user.to_text(), e);
+                continue;
+            }
+        };
 
-    for (i, user) in top_five.iter().enumerate() {
-        let amount = calculate_amount_to_transfer(PERCENTAGE_PAYOUT[i]);
-        ic_cdk::println!("Transferring {} ICP to user {}", amount, user.to_text());
-        match currency_manager
-            .withdraw(&currency::Currency::ICP, *user, amount)
-            .await
-        {
-            Ok(_) => (),
-            Err(e) => ic_cdk::println!("Failed to transfer ICP: {:?}", e),
+        // If user is not verified they are not eligible for payout.
+        if user_obj.is_verified.unwrap_or(false) {
+            let amount = calculate_amount_to_transfer(PERCENTAGE_PAYOUT[i]);
+            ic_cdk::println!(
+                "Transferring {} ICP to user {} with principal {}",
+                amount,
+                user_obj.user_name,
+                user.to_text()
+            );
+            match currency_manager
+                .withdraw(&currency::Currency::ICP, user, amount)
+                .await
+            {
+                Ok(_) => (),
+                Err(e) => ic_cdk::println!("Failed to transfer ICP: {:?}", e),
+            }
+            i += 1;
+            if i >= PERCENTAGE_PAYOUT.len() {
+                break; // Only transfer to top 5 users
+            }
         }
     }
 
@@ -95,20 +130,14 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
         user_index_state.get_users_canisters()
     };
 
-    let mut results = Vec::new();
-
     for user_canister in user_canisters {
-        let (res,): (Result<(), UserError>,) =
-            ic_cdk::call(user_canister, "clear_experience_points", ())
-                .await
-                .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-        results.push(res);
-    }
-
-    for result in results {
-        match result {
-            Ok(_) => (),
-            Err(e) => ic_cdk::println!("Failed to reset experience points: {:?}", e),
+        if let Err(e) = clear_experience_points_wrapper(user_canister).await {
+            ic_cdk::println!(
+                "Failed to clear experience points for user canister {}: {:?}",
+                user_canister.to_text(),
+                e
+            );
+            continue;
         }
     }
 
@@ -125,6 +154,12 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
             .get_pure_poker_experience_points_leaderboard()
             .await
     }?;
+    let users_index_state = {
+        USER_INDEX_STATE
+            .lock()
+            .map_err(|_| UserError::LockError)?
+            .clone()
+    };
 
     let currency_manager = {
         CURRENCY_MANAGER
@@ -133,20 +168,46 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
             .clone()
     };
 
-    let top_five = leaderboard
-        .iter()
-        .take(5)
-        .map(|(user, _)| *user)
-        .collect::<Vec<_>>();
-    for (i, user) in top_five.iter().enumerate() {
-        let amount = calculate_amount_to_transfer_pure_poker(PERCENTAGE_PAYOUT[i]);
-        ic_cdk::println!("Transferring {} ICP to user {}", amount, user.to_text());
-        match currency_manager
-            .withdraw(&currency::Currency::BTC, *user, amount)
-            .await
-        {
-            Ok(_) => (),
-            Err(e) => ic_cdk::println!("Failed to transfer ICP: {:?}", e),
+    let mut i = 0;
+    for (user, xp) in leaderboard {
+        if xp == 0 {
+            break;
+        }
+        let users_canister = match users_index_state.get_users_canister_principal(user) {
+            Some(canister) => canister,
+            None => {
+                ic_cdk::println!("User {} not found in users canisters", user.to_text());
+                continue;
+            }
+        };
+        let user_obj = match get_user_wrapper(*users_canister, user).await {
+            Ok(user) => user,
+            Err(e) => {
+                ic_cdk::println!("Failed to get user {}: {:?}", user.to_text(), e);
+                continue;
+            }
+        };
+
+        // If user is not verified they are not eligible for payout.
+        if user_obj.is_verified.unwrap_or(false) {
+            let amount = calculate_amount_to_transfer_pure_poker(PERCENTAGE_PAYOUT[i]);
+            ic_cdk::println!(
+                "Transferring {} BTC to user {} with principal {}",
+                amount,
+                user_obj.user_name,
+                user.to_text()
+            );
+            match currency_manager
+                .withdraw(&currency::Currency::BTC, user, amount)
+                .await
+            {
+                Ok(_) => (),
+                Err(e) => ic_cdk::println!("Failed to transfer ICP: {:?}", e),
+            }
+            i += 1;
+            if i >= PERCENTAGE_PAYOUT.len() {
+                break; // Only transfer to top 5 users
+            }
         }
     }
 
@@ -155,20 +216,14 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
         user_index_state.get_users_canisters()
     };
 
-    let mut results = Vec::new();
-
     for user_canister in user_canisters {
-        let (res,): (Result<(), UserError>,) =
-            ic_cdk::call(user_canister, "clear_pure_poker_experience_points", ())
-                .await
-                .map_err(|e| UserError::CanisterCallFailed(format!("{:?} {}", e.0, e.1)))?;
-        results.push(res);
-    }
-
-    for result in results {
-        match result {
-            Ok(_) => (),
-            Err(e) => ic_cdk::println!("Failed to reset experience points: {:?}", e),
+        if let Err(e) = clear_pure_poker_experience_points_wrapper(user_canister).await {
+            ic_cdk::println!(
+                "Failed to clear pure poker experience points for user canister {}: {:?}",
+                user_canister.to_text(),
+                e
+            );
+            continue;
         }
     }
 

@@ -1,4 +1,4 @@
-import React, { lazy, memo } from 'react';
+import { lazy, memo } from 'react';
 
 import { markdown as changelog } from '../../../../CHANGELOG.PP.md';
 import { markdown as roadmap } from '../../../../ROADMAP.PP.md';
@@ -15,7 +15,6 @@ export const App = memo(() => (
     changelogMarkdown={changelog}
 
     isBTC={false}
-    hideTournaments={false}
     shownCurrencyType={{ Real: { ICP: null } }} />
 ));
 App.displayName = 'App';

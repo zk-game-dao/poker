@@ -39,29 +39,6 @@ type BetType = variant {
   Called;
 };
 type CKTokenSymbol = variant { ETH; USDC; USDT };
-type CanisterLogFeature = variant {
-  filterMessageByContains;
-  filterMessageByRegex;
-};
-type CanisterLogMessages = record {
-  data : vec LogMessageData;
-  lastAnalyzedMessageTimeNanos : opt nat64;
-};
-type CanisterLogMessagesInfo = record {
-  features : vec opt CanisterLogFeature;
-  lastTimeNanos : opt nat64;
-  count : nat32;
-  firstTimeNanos : opt nat64;
-};
-type CanisterLogRequest = variant {
-  getMessagesInfo;
-  getMessages : GetLogMessagesParameters;
-  getLatestMessages : GetLatestLogMessagesParameters;
-};
-type CanisterLogResponse = variant {
-  messagesInfo : CanisterLogMessagesInfo;
-  messages : CanisterLogMessages;
-};
 type CanisterManagementError = variant {
   CreateCanisterError : text;
   InsufficientCycles;
@@ -70,13 +47,9 @@ type CanisterManagementError = variant {
   StopCanisterError : text;
   Transfer : text;
   QueryError : text;
+  CanisterCallError : text;
   DeleteCanisterError : text;
   InstallCodeError : text;
-};
-type CanisterMetrics = record { data : CanisterMetricsData };
-type CanisterMetricsData = variant {
-  hourly : vec HourlyMetricsData;
-  daily : vec DailyMetricsData;
 };
 type Card = record { value : Value; suit : Suit };
 type CardRequestData = record {
@@ -110,7 +83,6 @@ type ChatMessage = record {
   message_type : ChatMessageType;
 };
 type ChatMessageType = variant { PrivateMessage; TableMessage };
-type CollectMetricsRequestType = variant { force; normal };
 type Currency = variant {
   BTC;
   ICP;
@@ -142,13 +114,6 @@ type CurrencyError = variant {
   NoBlockNumberProvided;
 };
 type CurrencyType = variant { Fake; Real : Currency };
-type DailyMetricsData = record {
-  updateCalls : nat64;
-  canisterHeapMemorySize : NumericEntity;
-  canisterCycles : NumericEntity;
-  canisterMemorySize : NumericEntity;
-  timeMillis : int;
-};
 type DealStage = variant {
   Opening;
   Flop;
@@ -182,49 +147,6 @@ type GameType = variant {
   PotLimit : nat64;
   FixedLimit : record { nat64; nat64 };
 };
-type GetInformationRequest = record {
-  status : opt StatusRequest;
-  metrics : opt MetricsRequest;
-  logs : opt CanisterLogRequest;
-  version : bool;
-};
-type GetInformationResponse = record {
-  status : opt StatusResponse;
-  metrics : opt MetricsResponse;
-  logs : opt CanisterLogResponse;
-  version : opt nat;
-};
-type GetLatestLogMessagesParameters = record {
-  upToTimeNanos : opt nat64;
-  count : nat32;
-  filter : opt GetLogMessagesFilter;
-};
-type GetLogMessagesFilter = record {
-  analyzeCount : nat32;
-  messageRegex : opt text;
-  messageContains : opt text;
-};
-type GetLogMessagesParameters = record {
-  count : nat32;
-  filter : opt GetLogMessagesFilter;
-  fromTimeNanos : opt nat64;
-};
-type GetMetricsParameters = record {
-  dateToMillis : nat;
-  granularity : MetricsGranularity;
-  dateFromMillis : nat;
-};
-type HourlyMetricsData = record {
-  updateCalls : vec nat64;
-  canisterHeapMemorySize : vec nat64;
-  canisterCycles : vec nat64;
-  canisterMemorySize : vec nat64;
-  timeMillis : int;
-};
-type LogMessageData = record { timeNanos : nat64; message : text };
-type MetricsGranularity = variant { hourly; daily };
-type MetricsRequest = record { parameters : GetMetricsParameters };
-type MetricsResponse = record { metrics : opt CanisterMetrics };
 type Notification = record {
   id : nat64;
   user_principal : principal;
@@ -232,13 +154,6 @@ type Notification = record {
   timestamp : nat64;
 };
 type NotificationMessage = variant { UserTurnStarted };
-type NumericEntity = record {
-  avg : nat64;
-  max : nat64;
-  min : nat64;
-  first : nat64;
-  last : nat64;
-};
 type PlayerAction = variant {
   Joining;
   Folded;
@@ -323,16 +238,6 @@ type SidePot = record {
   highest_bet : nat64;
   user_principals : vec principal;
 };
-type StatusRequest = record {
-  memory_size : bool;
-  cycles : bool;
-  heap_memory_size : bool;
-};
-type StatusResponse = record {
-  memory_size : opt nat64;
-  cycles : opt nat64;
-  heap_memory_size : opt nat64;
-};
 type Suit = variant { Spade; Diamond; Club; Heart };
 type TableConfig = record {
   max_inactive_turns : nat16;
@@ -392,25 +297,6 @@ type TableType = variant {
   Satellite;
 };
 type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
-type Transaction = record {
-  transaction_id : nat64;
-  transaction_type : TransactionType;
-  currency : opt text;
-  timestamp : nat64;
-  amount : nat64;
-};
-type TransactionType = variant {
-  Withdraw;
-  Deposit;
-  TableWithdraw : record { table_id : principal };
-  Transfer : record { recipient : principal; transfer_type : TransferType };
-  TableDeposit : record { table_id : principal };
-  Receive : record { sender : principal; transfer_type : TransferType };
-};
-type TransferType = variant { CardShowRequest };
-type UpdateInformationRequest = record {
-  metrics : opt CollectMetricsRequestType;
-};
 type User = record {
   experience_points_pure_poker : opt nat64;
   experience_points : opt nat64;
@@ -418,10 +304,9 @@ type User = record {
   referrer : opt principal;
   eth_wallet_address : opt text;
   balance : nat64;
-  referred_users : opt vec principal;
+  referred_users : opt vec record { principal; nat64 };
   is_verified : opt bool;
   address : opt text;
-  transaction_history : opt vec Transaction;
   principal_id : principal;
   referral_start_date : opt nat64;
   active_tables : vec principal;
@@ -497,11 +382,8 @@ service : () -> {
   deposit_to_table : (principal, principal, nat64, bool) -> (Result_3);
   edit_chat_message : (principal, nat64, text) -> (Result_1);
   fold : (principal, bool) -> (Result);
-  getCanistergeekInformation : (GetInformationRequest) -> (
-      GetInformationResponse,
-    ) query;
+  get_canister_status_formatted : () -> (Result);
   get_chat_messages_for_user : (principal) -> (Result_4) query;
-  get_cycles : () -> (nat64) query;
   get_free_seat_index : () -> (Result_5) query;
   get_notifications : () -> (Result_6) query;
   get_players_on_table : () -> (Result_7);
@@ -536,8 +418,7 @@ service : () -> {
   set_as_final_table : () -> (Result);
   set_player_action : (principal, PlayerAction) -> (Result);
   start_new_betting_round : () -> (Result);
-  updateCanistergeekInformation : (UpdateInformationRequest) -> ();
   update_blinds : (nat64, nat64, AnteType) -> (Result);
-  withdraw_from_table : (principal, principal, nat64) -> (Result);
+  withdraw_from_table : (principal, nat64) -> (Result);
   withdraw_rake : (nat64) -> (Result);
 }

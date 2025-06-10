@@ -1,7 +1,7 @@
 use candid::{CandidType, Principal};
 use errors::chat_error::ChatError;
-use ic_stable_structures::Storable;
 use ic_stable_structures::storable::Bound;
+use ic_stable_structures::Storable;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::VecDeque;

@@ -24,7 +24,6 @@ import { callActorMutation } from '../../utils/call-actor-mutation';
 import { ConvertNat16ToPerc, ConvertPercToNat16 } from '../../utils/nat16';
 import { NotificationsModalComponent } from '../notifications-modal/notifications-modal.component';
 import { useUser } from '../types/user.context';
-import { TransactionHistoryModalComponent } from './transaction-history-modal.component';
 import { VerifyModal } from './verify-modal.component';
 import { DefaultSoundVolume } from '../../utils/sound';
 import { InviteAFriendModalComponent } from './invinte-a-friend-modal.component';
@@ -129,8 +128,6 @@ export const ProfileModalContent = memo<{
     [user],
   );
 
-  const [showTransactionHistoryModal, setShowTransactionHistoryModal] =
-    useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
   const {
@@ -216,14 +213,6 @@ export const ProfileModalContent = memo<{
               <ListItem onClick={user.is_verified[0] ? undefined : () => setIsVerifying(true)}>
                 {user.is_verified[0] ? 'Verified' : 'Verify Identity'}
               </ListItem>
-              {user.transaction_history[0] &&
-                user.transaction_history[0]?.length > 0 && (
-                  <ListItem
-                    onClick={() => setShowTransactionHistoryModal(true)}
-                  >
-                    Transactions
-                  </ListItem>
-                )}
 
               <ListItem onClick={() => setIsShowingInviteAFriend(true)}>
                 Invite A Friend
@@ -236,11 +225,6 @@ export const ProfileModalContent = memo<{
             <NotificationsModalComponent
               isOpen={showNotificationsModal}
               onClose={() => setShowNotificationsModal(false)}
-            />
-            <TransactionHistoryModalComponent
-              isOpen={showTransactionHistoryModal}
-              onClose={() => setShowTransactionHistoryModal(false)}
-              transactions={user.transaction_history[0] || []}
             />
           </>
         )}
