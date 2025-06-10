@@ -456,8 +456,8 @@ Distribution:
 
     # Checksum of the total number of tokens distributed in this section.
     # This field is specified as a token. For instance, "1 token".
-    #         146_400_000    (team neurons)
-    #         3_600_000      (contributors neurons)
+    #         145_150_000    (team neurons)
+    #         4_850_000      (contributors neurons)
     #         100_000_000    (seed investor neurons)
     #         500_000_000    (treasury)
     #       + 250_000_000    (swap)
