@@ -27,11 +27,16 @@ if [[ $# -lt 1 ]]; then
 fi
 
 export NAME="$1"
-export ARG="${2:-'(record {})'}"
+export ARG="${2:-"(record {})"}"
 export ENV="${3:-local}"
 
 # Load secrets and common env (includes NETWORK, DX_NETWORK, PEM_FILE, etc.)
-./scripts/sns/setup_env.sh
+source ./scripts/sns/setup_env.sh
+
+if [[ "$ARG" =~ ^\' || "$ARG" =~ \'\$ ]]; then
+  echo "ERROR: Argument appears to include literal single quotes. Use (record {}) instead of '(record {})'."
+  exit 1
+fi
 
 # Determine if ARG is a file path or raw value
 if [ -f "${ARG}" ]; then
@@ -42,6 +47,8 @@ fi
 
 # Build and compress WASM if not already set
 if [[ -z "${WASM:-}" ]]; then
+  echo "Building wasm" 
+  
   WASM=".dfx/${DX_NETWORK}/canisters/${NAME}/${NAME}"
   rm -f "${WASM}-s.wasm.gz"
   dfx build --network "${NETWORK}" "${NAME}"
@@ -53,7 +60,7 @@ fi
 # Fetch the canister ID
 CID="$(dfx canister --network "${NETWORK}" id "${NAME}")"
 
-# Create the proposal message
+echo "Creating proposal message"
 quill sns \
   --canister-ids-file "${REPODIR}/sns_canister_ids.json" \
   --pem-file "${PEM_FILE}" \
@@ -64,66 +71,16 @@ quill sns \
   "${ARGFLAG}" "${ARG}" \
   "${DEVELOPER_NEURON_ID}" > msg.json
 
-# Submit the proposal#!/usr/bin/env bash
-
-set -euo pipefail
-
-# ----------------------------------------------
-# Usage:
-#   ./scripts/sns/treasury_transfer.sh <to_principal> <amount_e8s> [env] [memo] [message]
-#
-# Parameters:
-#   <to_principal> - Principal to receive the funds (required)
-#   <amount_e8s>   - Amount in e8s (required)
-#   [env]          - Environment: 'prod' or 'local' (default: 'local')
-#   [memo]         - Optional: memo (default: 0)
-#   [message]      - Optional: proposal message / title
-#
-# Example (local):
-#   ./scripts/sns/treasury_transfer.sh abcde-principal 100000000
-#
-# Example (prod, with memo and message):
-#   ./scripts/sns/treasury_transfer.sh abcde-principal 100000000 prod 123456 "Send 1 ICP to developer"
-# ----------------------------------------------
-
-if [[ $# -lt 2 ]]; then
-  echo "Usage: $0 <to_principal> <amount_e8s> [env] [memo] [message]"
-  exit 1
-fi
-
-TO_PRINCIPAL="$1"
-AMOUNT="$2"
-export ENV="${3:-local}"
-MEMO="${4:-0}"
-MESSAGE="${5:-"Treasury transfer to ${TO_PRINCIPAL}"}"
-
-# Load env vars (includes NETWORK, PEM_FILE, DEVELOPER_NEURON_ID, etc.)
-./scripts/sns/setup_env.sh
-
-# Generate the proposal
-quill sns \
-  --canister-ids-file "${REPODIR}/sns_canister_ids.json" \
-  --pem-file "${PEM_FILE}" \
-  make-treasury-transfer-proposal \
-  --amount-e8s "${AMOUNT}" \
-  --to-principal "${TO_PRINCIPAL}" \
-  --memo "${MEMO}" \
-  --proposal-title "${MESSAGE}" \
-  "${DEVELOPER_NEURON_ID}" > msg.json
-
-# Submit the proposal
+echo "Submitting the proposal..."
 case "$ENV" in
   prod)
     quill send \
-      --yes msg.json \
-      | grep -v "new_canister_wasm"
+      --yes msg.json
     ;;
   *)
     quill send \
       --insecure-local-dev-mode \
-      --yes msg.json \
-      | grep -v "new_canister_wasm"
+      --yes msg.json
     ;;
 esac
 
-echo "Success"

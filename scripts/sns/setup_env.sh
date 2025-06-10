@@ -12,14 +12,17 @@ case "$ENV" in
   prod)
     export NETWORK="https://icp-api.io"
     export DX_NETWORK="ic"
+    export IC_URL="$NETWORK"
     ;;
   local-sns-testing)
     export NETWORK="http://0.0.0.0:8080"
     export DX_NETWORK="local"
+    export IC_URL="$NETWORK"
     ;;
   local)
-    export NETWORK="http://127.0.0.1:4943"
+    export NETWORK="local"
     export DX_NETWORK="local"
+    export IC_URL="http://127.0.0.1:4943"
     ;;
   *)
     echo "Unknown ENV: $ENV"
@@ -45,9 +48,6 @@ export PEM_FILE="$(readlink -f ~/.config/dfx/identity/${DX_IDENT}/identity.pem)"
 
 # Ensure PEM file exists
 dfx identity export "$DX_IDENT" > "$PEM_FILE"
-
-# Set IC URL
-export IC_URL="${NETWORK}"
 
 # Generate sns_canister_ids.json
 ./scripts/sns/build_sns_canister_ids.sh > sns_canister_ids.json
