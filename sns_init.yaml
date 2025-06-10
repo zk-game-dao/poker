@@ -56,9 +56,9 @@ NnsProposal:
         
         The SNS token (ZKG) will serve as both governance and utility token. Initial total supply will be 1,000,000,000 tokens allocated as follows:
         - Treasury: 50% (500,000,000)
-          - Protection Fund: 25% (250,000,000)
-          - Ecosystem Incentives: 5% (50,000,000)
-          - Strategic Reserve: 20% (200,000,000)
+        - Protection Fund: 25% (250,000,000)
+        - Ecosystem Incentives: 5% (50,000,000)
+        - Strategic Reserve: 20% (200,000,000)
         - Early Investors & Contributors: 10.5% (104,850,000)
         - Team: 14.5% (145,150,000)
         - SNS Launchpad: 25% (250,000,000)
@@ -165,7 +165,7 @@ Proposals:
 Neurons:
     # The minimum amount of SNS tokens to stake a neuron. This field is specified
     # as a token. For instance, "1 token".
-    minimum_creation_stake: 5_000 tokens
+    minimum_creation_stake: 2_000 tokens
 
 # Configuration of SNS voting.
 Voting:
