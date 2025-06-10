@@ -1,8 +1,6 @@
 use candid::{decode_one, encode_args, Principal};
-use currency::Currency;
 use errors::user_error::UserError;
 use ic_ledger_types::{AccountIdentifier, Tokens};
-use pocket_ic::WasmResult;
 use user::user::User;
 
 use crate::TestEnv;
@@ -18,8 +16,8 @@ impl TestEnv {
             encode_args((name, (), user_id, ())).unwrap(),
         );
 
-        match user_canister.expect("Failed to create user") {
-            WasmResult::Reply(arg) => {
+        match user_canister {
+            Ok(arg) => {
                 let user_canister: Result<User, UserError> = decode_one(&arg).unwrap();
                 user_canister
             }
@@ -39,8 +37,8 @@ impl TestEnv {
             encode_args((user_id,)).unwrap(),
         );
 
-        match user.expect("Failed to get user") {
-            WasmResult::Reply(arg) => {
+        match user {
+            Ok(arg) => {
                 let user: Result<User, UserError> = decode_one(&arg).unwrap();
                 user
             }
@@ -60,8 +58,8 @@ impl TestEnv {
             encode_args((table_id,)).unwrap(),
         );
 
-        match user.expect("Failed to add active table") {
-            WasmResult::Reply(arg) => {
+        match user {
+            Ok(arg) => {
                 let user: Result<User, UserError> = decode_one(&arg).unwrap();
                 user
             }
@@ -73,7 +71,7 @@ impl TestEnv {
         &self,
         users_canister_id: Principal,
         user_id: Principal,
-        currency: Currency,
+        currency: String,
         exp: u64,
     ) -> Result<User, UserError> {
         let user = self.pocket_ic.update_call(
@@ -83,8 +81,8 @@ impl TestEnv {
             encode_args((exp, currency, user_id)).unwrap(),
         );
 
-        match user.expect("Failed to add experience points") {
-            WasmResult::Reply(arg) => {
+        match user {
+            Ok(arg) => {
                 let user: Result<User, UserError> = decode_one(&arg).unwrap();
                 user
             }
@@ -103,8 +101,8 @@ impl TestEnv {
             encode_args(()).unwrap(),
         );
 
-        match exp.expect("Failed to get experience points") {
-            WasmResult::Reply(arg) => {
+        match exp {
+            Ok(arg) => {
                 let exp: Result<Vec<(Principal, u64)>, UserError> = decode_one(&arg).unwrap();
                 exp
             }
@@ -123,8 +121,8 @@ impl TestEnv {
             encode_args(()).unwrap(),
         );
 
-        match exp.expect("Failed to get experience points") {
-            WasmResult::Reply(arg) => {
+        match exp {
+            Ok(arg) => {
                 let exp: Result<Vec<(Principal, u64)>, UserError> = decode_one(&arg).unwrap();
                 exp
             }
@@ -143,8 +141,8 @@ impl TestEnv {
             encode_args((args,)).unwrap(),
         );
 
-        match exp.expect("Failed to get balance") {
-            WasmResult::Reply(arg) => {
+        match exp {
+            Ok(arg) => {
                 let balance = decode_one::<Tokens>(&arg)
                     .map_err(|e| format!("Failed to decode balance: {}", e))?;
                 Ok(balance)

@@ -9,25 +9,25 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-authentication = { path = "../../libraries/authentication" }
-candid = "0.10"
-canister_functions = { path = "../../libraries/canister_functions" }
-currency = { git = "https://github.com/zk-game-dao/currency.git", branch = "main" }
-errors = { path = "../../libraries/errors" }
-ic-cdk = "0.12"
-ic-cdk-timers = "0.6" # Feel free to remove this dependency if you don't need timers
+candid = { workspace = true }
+ic-cdk = { workspace = true }
+ic-cdk-timers = { workspace = true } # Feel free to remove this dependency if you don't need timers
 thiserror = "1.0.57"
 serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
 lazy_static = "1.4.0"
 serde_bytes = "0.11.14"
 sha2 = "0.10.8"
-canistergeek_ic_rust = "0.4.3"
-ic-ledger-types = "0.10.0"
-ic-stable-structures = "0.6.5"
+ic-ledger-types = "0.15.0"
+ic-stable-structures = { workspace = true }
+futures = "0.3.31"
+
+authentication = { path = "../../libraries/authentication" }
+canister_functions = { path = "../../libraries/canister_functions" }
+currency = { git = "https://github.com/zk-game-dao/currency.git", branch = "main" }
+errors = { path = "../../libraries/errors" }
+intercanister_call_wrappers = { path = "../../libraries/intercanister_call_wrappers" }
 table = { path = "../../libraries/table" }
 table_index_types = { path = "../../libraries/table_index_types" }
-futures = "0.3.31"
 
 [features]
 default = []

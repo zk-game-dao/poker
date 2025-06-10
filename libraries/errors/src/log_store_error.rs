@@ -10,4 +10,7 @@ pub enum LogStoreError {
 
     #[error("Failed to deserialize data: {0}")]
     DeserializationError(String),
+
+    #[error("Canister call failed: {0}")]
+    CanisterCallError(String),
 }

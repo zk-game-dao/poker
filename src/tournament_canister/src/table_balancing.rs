@@ -1,11 +1,9 @@
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 use candid::Principal;
-use canister_functions::inter_canister_call_wrappers::{
-    add_to_table_pool_wrapper, ensure_principal_is_controller, get_players_on_table,
-    leave_table_for_table_balancing, set_as_final_table_wrapper,
-};
 use errors::{table_error::TableError, tournament_error::TournamentError};
+use intercanister_call_wrappers::tournament_canister::{add_to_table_pool_wrapper, ensure_principal_is_controller};
+use table::table_canister::{get_players_on_table, leave_table_for_table_balancing, set_as_final_table_wrapper};
 use tournaments::tournaments::{
     tournament_type::{TournamentSizeType, TournamentType},
     types::{TournamentData, TournamentState},

@@ -5,7 +5,6 @@ use canister_functions::{
     create_canister_wrapper,
     cycle::check_and_top_up_canister,
     install_wasm_code,
-    inter_canister_call_wrappers::{deposit_to_table, get_table, join_table, leave_table},
     stop_and_delete_canister,
 };
 use currency::{types::currency::CKTokenSymbol, Currency};
@@ -13,12 +12,13 @@ use errors::{
     table_error::TableError, tournament_error::TournamentError,
     tournament_index_error::TournamentIndexError,
 };
-use ic_cdk::api::management_canister::main::CanisterIdRecord;
+use ic_cdk::management_canister::DepositCyclesArgs;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
-use table::poker::game::{
+use intercanister_call_wrappers::tournament_canister::{handle_tournament_end_wrapper, update_tournament_state_icc_wrapper};
+use table::{poker::game::{
     table_functions::{table::TableConfig, types::CurrencyType},
     types::PublicTable,
-};
+}, table_canister::{create_table_wrapper, deposit_to_table, get_table_wrapper, is_game_ongoing_wrapper, join_table, leave_table_wrapper, return_all_cycles_to_index}};
 use tournaments::tournaments::{
     tournament_type::{TournamentSizeType, TournamentType},
     types::{TournamentData, TournamentState},
@@ -49,7 +49,7 @@ pub fn create_default_subaccount() -> Subaccount {
 }
 
 pub fn get_canister_state() -> CanisterState {
-    let owner_principal = ic_cdk::api::id();
+    let owner_principal = ic_cdk::api::canister_self();
     let default_subaccount = create_default_subaccount();
 
     let account_identifier = AccountIdentifier::new(&owner_principal, &default_subaccount);
@@ -61,13 +61,13 @@ pub fn get_canister_state() -> CanisterState {
 }
 
 pub fn handle_cycle_check() {
-    let cycles = ic_cdk::api::canister_balance();
-    if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
     ic_cdk::println!("%%%%%%%%%%% Cycles balance is low: {}", Nat::from(cycles));
 
-    ic_cdk::spawn(async {
+    ic_cdk::futures::spawn(async {
         let tournament_index_result = TOURNAMENT_INDEX.lock();
         let tournament_index = match tournament_index_result {
             Ok(lock) => match *lock {
@@ -89,21 +89,21 @@ pub fn handle_cycle_check() {
         );
 
         if let Err(e) =
-            check_and_top_up_canister(ic_cdk::api::id(), tournament_index, MINIMUM_CYCLE_THRESHOLD)
+            check_and_top_up_canister(ic_cdk::api::canister_self(), tournament_index, MINIMUM_CYCLE_THRESHOLD)
                 .await
         {
             ic_cdk::println!("Failed to top up canister: {:?}", e);
         }
         ic_cdk::println!(
             "%%%%%%%%%%%%%%%% Finished requesting cycles: {}",
-            Nat::from(ic_cdk::api::canister_balance())
+            Nat::from(ic_cdk::api::canister_cycle_balance())
         );
     });
 }
 
 pub async fn handle_cycle_check_async() {
-    let cycles = ic_cdk::api::canister_balance();
-    if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
     ic_cdk::println!("%%%%%%%%%%% Cycles balance is low: {}", Nat::from(cycles));
@@ -129,14 +129,14 @@ pub async fn handle_cycle_check_async() {
     );
 
     if let Err(e) =
-        check_and_top_up_canister(ic_cdk::api::id(), tournament_index, MINIMUM_CYCLE_THRESHOLD)
+        check_and_top_up_canister(ic_cdk::api::canister_self(), tournament_index, MINIMUM_CYCLE_THRESHOLD)
             .await
     {
         ic_cdk::println!("Failed to top up canister: {:?}", e);
     }
     ic_cdk::println!(
         "%%%%%%%%%%%%%%%% Finished requesting cycles: {}",
-        Nat::from(ic_cdk::api::canister_balance())
+        Nat::from(ic_cdk::api::canister_cycle_balance())
     );
 }
 
@@ -158,12 +158,11 @@ pub async fn create_table(
         ic_cdk::println!("Error installing table canister: {:?}", e);
         return Err(TournamentError::CanisterCallError(format!("{:?}", e)));
     }
-    let raw_bytes = ic_cdk::api::management_canister::main::raw_rand().await;
+    let raw_bytes = ic_cdk::management_canister::raw_rand().await;
     let raw_bytes = raw_bytes
         .map_err(|e| {
             TournamentError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
-        })?
-        .0;
+        })?;
 
     let config = match &tournament_config.tournament_type {
         TournamentType::BuyIn(buy_in_type) => {
@@ -180,24 +179,8 @@ pub async fn create_table(
         }
     };
 
-    let (table,): (Result<PublicTable, TableError>,) = ic_cdk::call(
-        table_canister_principal,
-        "create_table",
-        (config.clone(), raw_bytes),
-    )
-    .await
-    .map_err(|e| {
-        ic_cdk::println!("Error creating table: {:?}", e);
-        TournamentError::CanisterCallError(format!("Failed to create table canister: {:?}", e))
-    })?;
+    let table = create_table_wrapper(table_canister_principal, config, raw_bytes).await?;
 
-    let table = match table {
-        Ok(table) => table,
-        Err(e) => {
-            ic_cdk::println!("Error creating table: {:?}", e);
-            return Err(TournamentError::CanisterCallError(format!("{:?}", e)));
-        }
-    };
     Ok(table)
 }
 
@@ -227,7 +210,7 @@ pub fn handle_refund(
     amount: u64,
     currency_type: String,
 ) -> Result<(), TableError> {
-    ic_cdk::spawn(async move {
+    ic_cdk::futures::spawn(async move {
         let currency = match currency_type.as_str() {
             "ICP" => Currency::ICP,
             "USDC" => Currency::CKETHToken(CKTokenSymbol::USDC),
@@ -320,13 +303,7 @@ where
 
 pub async fn check_tournament_end(remaining_players: usize) -> Result<(), TournamentError> {
     if remaining_players == 1 {
-        let (res,): (Result<(), TournamentError>,) =
-            ic_cdk::call(ic_cdk::api::id(), "handle_tournament_end", ())
-                .await
-                .map_err(|e| TournamentError::CanisterCallError(format!("{:?}", e)))?;
-        if let Err(e) = res {
-            ic_cdk::println!("Error handling tournament end: {:?}", e);
-        }
+        handle_tournament_end_wrapper(ic_cdk::api::canister_self()).await?;
     }
 
     Ok(())
@@ -334,26 +311,15 @@ pub async fn check_tournament_end(remaining_players: usize) -> Result<(), Tourna
 
 pub async fn delete_table(table_principal: Principal) -> Result<(), TournamentError> {
     handle_cycle_check();
-    let (res,): (Result<bool, TableError>,) = ic_cdk::call(table_principal, "is_game_ongoing", ())
-        .await
-        .map_err(|e| {
-            TournamentError::CanisterCallError(format!("Failed to delete table canister: {:?}", e))
-        })?;
-    if res? {
+    let res = is_game_ongoing_wrapper(table_principal).await?;
+
+    if res {
         return Err(TournamentError::CanisterCallError(
             "Cannot delete table with ongoing game".to_string(),
         ));
     } else {
-        let (res,): (Result<(), TableError>,) =
-            ic_cdk::call(table_principal, "return_all_cycles_to_index", ())
-                .await
-                .map_err(|e| {
-                    TournamentError::CanisterCallError(format!(
-                        "Failed to cleanup table canister: {:?}",
-                        e
-                    ))
-                })?;
-        res?;
+        return_all_cycles_to_index(table_principal).await?;
+
         stop_and_delete_canister(table_principal).await?;
     }
     Ok(())
@@ -566,7 +532,7 @@ pub async fn handle_lost_user_rebuy_availability(
                     ic_cdk_timers::set_timer(
                         std::time::Duration::from_secs(buy_in_options.rebuy.rebuy_window_seconds),
                         move || {
-                            ic_cdk::spawn(async move {
+                            ic_cdk::futures::spawn(async move {
                                 let tournament = {
                                     let tournament = match TOURNAMENT.lock() {
                                         Ok(tournament) => tournament,
@@ -703,7 +669,7 @@ pub async fn handle_user_kick(
     }
 
     if let Some(table_id) = table_id {
-        let res = leave_table(
+        let res = leave_table_wrapper(
             table_id,
             user_tournament_data.users_canister_principal,
             user_principal,
@@ -745,8 +711,8 @@ pub async fn transfer_cycles_to_tournament_index(
         ))?;
 
     // Transfer all cycles to the index canister
-    let res = ic_cdk::api::management_canister::main::deposit_cycles(
-        CanisterIdRecord {
+    let res = ic_cdk::management_canister::deposit_cycles(
+        &DepositCyclesArgs {
             canister_id: backend_principal,
         },
         cycles_amount,
@@ -755,9 +721,9 @@ pub async fn transfer_cycles_to_tournament_index(
 
     match res {
         Ok(_) => Ok(()),
-        Err((code, msg)) => Err(TournamentError::CanisterCallError(format!(
-            "Failed to send cycles: {}: {}",
-            code as u32, msg
+        Err(e) => Err(TournamentError::CanisterCallError(format!(
+            "Failed to send cycles: {:?}",
+            e
         ))),
     }
 }
@@ -790,29 +756,8 @@ pub async fn update_tournament_state_wrapper(
                 "Tournament index not found".to_string(),
             ))?
     };
-    let call_result: Result<(Result<(), TournamentIndexError>,), _> = ic_cdk::call(
-        tournament_index,
-        "update_tournament_state",
-        (tournament_id, new_state),
-    )
-    .await;
-
-    match call_result {
-        Ok((res,)) => match res {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                ic_cdk::println!("Error updating tournament state: {:?}", err);
-                Err(err)
-            }
-        },
-        Err(err) => {
-            ic_cdk::println!("Error in update_tournament_state call: {:?}", err);
-            Err(TournamentIndexError::CanisterCallFailed(format!(
-                "{:?}: {}",
-                err.0, err.1
-            )))
-        }
-    }
+    update_tournament_state_icc_wrapper(tournament_index, tournament_id, new_state).await?;
+    Ok(())
 }
 
 pub fn add_to_tournament_prize_pool(amount: u64) -> Result<(), TournamentError> {
@@ -857,7 +802,7 @@ pub async fn update_live_leaderboard() -> Result<(), TournamentError> {
     // Then update with latest data from tables
     for (table_id, table_info) in &tournament.tables {
         // Get table data to get current chip counts
-        match get_table(*table_id).await {
+        match get_table_wrapper(*table_id).await {
             Ok(table) => {
                 if table.users.is_empty() {
                     continue;

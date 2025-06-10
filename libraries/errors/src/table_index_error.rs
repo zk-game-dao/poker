@@ -71,8 +71,8 @@ pub enum TableIndexError {
     #[error("No table available")]
     NoTableAvailable,
 
-    #[error("Inter canister error: {0}")]
-    InterCanisterError(String),
+    #[error("Inter canister call error: {0}")]
+    CanisterCallError(String),
 
     #[error("No available tables: {0}")]
     NoAvailableTables(String),

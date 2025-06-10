@@ -40,8 +40,8 @@ pub fn transfer_tokens(
         encode_args((transfer_args,)).unwrap(),
     );
 
-    match transfer_result.expect("Failed to transfer funds") {
-        pocket_ic::WasmResult::Reply(arg) => {
+    match transfer_result {
+        Ok(arg) => {
             let block_index: Result<BlockIndex, TransferError> = candid::decode_one(&arg).unwrap();
             block_index.unwrap()
         }
@@ -82,8 +82,8 @@ pub fn transfer_icrc1_tokens(
         encode_args((transfer_args,)).unwrap(),
     );
 
-    match transfer_result.expect("Failed to transfer funds") {
-        pocket_ic::WasmResult::Reply(arg) => {
+    match transfer_result {
+        Ok(arg) => {
             let block_index: Result<u128, TransferErrorIcrc1> = candid::decode_one(&arg).unwrap();
             block_index.unwrap()
         }
@@ -120,8 +120,8 @@ pub fn approve_icrc1_tokens(
         encode_args((approve_args,)).unwrap(),
     );
 
-    match approve_result.expect("Failed to approve tokens") {
-        pocket_ic::WasmResult::Reply(arg) => {
+    match approve_result {
+        Ok(arg) => {
             let block_index: Result<u128, TransferErrorIcrc1> = candid::decode_one(&arg).unwrap();
             block_index.unwrap()
         }
@@ -154,8 +154,8 @@ pub fn approve_icrc1_tokens(
 //         encode_args((args,)).unwrap(),
 //     );
 
-//     match result.expect("Failed to check allowance") {
-//         pocket_ic::WasmResult::Reply(arg) => {
+//     match result {
+//         Ok(arg) => {
 //             let allowance: Allowance = candid::decode_one(&arg).unwrap();
 //             allowance
 //         }
@@ -165,7 +165,7 @@ pub fn approve_icrc1_tokens(
 
 impl TestEnv {
     pub fn deposit_to_test_user_index(&self, block_index: u64, user: Principal, amount: f64) {
-        let user_state: Result<pocket_ic::WasmResult, pocket_ic::UserError> =
+        let user_state =
             self.pocket_ic.update_call(
                 self.canister_ids.user_index,
                 Principal::anonymous(),
@@ -173,8 +173,8 @@ impl TestEnv {
                 encode_args((user, convert_to_e8s(amount), block_index)).unwrap(),
             );
 
-        match user_state.expect("Failed to deposit funds") {
-            pocket_ic::WasmResult::Reply(arg) => {
+        match user_state {
+            Ok(arg) => {
                 let user: Result<User, UserError> = candid::decode_one(&arg).unwrap();
                 let user = user.unwrap();
                 assert_eq!(user.balance, convert_to_e8s(amount))

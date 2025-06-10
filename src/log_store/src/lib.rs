@@ -11,8 +11,6 @@ use table::poker::game::table_functions::action_log::ActionLog;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub mod canister_geek;
-
 thread_local! {
     // The memory manager is used for simulating multiple memories. Given a `MemoryId` it can
     // return a memory that can be used by stable structures.
@@ -74,11 +72,11 @@ fn deserialize_from_bytes(
 
 #[ic_cdk::init]
 fn init() {
-    let principal = ic_cdk::api::id();
-    ic_cdk::print(format!(
+    let principal = ic_cdk::api::canister_self();
+    ic_cdk::println!(
         "Log store canister {} initialized",
         principal.to_text()
-    ));
+    );
 }
 
 #[ic_cdk::update]

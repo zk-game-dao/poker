@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use candid::{CandidType, Principal};
 use errors::user_error::UserError;
 use futures::future::join_all;
+use intercanister_call_wrappers::users_canister::{get_pure_poker_user_experience_points_wrapper, get_user_experience_points_wrapper, get_verified_pure_poker_user_experience_points_wrapper, get_verified_user_experience_points_wrapper};
 use serde::Deserialize;
 
 use crate::{
@@ -94,29 +95,11 @@ impl UserIndex {
             let futures: Vec<_> = chunk
                 .iter()
                 .map(|&users_canister| async move {
-                    match ic_cdk::call::<(), (Result<Vec<(Principal, u64)>, UserError>,)>(
-                        users_canister,
-                        "get_user_experience_points",
-                        (),
-                    )
-                    .await
-                    {
-                        Ok((res,)) => {
-                            match res {
-                                Ok(points) => points,
-                                Err(e) => {
-                                    ic_cdk::println!(
-                                        "Failed to get experience points for user {}: {:?}",
-                                        users_canister,
-                                        e
-                                    );
-                                    vec![]
-                                },
-                            }
-                        },
+                    match get_user_experience_points_wrapper(users_canister).await {
+                        Ok(points) => points,
                         Err(e) => {
                             ic_cdk::println!(
-                                "Failed to send canister call to get experience points for user {}: {:?}",
+                                "Failed to get experience points for user {}: {:?}",
                                 users_canister,
                                 e
                             );
@@ -150,29 +133,11 @@ impl UserIndex {
             let futures: Vec<_> = chunk
                 .iter()
                 .map(|&user| async move {
-                    match ic_cdk::call::<(), (Result<Vec<(Principal, u64)>, UserError>,)>(
-                        user,
-                        "get_pure_poker_user_experience_points",
-                        (),
-                    )
-                    .await
-                    {
-                        Ok((res,)) => {
-                            match res {
-                                Ok(points) => points,
-                                Err(e) => {
-                                    ic_cdk::println!(
-                                        "Failed to get experience points for user {}: {:?}",
-                                        user,
-                                        e
-                                    );
-                                    vec![]
-                                },
-                            }
-                        },
+                    match get_pure_poker_user_experience_points_wrapper(user).await {
+                        Ok(points) => points,
                         Err(e) => {
                             ic_cdk::println!(
-                                "Failed to send canister call to get experience points for user {}: {:?}",
+                                "Failed to get experience points for user {}: {:?}",
                                 user,
                                 e
                             );
@@ -206,29 +171,11 @@ impl UserIndex {
             let futures: Vec<_> = chunk
                 .iter()
                 .map(|&users_canister| async move {
-                    match ic_cdk::call::<(), (Result<Vec<(Principal, u64)>, UserError>,)>(
-                        users_canister,
-                        "get_verified_user_experience_points",
-                        (),
-                    )
-                    .await
-                    {
-                        Ok((res,)) => {
-                            match res {
-                                Ok(points) => points,
-                                Err(e) => {
-                                    ic_cdk::println!(
-                                        "Failed to get experience points for user {}: {:?}",
-                                        users_canister,
-                                        e
-                                    );
-                                    vec![]
-                                },
-                            }
-                        },
+                    match get_verified_user_experience_points_wrapper(users_canister).await {
+                        Ok(points) => points,
                         Err(e) => {
                             ic_cdk::println!(
-                                "Failed to send canister call to get experience points for user {}: {:?}",
+                                "Failed to get verified experience points for user {}: {:?}",
                                 users_canister,
                                 e
                             );
@@ -262,29 +209,11 @@ impl UserIndex {
             let futures: Vec<_> = chunk
                 .iter()
                 .map(|&user| async move {
-                    match ic_cdk::call::<(), (Result<Vec<(Principal, u64)>, UserError>,)>(
-                        user,
-                        "get_verified_pure_poker_user_experience_points",
-                        (),
-                    )
-                    .await
-                    {
-                        Ok((res,)) => {
-                            match res {
-                                Ok(points) => points,
-                                Err(e) => {
-                                    ic_cdk::println!(
-                                        "Failed to get experience points for user {}: {:?}",
-                                        user,
-                                        e
-                                    );
-                                    vec![]
-                                },
-                            }
-                        },
+                    match get_verified_pure_poker_user_experience_points_wrapper(user).await {
+                        Ok(points) => points,
                         Err(e) => {
                             ic_cdk::println!(
-                                "Failed to send canister call to get experience points for user {}: {:?}",
+                                "Failed to get verified pure poker experience points for user {}: {:?}",
                                 user,
                                 e
                             );

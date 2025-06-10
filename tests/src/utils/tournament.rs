@@ -1,6 +1,5 @@
 use candid::{decode_one, encode_args, Principal};
 use errors::{tournament_error::TournamentError, tournament_index_error::TournamentIndexError};
-use pocket_ic::WasmResult;
 use table::poker::game::table_functions::table::TableConfig;
 use tournaments::tournaments::types::{NewTournament, TournamentData};
 
@@ -19,8 +18,8 @@ impl TestEnv {
             encode_args((tournament_config.clone(), table_config.clone(), false)).unwrap(),
         );
 
-        match result.expect("Failed to create tournament") {
-            WasmResult::Reply(arg) => {
+        match result {
+            Ok(arg) => {
                 let table_id: Result<Principal, TournamentIndexError> = decode_one(&arg).unwrap();
                 table_id
             }
@@ -39,8 +38,8 @@ impl TestEnv {
             encode_args(()).unwrap(),
         );
 
-        match tournament_state.expect("Failed to get tournament") {
-            WasmResult::Reply(arg) => {
+        match tournament_state {
+            Ok(arg) => {
                 let tournament: Result<TournamentData, TournamentError> = decode_one(&arg).unwrap();
                 tournament
             }
@@ -61,8 +60,8 @@ impl TestEnv {
             encode_args((users_canister_id, user_id)).unwrap(),
         );
 
-        match result.expect("Failed to join tournament") {
-            WasmResult::Reply(arg) => {
+        match result {
+            Ok(arg) => {
                 let res: Result<(), TournamentError> = decode_one(&arg).unwrap();
                 res
             }
@@ -83,8 +82,8 @@ impl TestEnv {
             encode_args((users_canister_id, user_id)).unwrap(),
         );
 
-        match result.expect("Failed to join tournament") {
-            WasmResult::Reply(arg) => {
+        match result {
+            Ok(arg) => {
                 let res: Result<(), TournamentError> = decode_one(&arg).unwrap();
                 res
             }
@@ -106,8 +105,8 @@ impl TestEnv {
             encode_args((user_principal, wallet_principal_id, table_id)).unwrap(),
         );
 
-        match result.expect("Failed to rebuy into tournament") {
-            WasmResult::Reply(arg) => {
+        match result {
+            Ok(arg) => {
                 let res: Result<(), TournamentError> = decode_one(&arg).unwrap();
                 res
             }
@@ -129,8 +128,8 @@ impl TestEnv {
             encode_args((user_principal, table_id, wallet_principal_id)).unwrap(),
         );
 
-        match result.expect("Failed to refill chips") {
-            WasmResult::Reply(arg) => {
+        match result {
+            Ok(arg) => {
                 let res: Result<(), TournamentError> = decode_one(&arg).unwrap();
                 res
             }
@@ -151,8 +150,8 @@ impl TestEnv {
             encode_args((user_principal, table_id)).unwrap(),
         );
 
-        match result.expect("Failed to handle user losing") {
-            WasmResult::Reply(arg) => {
+        match result {
+            Ok(arg) => {
                 let res: Result<(), TournamentError> = decode_one(&arg).unwrap();
                 res
             }

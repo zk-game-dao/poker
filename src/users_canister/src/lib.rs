@@ -1,7 +1,6 @@
 use authentication::validate_caller;
 use candid::Principal;
 use canister_functions::cycle::check_and_top_up_canister;
-use currency::Currency;
 use errors::user_error::UserError;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
 use ic_verifiable_credentials::{
@@ -12,7 +11,6 @@ use user::user::{User, UserAvatar};
 
 use std::{collections::HashMap, sync::Mutex};
 
-pub mod canister_geek;
 mod memory;
 
 const MINIMUM_CYCLE_THRESHOLD: u128 = 350_000_000_000;
@@ -43,11 +41,11 @@ lazy_static! {
 }
 
 fn handle_cycle_check() {
-    let cycles = ic_cdk::api::canister_balance();
-    if cycles as u128 >= MINIMUM_CYCLE_THRESHOLD {
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
-    ic_cdk::spawn(async {
+    ic_cdk::futures::spawn(async {
         let user_index_result = USER_INDEX_PRINCIPAL.lock();
         let user_index = match user_index_result {
             Ok(lock) => match *lock {
@@ -64,7 +62,7 @@ fn handle_cycle_check() {
         };
 
         if let Err(e) =
-            check_and_top_up_canister(ic_cdk::api::id(), user_index, MINIMUM_CYCLE_THRESHOLD).await
+            check_and_top_up_canister(ic_cdk::api::canister_self(), user_index, MINIMUM_CYCLE_THRESHOLD).await
         {
             ic_cdk::println!("Failed to top up canister: {:?}", e);
         }
@@ -73,11 +71,11 @@ fn handle_cycle_check() {
 
 #[ic_cdk::init]
 fn init() {
-    let principal = ic_cdk::api::id();
-    ic_cdk::print(format!(
+    let principal = ic_cdk::api::canister_self();
+    ic_cdk::println!(
         "Users canister {} initialized",
         principal.to_text()
-    ));
+    );
 }
 
 #[ic_cdk::query]
@@ -107,14 +105,14 @@ fn create_user(
     {
         *USER_INDEX_PRINCIPAL
             .lock()
-            .map_err(|_| UserError::LockError)? = Some(ic_cdk::api::caller());
+            .map_err(|_| UserError::LockError)? = Some(ic_cdk::api::msg_caller());
     }
 
     handle_cycle_check();
 
     let user = User::new(
         internet_identity_principal_id,
-        ic_cdk::api::id(),
+        ic_cdk::api::canister_self(),
         user_name,
         0,
         address,
@@ -222,26 +220,23 @@ fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
     Ok(user.active_tables.clone())
 }
 
-#[ic_cdk::query]
-fn get_cycles() -> String {
-    let cycles = ic_cdk::api::canister_balance();
-    format!("Cycles: {}", cycles)
-}
-
 #[ic_cdk::update]
 fn add_experience_points(
     experience_points: u64,
-    currency: Currency,
+    currency: String,
     user_id: Principal,
 ) -> Result<User, UserError> {
     handle_cycle_check();
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = user.get_mut(&user_id)
         .ok_or(UserError::UserNotFound)?;
-    match currency {
-        Currency::BTC => user.add_pure_poker_experience_points(experience_points),
-        _ => user.add_experience_points(experience_points),
+
+    if currency == *"BTC" {
+        user.add_pure_poker_experience_points(experience_points);
+    } else {
+        user.add_experience_points(experience_points);
     }
+    
     Ok(user.clone())
 }
 

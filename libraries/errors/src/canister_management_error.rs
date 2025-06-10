@@ -30,4 +30,7 @@ pub enum CanisterManagementError {
 
     #[error("{0}")]
     QueryError(String),
+
+    #[error("Failed to call canister: {0}")]
+    CanisterCallError(String),
 }
