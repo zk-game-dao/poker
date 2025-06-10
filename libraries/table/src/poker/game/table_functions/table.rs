@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
+#[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+use crate::table_canister::{
+    add_experience_points_wrapper, handle_user_losing_wrapper, withdraw_rake_wrapper,
+};
 use candid::{CandidType, Principal};
 use errors::game_error::GameError;
-#[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
-use crate::table_canister::{add_experience_points_wrapper, withdraw_rake_wrapper, handle_user_losing_wrapper};
 use errors::trace_err;
 use errors::traced_error::TracedError;
 use ic_cdk_timers::TimerId;
@@ -623,20 +625,25 @@ impl Table {
                             } else {
                                 continue;
                             };
-                        
+
                         let users_canister_id = match self.users.get(&user_principal) {
                             Some(user) => user.users_canister_id,
                             None => continue,
                         };
-    
+
                         match self.config.currency_type {
                             CurrencyType::Fake => {}
                             CurrencyType::Real(currency) => {
                                 ic_cdk::futures::spawn(async move {
-                                    match add_experience_points_wrapper(users_canister_id, user_principal, experience_points, currency.to_string())
-                                        .await
+                                    match add_experience_points_wrapper(
+                                        users_canister_id,
+                                        user_principal,
+                                        experience_points,
+                                        currency.to_string(),
+                                    )
+                                    .await
                                     {
-                                        Ok(_res) => {},
+                                        Ok(_res) => {}
                                         Err(_err) => {}
                                     }
                                 });

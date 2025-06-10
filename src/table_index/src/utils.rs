@@ -1,7 +1,7 @@
 use candid::Principal;
-use errors::{table_index_error::TableIndexError};
+use errors::table_index_error::TableIndexError;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
-use table::poker::game::{table_functions::table::TableConfig};
+use table::poker::game::table_functions::table::TableConfig;
 
 use crate::TABLE_PLAYER_COUNTS;
 

@@ -5,7 +5,9 @@ use canister_functions::leaderboard_utils::{
 };
 use errors::user_error::UserError;
 use ic_cdk_timers::TimerId;
-use intercanister_call_wrappers::users_canister::{clear_experience_points_wrapper, clear_pure_poker_experience_points_wrapper, get_user_wrapper};
+use intercanister_call_wrappers::users_canister::{
+    clear_experience_points_wrapper, clear_pure_poker_experience_points_wrapper, get_user_wrapper,
+};
 
 use crate::{CURRENCY_MANAGER, USER_INDEX_STATE};
 
@@ -103,7 +105,12 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
         // If user is not verified they are not eligible for payout.
         if user_obj.is_verified.unwrap_or(false) {
             let amount = calculate_amount_to_transfer(PERCENTAGE_PAYOUT[i]);
-            ic_cdk::println!("Transferring {} ICP to user {} with principal {}", amount, user_obj.user_name, user.to_text());
+            ic_cdk::println!(
+                "Transferring {} ICP to user {} with principal {}",
+                amount,
+                user_obj.user_name,
+                user.to_text()
+            );
             match currency_manager
                 .withdraw(&currency::Currency::ICP, user, amount)
                 .await
@@ -125,7 +132,11 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
 
     for user_canister in user_canisters {
         if let Err(e) = clear_experience_points_wrapper(user_canister).await {
-            ic_cdk::println!("Failed to clear experience points for user canister {}: {:?}", user_canister.to_text(), e);
+            ic_cdk::println!(
+                "Failed to clear experience points for user canister {}: {:?}",
+                user_canister.to_text(),
+                e
+            );
             continue;
         }
     }
@@ -180,7 +191,12 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
         // If user is not verified they are not eligible for payout.
         if user_obj.is_verified.unwrap_or(false) {
             let amount = calculate_amount_to_transfer_pure_poker(PERCENTAGE_PAYOUT[i]);
-            ic_cdk::println!("Transferring {} BTC to user {} with principal {}", amount, user_obj.user_name, user.to_text());
+            ic_cdk::println!(
+                "Transferring {} BTC to user {} with principal {}",
+                amount,
+                user_obj.user_name,
+                user.to_text()
+            );
             match currency_manager
                 .withdraw(&currency::Currency::BTC, user, amount)
                 .await
@@ -202,7 +218,11 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
 
     for user_canister in user_canisters {
         if let Err(e) = clear_pure_poker_experience_points_wrapper(user_canister).await {
-            ic_cdk::println!("Failed to clear pure poker experience points for user canister {}: {:?}", user_canister.to_text(), e);
+            ic_cdk::println!(
+                "Failed to clear pure poker experience points for user canister {}: {:?}",
+                user_canister.to_text(),
+                e
+            );
             continue;
         }
     }

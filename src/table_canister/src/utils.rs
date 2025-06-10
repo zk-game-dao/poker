@@ -2,7 +2,10 @@ use candid::Principal;
 use canister_functions::cycle::check_and_top_up_canister;
 use errors::table_error::TableError;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
-use intercanister_call_wrappers::{table_index::update_table_player_count_wrapper, tournament_canister::update_player_count_tournament_wrapper};
+use intercanister_call_wrappers::{
+    table_index::update_table_player_count_wrapper,
+    tournament_canister::update_player_count_tournament_wrapper,
+};
 use table::poker::game::table_functions::types::CurrencyType;
 use tournaments::tournaments::types::UserTournamentAction;
 
@@ -59,8 +62,12 @@ pub fn handle_cycle_check() {
             }
         };
 
-        if let Err(e) =
-            check_and_top_up_canister(ic_cdk::api::canister_self(), table_index, MINIMUM_CYCLE_THRESHOLD).await
+        if let Err(e) = check_and_top_up_canister(
+            ic_cdk::api::canister_self(),
+            table_index,
+            MINIMUM_CYCLE_THRESHOLD,
+        )
+        .await
         {
             ic_cdk::println!("Failed to top up canister: {:?}", e);
         }
@@ -95,7 +102,13 @@ pub fn update_player_count_tournament(user_action: UserTournamentAction) -> Resu
         }
     };
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = update_player_count_tournament_wrapper(backend_principal, ic_cdk::api::canister_self(), user_action).await {
+        if let Err(e) = update_player_count_tournament_wrapper(
+            backend_principal,
+            ic_cdk::api::canister_self(),
+            user_action,
+        )
+        .await
+        {
             ic_cdk::println!("Failed to update player count in tournament: {:?}", e);
         }
     });
@@ -119,7 +132,13 @@ pub fn update_table_player_count(user_count: usize) -> Result<(), TableError> {
     };
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = update_table_player_count_wrapper(backend_principal, ic_cdk::api::canister_self(), user_count).await {
+        if let Err(e) = update_table_player_count_wrapper(
+            backend_principal,
+            ic_cdk::api::canister_self(),
+            user_count,
+        )
+        .await
+        {
             ic_cdk::println!("Failed to update table player count: {:?}", e);
         }
     });
@@ -143,7 +162,8 @@ pub fn handle_table_validity_check() -> Result<(), TableError> {
 pub fn get_user_index_principal(table_index_principal: Principal) -> Principal {
     if table_index_principal == Principal::from_text("zbspl-ziaaa-aaaam-qbe2q-cai").unwrap() {
         Principal::from_text("lvq5c-nyaaa-aaaam-qdswa-cai").unwrap()
-    } else if table_index_principal == Principal::from_text("e4yx7-lqaaa-aaaah-qdslq-cai").unwrap() {
+    } else if table_index_principal == Principal::from_text("e4yx7-lqaaa-aaaah-qdslq-cai").unwrap()
+    {
         Principal::from_text("m3tym-daaaa-aaaah-qqbsq-cai").unwrap()
     } else {
         Principal::from_text("txyno-ch777-77776-aaaaq-cai").unwrap()
@@ -161,10 +181,10 @@ pub async fn handle_last_user_leaving() -> Result<(), TableError> {
         table.clone()
     };
     let currency_manager = {
-        let currency_manager = CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TableError::LockError)?;
-        currency_manager.clone().ok_or(TableError::StateNotInitialized)?
+        let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| TableError::LockError)?;
+        currency_manager
+            .clone()
+            .ok_or(TableError::StateNotInitialized)?
     };
 
     match table.config.currency_type {

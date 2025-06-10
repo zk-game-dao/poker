@@ -1,7 +1,9 @@
 use candid::Principal;
 use errors::canister_management_error::CanisterManagementError;
 use ic_cdk::management_canister::{
-    canister_status, create_canister_with_extra_cycles, delete_canister, install_code, stop_canister, CanisterInstallMode, CanisterSettings, CanisterStatusArgs, CanisterStatusType, CreateCanisterArgs, DeleteCanisterArgs, InstallCodeArgs, StopCanisterArgs
+    canister_status, create_canister_with_extra_cycles, delete_canister, install_code,
+    stop_canister, CanisterInstallMode, CanisterSettings, CanisterStatusArgs, CanisterStatusType,
+    CreateCanisterArgs, DeleteCanisterArgs, InstallCodeArgs, StopCanisterArgs,
 };
 
 pub mod cycle;
@@ -34,7 +36,9 @@ pub async fn create_canister_wrapper(
             memory_allocation: None,
             freezing_threshold: None,
             reserved_cycles_limit: None,
-            log_visibility: Some(ic_cdk::management_canister::LogVisibility::AllowedViewers(controller_principals.clone())),
+            log_visibility: Some(ic_cdk::management_canister::LogVisibility::AllowedViewers(
+                controller_principals.clone(),
+            )),
             wasm_memory_limit: None,
             wasm_memory_threshold: None,
         }),

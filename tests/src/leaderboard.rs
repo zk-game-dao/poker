@@ -56,8 +56,7 @@ fn test_experience_points_reset_and_payout() {
     // Get timestamp for Sunday 00:00:00 UTC
     let sunday_midnight = {
         let current_time = test_env.pocket_ic.get_time();
-        let now = current_time
-            .as_nanos_since_unix_epoch() / 1_000_000_000;
+        let now = current_time.as_nanos_since_unix_epoch() / 1_000_000_000;
         let days_since_epoch = now / 86400;
         let current_day = (days_since_epoch + 4) % 7;
         let days_to_sunday = (8 - current_day) % 7;
@@ -134,8 +133,7 @@ fn test_experience_points_reset_and_payout_btc() {
     // Get timestamp for Sunday 00:00:00 UTC
     let sunday_midnight = {
         let current_time = test_env.pocket_ic.get_time();
-        let now = current_time
-            .as_nanos_since_unix_epoch() / 1_000_000_000;
+        let now = current_time.as_nanos_since_unix_epoch() / 1_000_000_000;
         let days_since_epoch = now / 86400;
         let current_day = (days_since_epoch + 4) % 7;
         let days_to_sunday = (8 - current_day) % 7;

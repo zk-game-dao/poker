@@ -80,10 +80,7 @@ fn deserialize_from_bytes(
 #[ic_cdk::init]
 fn init() {
     let principal = ic_cdk::api::canister_self();
-    ic_cdk::println!(
-        "Log store canister {} initialized",
-        principal.to_text()
-    );
+    ic_cdk::println!("Log store canister {} initialized", principal.to_text());
 }
 
 #[ic_cdk::update]
@@ -197,11 +194,13 @@ async fn get_canister_status_formatted() -> Result<(), LogStoreError> {
     validate_caller(controllers);
 
     // Call the management canister to get status
-    let canister_status_arg = CanisterStatusArgs { canister_id: ic_cdk::api::canister_self() };
-    
-    let status_response = canister_status(&canister_status_arg)
-        .await
-        .map_err(|e| LogStoreError::CanisterCallError(format!("Failed to get canister status: {:?}", e)))?;
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
+
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        LogStoreError::CanisterCallError(format!("Failed to get canister status: {:?}", e))
+    })?;
 
     // Format the status into a readable string
     let formatted_status = format!(
@@ -220,10 +219,12 @@ async fn get_canister_status_formatted() -> Result<(), LogStoreError> {
         ic_cdk::api::canister_self().to_text(),
         status_response.status,
         status_response.memory_size,
-        status_response.memory_size.clone() / Nat::from(1_048_576 as u64), // Convert to MB
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
         status_response.cycles,
-        status_response.cycles.clone() / Nat::from(1_000_000_000_000 as u64), // Convert to T cycles
-        status_response.settings.controllers
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
             .iter()
             .map(|p| p.to_string())
             .collect::<Vec<_>>()

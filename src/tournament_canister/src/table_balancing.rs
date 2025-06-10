@@ -2,15 +2,20 @@ use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 use candid::Principal;
 use errors::{table_error::TableError, tournament_error::TournamentError};
-use intercanister_call_wrappers::tournament_canister::{add_to_table_pool_wrapper, ensure_principal_is_controller};
-use table::table_canister::{get_players_on_table, leave_table_for_table_balancing, set_as_final_table_wrapper};
+use intercanister_call_wrappers::tournament_canister::{
+    add_to_table_pool_wrapper, ensure_principal_is_controller,
+};
+use table::table_canister::{
+    get_players_on_table, leave_table_for_table_balancing, set_as_final_table_wrapper,
+};
 use tournaments::tournaments::{
     tournament_type::{TournamentSizeType, TournamentType},
     types::{TournamentData, TournamentState},
 };
 
 use crate::{
-    utils::{move_player_from_current_players_to_all_players, update_tournament_state}, LAST_BALANCE_TIMESTAMP, LEADERBOARD, TOURNAMENT, TOURNAMENT_INDEX
+    utils::{move_player_from_current_players_to_all_players, update_tournament_state},
+    LAST_BALANCE_TIMESTAMP, LEADERBOARD, TOURNAMENT, TOURNAMENT_INDEX,
 };
 
 pub async fn check_and_balance_tables(skip_check: bool) -> Result<(), TournamentError> {
@@ -175,11 +180,11 @@ async fn synchronize_tables(
 ) -> Result<HashMap<Principal, Vec<Principal>>, TournamentError> {
     let mut cached_tables = HashMap::new();
     let mut players_on_tables = HashSet::new();
-    
+
     for table in &mut tournament.tables {
         let public_table_players = get_players_on_table(*table.0).await?;
         cached_tables.insert(*table.0, public_table_players.clone());
-        
+
         players_on_tables.extend(public_table_players.iter().copied());
 
         if public_table_players.len() != table.1.players.len() {
@@ -211,22 +216,20 @@ async fn synchronize_tables(
     if unassigned_players.len() == tournament.current_players.len() {
         return Ok(cached_tables);
     }
-    
+
     for player in unassigned_players {
         match move_player_from_current_players_to_all_players(tournament, &vec![player]) {
-            Ok(_) => {
-                match LEADERBOARD.lock() {
-                    Ok(mut leaderboard) => {
-                        if !leaderboard.contains(&player) {
-                            leaderboard.push(player)
-                        }
-                    }
-                    Err(e) => {
-                        ic_cdk::println!("Error getting leaderboard: {:?}", e);
-                        return Err(TournamentError::LockError);
+            Ok(_) => match LEADERBOARD.lock() {
+                Ok(mut leaderboard) => {
+                    if !leaderboard.contains(&player) {
+                        leaderboard.push(player)
                     }
                 }
-            }
+                Err(e) => {
+                    ic_cdk::println!("Error getting leaderboard: {:?}", e);
+                    return Err(TournamentError::LockError);
+                }
+            },
             Err(e) => {
                 ic_cdk::println!("Error moving player {}: {:?}", player.to_text(), e);
             }

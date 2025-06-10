@@ -11,7 +11,6 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 const MAX_USERS_SIZE: u32 = 1_000_000_000; // 100MB, adjust as needed
 
-
 // Implement Storable for TournamentIndex
 impl Storable for Users {
     fn to_bytes(&self) -> Cow<[u8]> {

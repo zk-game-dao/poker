@@ -2,9 +2,7 @@ use std::{collections::HashMap, sync::atomic::Ordering};
 
 use candid::{Nat, Principal};
 use canister_functions::{
-    create_canister_wrapper,
-    cycle::check_and_top_up_canister,
-    install_wasm_code,
+    create_canister_wrapper, cycle::check_and_top_up_canister, install_wasm_code,
     stop_and_delete_canister,
 };
 use currency::{types::currency::CKTokenSymbol, Currency};
@@ -14,11 +12,19 @@ use errors::{
 };
 use ic_cdk::management_canister::DepositCyclesArgs;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
-use intercanister_call_wrappers::tournament_canister::{handle_tournament_end_wrapper, update_tournament_state_icc_wrapper};
-use table::{poker::game::{
-    table_functions::{table::TableConfig, types::CurrencyType},
-    types::PublicTable,
-}, table_canister::{create_table_wrapper, deposit_to_table, get_table_wrapper, is_game_ongoing_wrapper, join_table, leave_table_wrapper, return_all_cycles_to_index}};
+use intercanister_call_wrappers::tournament_canister::{
+    handle_tournament_end_wrapper, update_tournament_state_icc_wrapper,
+};
+use table::{
+    poker::game::{
+        table_functions::{table::TableConfig, types::CurrencyType},
+        types::PublicTable,
+    },
+    table_canister::{
+        create_table_wrapper, deposit_to_table, get_table_wrapper, is_game_ongoing_wrapper,
+        join_table, leave_table_wrapper, return_all_cycles_to_index,
+    },
+};
 use tournaments::tournaments::{
     tournament_type::{TournamentSizeType, TournamentType},
     types::{TournamentData, TournamentState},
@@ -88,9 +94,12 @@ pub fn handle_cycle_check() {
             tournament_index.to_text()
         );
 
-        if let Err(e) =
-            check_and_top_up_canister(ic_cdk::api::canister_self(), tournament_index, MINIMUM_CYCLE_THRESHOLD)
-                .await
+        if let Err(e) = check_and_top_up_canister(
+            ic_cdk::api::canister_self(),
+            tournament_index,
+            MINIMUM_CYCLE_THRESHOLD,
+        )
+        .await
         {
             ic_cdk::println!("Failed to top up canister: {:?}", e);
         }
@@ -128,9 +137,12 @@ pub async fn handle_cycle_check_async() {
         tournament_index.to_text()
     );
 
-    if let Err(e) =
-        check_and_top_up_canister(ic_cdk::api::canister_self(), tournament_index, MINIMUM_CYCLE_THRESHOLD)
-            .await
+    if let Err(e) = check_and_top_up_canister(
+        ic_cdk::api::canister_self(),
+        tournament_index,
+        MINIMUM_CYCLE_THRESHOLD,
+    )
+    .await
     {
         ic_cdk::println!("Failed to top up canister: {:?}", e);
     }
@@ -159,10 +171,9 @@ pub async fn create_table(
         return Err(TournamentError::CanisterCallError(format!("{:?}", e)));
     }
     let raw_bytes = ic_cdk::management_canister::raw_rand().await;
-    let raw_bytes = raw_bytes
-        .map_err(|e| {
-            TournamentError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
-        })?;
+    let raw_bytes = raw_bytes.map_err(|e| {
+        TournamentError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
+    })?;
 
     let config = match &tournament_config.tournament_type {
         TournamentType::BuyIn(buy_in_type) => {

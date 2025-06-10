@@ -81,20 +81,19 @@ impl TestEnv {
         seat_index: u64,
         player_sitting_out: bool,
     ) -> Result<PublicTable, TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "join_table",
-                encode_args((
-                    user,               // user_principal
-                    user_id,            // wallet_principal_id
-                    Some(seat_index),   // seat_index as Option<u64>
-                    deposit_amount,     // deposit_amount
-                    player_sitting_out, // player_sitting_out
-                ))
-                .unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "join_table",
+            encode_args((
+                user,               // user_principal
+                user_id,            // wallet_principal_id
+                Some(seat_index),   // seat_index as Option<u64>
+                deposit_amount,     // deposit_amount
+                player_sitting_out, // player_sitting_out
+            ))
+            .unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -106,12 +105,9 @@ impl TestEnv {
     }
 
     pub fn pause_table(&self, table_id: Principal) -> Result<(), TableError> {
-        let res = self.pocket_ic.update_call(
-            table_id,
-            table_id,
-            "pause_table",
-            encode_args(()).unwrap(),
-        );
+        let res =
+            self.pocket_ic
+                .update_call(table_id, table_id, "pause_table", encode_args(()).unwrap());
 
         match res {
             Ok(arg) => {
@@ -145,13 +141,12 @@ impl TestEnv {
         user: Principal,
         wallet_principal_id: Principal,
     ) -> Result<PublicTable, TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                wallet_principal_id,
-                "leave_table",
-                encode_args((user, wallet_principal_id)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            wallet_principal_id,
+            "leave_table",
+            encode_args((user, wallet_principal_id)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -163,13 +158,12 @@ impl TestEnv {
     }
 
     pub fn start_betting_round_test_table(&self, table_id: Principal) -> Result<(), TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                table_id,
-                "start_new_betting_round",
-                candid::encode_args(()).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            table_id,
+            "start_new_betting_round",
+            candid::encode_args(()).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -181,13 +175,12 @@ impl TestEnv {
     }
 
     pub fn player_sitting_out_test_table(&self, table_id: Principal, user_id: Principal) {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                user_id,
-                "player_sitting_out",
-                candid::encode_args((user_id,)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user_id,
+            "player_sitting_out",
+            candid::encode_args((user_id,)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -204,13 +197,12 @@ impl TestEnv {
         user: Principal,
         users_canister_id: Principal,
     ) -> Result<(), TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "player_sitting_in",
-                candid::encode_args((users_canister_id, user, true)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "player_sitting_in",
+            candid::encode_args((users_canister_id, user, true)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -227,13 +219,12 @@ impl TestEnv {
         user: Principal,
         bet_type: BetType,
     ) -> Result<(), TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "place_bet",
-                candid::encode_args((user, bet_type)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "place_bet",
+            candid::encode_args((user, bet_type)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -245,13 +236,12 @@ impl TestEnv {
     }
 
     pub fn player_check(&self, table_id: Principal, user: Principal) -> Result<(), TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "check",
-                candid::encode_args((user,)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "check",
+            candid::encode_args((user,)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -263,13 +253,12 @@ impl TestEnv {
     }
 
     pub fn player_fold(&self, table_id: Principal, user: Principal) -> Result<(), TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "fold",
-                candid::encode_args((user, false)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "fold",
+            candid::encode_args((user, false)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -287,13 +276,12 @@ impl TestEnv {
         user_id: Principal,
         amount: u64,
     ) -> Result<ReturnResult, TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                user_id,
-                "deposit_to_table",
-                candid::encode_args((users_canister_id, user_id, amount, false)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user_id,
+            "deposit_to_table",
+            candid::encode_args((users_canister_id, user_id, amount, false)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -311,13 +299,12 @@ impl TestEnv {
         wallet_principal_id: Principal,
         amount: u64,
     ) -> Result<(), TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                wallet_principal_id,
-                "withdraw_from_table",
-                candid::encode_args((wallet_principal_id, amount)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            wallet_principal_id,
+            "withdraw_from_table",
+            candid::encode_args((wallet_principal_id, amount)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {
@@ -493,13 +480,12 @@ impl TestEnv {
         user: Principal,
         amount: u64,
     ) -> Result<table::types::ReturnResult, TableError> {
-        let table_state =
-            self.pocket_ic.update_call(
-                table_id,
-                user,
-                "deposit_to_table",
-                candid::encode_args((user, user, amount, false)).unwrap(),
-            );
+        let table_state = self.pocket_ic.update_call(
+            table_id,
+            user,
+            "deposit_to_table",
+            candid::encode_args((user, user, amount, false)).unwrap(),
+        );
 
         match table_state {
             Ok(arg) => {

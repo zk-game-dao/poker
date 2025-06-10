@@ -1,15 +1,19 @@
 use authentication::validate_caller;
 use candid::{Nat, Principal};
-use canister_functions::{
-    cycle::top_up_canister,
-    rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL,
-};
+use canister_functions::{cycle::top_up_canister, rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL};
 use currency::{state::TransactionState, types::currency_manager::CurrencyManager, Currency};
 use errors::{
     canister_management_error::CanisterManagementError, tournament_error::TournamentError,
 };
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
-use intercanister_call_wrappers::{tournament_canister::{add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller, handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper, user_leave_tournament_wrapper}, users_canister::get_user_wrapper};
+use intercanister_call_wrappers::{
+    tournament_canister::{
+        add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller,
+        handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper,
+        user_leave_tournament_wrapper,
+    },
+    users_canister::get_user_wrapper,
+};
 use lazy_static::lazy_static;
 use std::{
     collections::HashSet,
@@ -18,13 +22,16 @@ use std::{
         Mutex,
     },
 };
-use table::{poker::game::{
-    table_functions::{
-        table::{TableConfig, TableType},
-        types::CurrencyType
+use table::{
+    poker::game::{
+        table_functions::{
+            table::{TableConfig, TableType},
+            types::CurrencyType,
+        },
+        types::PublicTable,
     },
-    types::PublicTable,
-}, table_canister::{clear_table, get_table_wrapper, join_table, leave_table_wrapper}};
+    table_canister::{clear_table, get_table_wrapper, join_table, leave_table_wrapper},
+};
 use table_balancing::{check_and_balance_tables, move_player_to_table};
 use tournaments::tournaments::{
     table_balancing::get_balance_interval,
@@ -33,7 +40,10 @@ use tournaments::tournaments::{
     utils::calculate_rake,
 };
 use utils::{
-    add_to_tournament_prize_pool, handle_addon, handle_cycle_check, handle_cycle_check_async, handle_invalid_join, handle_lost_user_rebuy_availability, handle_rebuy, handle_reentry, handle_refund, handle_tournament_deposit, transfer_cycles_to_tournament_index, update_live_leaderboard, update_tournament_state, LEADERBOARD_UPDATE_INTERVAL
+    add_to_tournament_prize_pool, handle_addon, handle_cycle_check, handle_cycle_check_async,
+    handle_invalid_join, handle_lost_user_rebuy_availability, handle_rebuy, handle_reentry,
+    handle_refund, handle_tournament_deposit, transfer_cycles_to_tournament_index,
+    update_live_leaderboard, update_tournament_state, LEADERBOARD_UPDATE_INTERVAL,
 };
 
 pub mod heartbeat;
@@ -378,7 +388,9 @@ async fn handle_cancelled_tournament() -> Result<(), TournamentError> {
     update_tournament_state(TournamentState::Cancelled).await?;
 
     for (user_principal, tournament_data) in tournament.current_players.iter() {
-        let user = match get_user_wrapper(tournament_data.users_canister_principal, *user_principal).await {
+        let user = match get_user_wrapper(tournament_data.users_canister_principal, *user_principal)
+            .await
+        {
             Ok(user) => user,
             Err(e) => {
                 ic_cdk::println!("Error getting user: {:?}", e);
@@ -436,7 +448,9 @@ async fn handle_cancelled_tournament() -> Result<(), TournamentError> {
     }
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = return_all_cycles_to_tournament_index_wrapper(ic_cdk::api::canister_self()).await {
+        if let Err(e) =
+            return_all_cycles_to_tournament_index_wrapper(ic_cdk::api::canister_self()).await
+        {
             ic_cdk::println!("Error returning cycles to tournament index: {:?}", e);
         }
     });
@@ -454,11 +468,7 @@ async fn user_leave_tournament(
         let tournament_state = tournament_state.as_mut();
 
         if let Some(tournament_state) = tournament_state {
-            validate_caller(vec![
-                tournament_state.id,
-                users_canister_id,
-                user_id,
-            ]);
+            validate_caller(vec![tournament_state.id, users_canister_id, user_id]);
             tournament_state.current_players.remove(&user_id);
             tournament_state.clone()
         } else {
@@ -900,7 +910,9 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
         }
     }
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = return_all_cycles_to_tournament_index_wrapper(ic_cdk::api::canister_self()).await {
+        if let Err(e) =
+            return_all_cycles_to_tournament_index_wrapper(ic_cdk::api::canister_self()).await
+        {
             ic_cdk::println!("Error returning cycles to tournament index: {:?}", e);
         }
     });
@@ -1057,7 +1069,7 @@ async fn handle_user_losing(
     table_id: Principal,
 ) -> Result<(), TournamentError> {
     handle_cycle_check();
-    
+
     let tournament = {
         let tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
         let tournament = tournament
@@ -1293,7 +1305,6 @@ async fn transfer_cycles(cycles_amount: u128, caller: Principal) -> Result<(), T
     Ok(())
 }
 
-
 #[ic_cdk::update]
 async fn get_canister_status_formatted() -> Result<(), TournamentError> {
     // Validate caller is a controller
@@ -1303,11 +1314,13 @@ async fn get_canister_status_formatted() -> Result<(), TournamentError> {
     handle_cycle_check();
 
     // Call the management canister to get status
-    let canister_status_arg = CanisterStatusArgs { canister_id: ic_cdk::api::canister_self() };
-    
-    let status_response = canister_status(&canister_status_arg)
-        .await
-        .map_err(|e| TournamentError::CanisterCallError(format!("Failed to get canister status: {:?}", e)))?;
+    let canister_status_arg = CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
+    };
+
+    let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
+        TournamentError::CanisterCallError(format!("Failed to get canister status: {:?}", e))
+    })?;
 
     // Format the status into a readable string
     let formatted_status = format!(
@@ -1326,10 +1339,12 @@ async fn get_canister_status_formatted() -> Result<(), TournamentError> {
         ic_cdk::api::canister_self().to_text(),
         status_response.status,
         status_response.memory_size,
-        status_response.memory_size.clone() / Nat::from(1_048_576 as u64), // Convert to MB
+        status_response.memory_size.clone() / Nat::from(1_048_576_u64), // Convert to MB
         status_response.cycles,
-        status_response.cycles.clone() / Nat::from(1_000_000_000_000 as u64), // Convert to T cycles
-        status_response.settings.controllers
+        status_response.cycles.clone() / Nat::from(1_000_000_000_000_u64), // Convert to T cycles
+        status_response
+            .settings
+            .controllers
             .iter()
             .map(|p| p.to_string())
             .collect::<Vec<_>>()

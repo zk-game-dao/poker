@@ -6,7 +6,10 @@ use errors::trace_err;
 use errors::traced_error::TracedError;
 
 use crate::poker::game::types::{GameType, QueueItem};
-use crate::table_canister::{deposit_to_table, get_table_wrapper, join_table, resume_table_wrapper, start_new_betting_round_wrapper};
+use crate::table_canister::{
+    deposit_to_table, get_table_wrapper, join_table, resume_table_wrapper,
+    start_new_betting_round_wrapper,
+};
 
 use super::action_log::ActionType;
 use super::types::{CurrencyType, PlayerAction, SeatStatus, UserTableData};
@@ -711,8 +714,7 @@ impl Table {
                     if is_game_paused {
                         let table_principal = self.id;
                         ic_cdk::futures::spawn(async move {
-                            match start_new_betting_round_wrapper(table_principal).await
-                            {
+                            match start_new_betting_round_wrapper(table_principal).await {
                                 Ok(res) => res,
                                 Err(_err) => {}
                             }
@@ -726,10 +728,18 @@ impl Table {
                     }
                     let table_principal = self.id;
                     ic_cdk::futures::spawn(async move {
-                        match deposit_to_table(table_principal, users_canister_id, user_id, amount, true).await {
+                        match deposit_to_table(
+                            table_principal,
+                            users_canister_id,
+                            user_id,
+                            amount,
+                            true,
+                        )
+                        .await
+                        {
                             Ok(res) => {
                                 ic_cdk::println!("Deposit successful: {:?}", res);
-                            },
+                            }
                             Err(err) => {
                                 ic_cdk::println!("Error depositing to table: {:?}", err);
                             }
