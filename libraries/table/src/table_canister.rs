@@ -1,5 +1,6 @@
 use candid::Principal;
-use errors::{table_error::TableError, tournament_error::TournamentError};
+use errors::{table_error::TableError, tournament_error::TournamentError, user_error::UserError};
+use user::user::User;
 use crate::{poker::game::{table_functions::table::TableConfig, types::PublicTable}, types::ReturnResult};
 
 pub async fn create_table_wrapper(table_id: Principal, config: TableConfig, raw_bytes: Vec<u8>) -> Result<PublicTable, TableError> {
@@ -537,7 +538,7 @@ pub async fn add_experience_points_wrapper(
     user_principal: Principal,
     experience_points: u64,
     currency: String,
-) -> Result<(), TableError> {
+) -> Result<User, UserError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(
         users_canister_id,
         "add_experience_points",
@@ -550,7 +551,7 @@ pub async fn add_experience_points_wrapper(
             Ok(res) => res,
             Err(err) => {
                 ic_cdk::println!("Error adding experience points: {:?}", err);
-                Err(TableError::CanisterCallError(format!(
+                Err(UserError::CanisterCallFailed(format!(
                     "Failed to decode add_experience_points response: {:?}",
                     err
                 )))
@@ -558,7 +559,7 @@ pub async fn add_experience_points_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in add_experience_points call: {:?}", err);
-            Err(TableError::CanisterCallError(format!(
+            Err(UserError::CanisterCallFailed(format!(
                 "{:?}",
                 err
             )))
