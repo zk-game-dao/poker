@@ -489,7 +489,7 @@ Swap:
     # The minimum amount of ICP that each participant must contribute
     # to participate. This field is specified as a token. For instance,
     # "1 token".
-    minimum_participant_icp: 1 token
+    minimum_participant_icp: 33 token
 
     # The maximum amount of ICP that each participant may contribute
     # to participate. This field is specified as a token. For instance,
