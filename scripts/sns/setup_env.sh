@@ -5,17 +5,21 @@ set -euo pipefail
 # Fallback ENV
 ENV="${ENV:-local}"
 
+export DX_IDENT="dao-dev"
+
 # Configure values based on ENV
 case "$ENV" in
   prod)
     export NETWORK="https://icp-api.io"
     export DX_NETWORK="ic"
-    export DX_IDENT="dao-prod"
     ;;
-  local)
+  local-sns-testing)
     export NETWORK="http://0.0.0.0:8080"
     export DX_NETWORK="local"
-    export DX_IDENT="dao-dev"
+    ;;
+  local)
+    export NETWORK="http://127.0.0.1:4943"
+    export DX_NETWORK="local"
     ;;
   *)
     echo "Unknown ENV: $ENV"
