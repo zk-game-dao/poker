@@ -3,6 +3,8 @@
 set -euo pipefail
 
 # ----------------------------------------------
+# Treasury Transfer Script
+#
 # Usage:
 #   ./scripts/sns/treasury_transfer.sh <to_principal> <amount_e8s> [env] [memo] [message]
 #
@@ -31,10 +33,10 @@ export ENV="${3:-local}"
 MEMO="${4:-0}"
 MESSAGE="${5:-"Treasury transfer to ${TO_PRINCIPAL}"}"
 
-# Load env vars (includes NETWORK, PEM_FILE, DEVELOPER_NEURON_ID, etc.)
+# Load environment variables (sets NETWORK, PEM_FILE, DEVELOPER_NEURON_ID, etc.)
 ./scripts/sns/setup_env.sh
 
-# Generate the proposal
+# Create the treasury transfer proposal
 quill sns \
   --canister-ids-file "${REPODIR}/sns_canister_ids.json" \
   --pem-file "${PEM_FILE}" \
@@ -46,8 +48,16 @@ quill sns \
   "${DEVELOPER_NEURON_ID}" > msg.json
 
 # Submit the proposal
-quill send \
-  --insecure-local-dev-mode \
-  --yes msg.json | grep -v "new_canister_wasm"
+case "$ENV" in
+  prod)
+    quill send \
+      --yes msg.json
+    ;;
+  *)
+    quill send \
+      --insecure-local-dev-mode \
+      --yes msg.json
+    ;;
+esac
 
-echo "Treasury transfer proposal submitted successfully"
+echo "✅ Treasury transfer proposal submitted successfully."
