@@ -30,3 +30,5 @@ dist/
 .gitignore.*
 vapid.pem
 vapid.pub
+
+sns_canister_ids.json
