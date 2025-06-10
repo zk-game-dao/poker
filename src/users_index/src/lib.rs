@@ -5,9 +5,7 @@ use canister_functions::{
     create_canister_wrapper, cycle::{
         check_and_top_up_canister, get_cycle_balances, monitor_and_top_up_canisters,
         top_up_canister,
-    },
-    install_wasm_code,
-    upgrade_wasm_code,
+    }, install_wasm_code, stop_and_delete_canister, upgrade_wasm_code
 };
 use currency::types::currency_manager::CurrencyManager;
 use errors::{canister_management_error::CanisterManagementError, user_error::UserError};
@@ -640,7 +638,7 @@ async fn delete_users_canister(
     user_canister: Principal,
 ) -> Result<(), UserError> {
     // Validate caller permissions
-    let caller = ic_cdk::api::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
         return Err(UserError::AuthorizationError);
     }

@@ -319,22 +319,6 @@ type TableType = variant {
   Satellite;
 };
 type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
-type Transaction = record {
-  transaction_id : nat64;
-  transaction_type : TransactionType;
-  currency : opt text;
-  timestamp : nat64;
-  amount : nat64;
-};
-type TransactionType = variant {
-  Withdraw;
-  Deposit;
-  TableWithdraw : record { table_id : principal };
-  Transfer : record { recipient : principal; transfer_type : TransferType };
-  TableDeposit : record { table_id : principal };
-  Receive : record { sender : principal; transfer_type : TransferType };
-};
-type TransferType = variant { CardShowRequest };
 type User = record {
   experience_points_pure_poker : opt nat64;
   experience_points : opt nat64;

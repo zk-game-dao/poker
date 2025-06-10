@@ -24,20 +24,6 @@ type Result_6 = variant { Ok : nat8; Err : UserError };
 type Result_7 = variant { Ok : opt principal; Err : UserError };
 type Result_8 = variant { Ok : float64; Err : UserError };
 type Result_9 = variant { Ok; Err : text };
-type StatusRequest = record {
-  memory_size : bool;
-  cycles : bool;
-  heap_memory_size : bool;
-};
-type StatusResponse = record {
-  memory_size : opt nat64;
-  cycles : opt nat64;
-  heap_memory_size : opt nat64;
-};
-type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
-type UpdateInformationRequest = record {
-  metrics : opt CollectMetricsRequestType;
-};
 type User = record {
   experience_points_pure_poker : opt nat64;
   experience_points : opt nat64;

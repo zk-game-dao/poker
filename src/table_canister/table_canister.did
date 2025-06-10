@@ -297,9 +297,6 @@ type TableType = variant {
   Satellite;
 };
 type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
-type UpdateInformationRequest = record {
-  metrics : opt CollectMetricsRequestType;
-};
 type User = record {
   experience_points_pure_poker : opt nat64;
   experience_points : opt nat64;
