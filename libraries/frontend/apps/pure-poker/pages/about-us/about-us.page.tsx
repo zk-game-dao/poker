@@ -144,7 +144,7 @@ export const AboutUsPage = memo(() => {
             icon="/icons/multichain-green.svg"
             title="Anti-Bot"
             variant="green"
-            text="We utilise proof of humanity systems to element bots playing on our site"
+            text="We utilise proof of humanity systems (through DecideAI PoH) to element bots playing on our site"
           />
         </div>
 
@@ -187,7 +187,7 @@ export const AboutUsPage = memo(() => {
         <div className="flex flex-col lg:flex-row items-center">
           <Element
             title="The Store for any visual upgrade"
-            text="Personalize your gaming experience with unique tables, decks, environments, and other items available as NFTs."
+            text="Personalize your gaming experience with unique tables, decks, environments, and other items available as NFTs and purchaseables."
           />
           <div className="flex flex-col justify-center items-center w-full relative gap-16 my-16 lg:my-0">
             <div className="flex flex-col mr-20">
