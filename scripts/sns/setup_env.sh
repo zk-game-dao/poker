@@ -10,9 +10,10 @@ export DX_IDENT="dao-dev"
 # Configure values based on ENV
 case "$ENV" in
   prod)
-    export NETWORK="https://icp-api.io"
+    export NETWORK="ic"
     export DX_NETWORK="ic"
-    export IC_URL="$NETWORK"
+    export IC_URL="https://ic0.app"
+    export DFX_NETWORK="${NETWORK}"
     ;;
   local-sns-testing)
     export NETWORK="http://0.0.0.0:8080"
@@ -35,11 +36,6 @@ export REPODIR="$(pwd)"
 
 # Use identity
 dfx identity use "$DX_IDENT"
-
-# Optional inputs (may be set by script before calling this)
-export NAME="${NAME:-test}"
-export WASM="${WASM:-}"
-export ARG="${ARG:-()}"
 
 # Get principal and PEM
 export DX_PRINCIPAL="$(dfx identity get-principal)"
