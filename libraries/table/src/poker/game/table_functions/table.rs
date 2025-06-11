@@ -616,41 +616,40 @@ impl Table {
 
         for user_principal in self.seats.clone().into_iter() {
             if let SeatStatus::Occupied(user_principal) = user_principal {
-                if matches!(self.config.table_type, Some(TableType::Cash)) {
                     #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
-                    {
-                        let experience_points =
-                            if let Ok(table_data) = self.get_user_table_data(user_principal) {
-                                table_data.experience_points
-                            } else {
-                                continue;
-                            };
-
-                        let users_canister_id = match self.users.get(&user_principal) {
-                            Some(user) => user.users_canister_id,
-                            None => continue,
+                {
+                    let experience_points =
+                        if let Ok(table_data) = self.get_user_table_data(user_principal) {
+                            table_data.experience_points
+                        } else {
+                            continue;
                         };
 
-                        match self.config.currency_type {
-                            CurrencyType::Fake => {}
-                            CurrencyType::Real(currency) => {
-                                ic_cdk::futures::spawn(async move {
-                                    match add_experience_points_wrapper(
-                                        users_canister_id,
-                                        user_principal,
-                                        experience_points,
-                                        currency.to_string(),
-                                    )
-                                    .await
-                                    {
-                                        Ok(_res) => {}
-                                        Err(_err) => {}
-                                    }
-                                });
-                            }
-                        };
-                    }
+                    let users_canister_id = match self.users.get(&user_principal) {
+                        Some(user) => user.users_canister_id,
+                        None => continue,
+                    };
+
+                    match self.config.currency_type {
+                        CurrencyType::Fake => {}
+                        CurrencyType::Real(currency) => {
+                            ic_cdk::futures::spawn(async move {
+                                match add_experience_points_wrapper(
+                                    users_canister_id,
+                                    user_principal,
+                                    experience_points,
+                                    currency.to_string(),
+                                )
+                                .await
+                                {
+                                    Ok(_res) => {}
+                                    Err(_err) => {}
+                                }
+                            });
+                        }
+                    };
                 }
+
                 self.clear_user_table_data(user_principal)
                     .map_err(|e| trace_err!(e, "Failed to clear user table data"))?;
             }
