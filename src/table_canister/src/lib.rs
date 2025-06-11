@@ -1899,7 +1899,7 @@ fn clear_chat_history() -> Result<(), ChatError> {
 }
 
 #[ic_cdk::update]
-async fn get_canister_status_formatted() -> Result<(), TableError> {
+async fn get_canister_status_formatted() -> Result<String, TableError> {
     // Validate caller is a controller
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
@@ -1949,7 +1949,7 @@ async fn get_canister_status_formatted() -> Result<(), TableError> {
     );
 
     ic_cdk::println!("{}", formatted_status);
-    Ok(())
+    Ok(formatted_status)
 }
 
 ic_cdk::export_candid!();

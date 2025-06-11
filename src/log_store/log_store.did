@@ -42,6 +42,7 @@ type LogStoreError = variant {
 };
 type Result = variant { Ok; Err : LogStoreError };
 type Result_1 = variant { Ok : vec ActionLog; Err : LogStoreError };
+type Result_2 = variant { Ok : text; Err : LogStoreError };
 type Suit = variant { Spade; Diamond; Club; Heart };
 type Value = variant {
   Ace;
@@ -65,7 +66,7 @@ service : () -> {
   get_action_logs : (principal, nat64, nat64, opt nat32, opt nat32) -> (
       Result_1,
     ) query;
-  get_canister_status_formatted : () -> (Result);
+  get_canister_status_formatted : () -> (Result_2);
   log_action : (principal, ActionLog) -> (Result);
   log_actions : (principal, vec ActionLog) -> (Result);
 }

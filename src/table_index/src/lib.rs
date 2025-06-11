@@ -835,7 +835,7 @@ async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
 }
 
 #[ic_cdk::update]
-async fn get_canister_status_formatted() -> Result<(), TableIndexError> {
+async fn get_canister_status_formatted() -> Result<String, TableIndexError> {
     // Validate caller is a controller
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
@@ -885,7 +885,7 @@ async fn get_canister_status_formatted() -> Result<(), TableIndexError> {
     );
 
     ic_cdk::println!("{}", formatted_status);
-    Ok(())
+    Ok(formatted_status)
 }
 
 ic_cdk::export_candid!();

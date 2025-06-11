@@ -677,7 +677,7 @@ async fn delete_users_canister(user_canister: Principal) -> Result<(), UserError
 }
 
 #[ic_cdk::update]
-async fn get_canister_status_formatted() -> Result<(), UserError> {
+async fn get_canister_status_formatted() -> Result<String, UserError> {
     // Validate caller is a controller
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
@@ -727,7 +727,7 @@ async fn get_canister_status_formatted() -> Result<(), UserError> {
     );
 
     ic_cdk::println!("{}", formatted_status);
-    Ok(())
+    Ok(formatted_status)
 }
 
 ic_cdk::export_candid!();

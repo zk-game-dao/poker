@@ -223,7 +223,8 @@ type ReentryOptions = record {
 type Result = variant { Ok; Err : TournamentError };
 type Result_1 = variant { Ok : TournamentData; Err : TournamentError };
 type Result_2 = variant { Ok : nat64; Err : TournamentError };
-type Result_3 = variant {
+type Result_3 = variant { Ok : text; Err : TournamentError };
+type Result_4 = variant {
   Ok : vec record { principal; nat64 };
   Err : TournamentError;
 };
@@ -484,10 +485,10 @@ service : () -> {
   deposit_prize_pool : (nat64, principal) -> (Result);
   distribute_winnings : (PublicTable) -> (Result);
   get_balance_time_interval : () -> (Result_2) query;
-  get_canister_status_formatted : () -> (Result);
+  get_canister_status_formatted : () -> (Result_3);
   get_last_balance_timestamp : () -> (nat64) query;
-  get_leaderboard : () -> (Result_3) query;
-  get_live_leaderboard : () -> (Result_3);
+  get_leaderboard : () -> (Result_4) query;
+  get_live_leaderboard : () -> (Result_4);
   get_total_prize_pool : () -> (nat64) query;
   get_tournament : () -> (Result_1) query;
   handle_cancelled_tournament : () -> (Result);

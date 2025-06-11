@@ -745,7 +745,7 @@ async fn upgrade_tournament_canister(
 }
 
 #[ic_cdk::update]
-async fn get_canister_status_formatted() -> Result<(), TournamentIndexError> {
+async fn get_canister_status_formatted() -> Result<String, TournamentIndexError> {
     // Validate caller is a controller
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
@@ -795,7 +795,7 @@ async fn get_canister_status_formatted() -> Result<(), TournamentIndexError> {
     );
 
     ic_cdk::println!("{}", formatted_status);
-    Ok(())
+    Ok(formatted_status)
 }
 
 ic_cdk::export_candid!();
