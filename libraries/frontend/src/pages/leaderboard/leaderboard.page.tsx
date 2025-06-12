@@ -116,7 +116,7 @@ export const LeaderboardPage = memo<{ disableVerifiedLeaderboard?: boolean }>(({
         ),
         ctas: [
           { children: 'How it works', onClick: () => setHowItWorksOpen(true) },
-          { children: 'Go to lobby', href: '/', filled: true },
+          { children: 'Go to lobby', href: '/cash-games', filled: true },
         ],
       }}
     >
