@@ -1131,7 +1131,7 @@ fn get_leaderboard() -> Result<Vec<(Principal, u64)>, TournamentError> {
         all_players.len()
     };
     let mut ranked_leaderboard = Vec::new();
-    for player in leaderboard.iter().rev() {
+    for player in leaderboard.iter() {
         ranked_leaderboard.push((*player, total_players as u64));
         total_players -= 1;
     }
