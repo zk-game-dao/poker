@@ -104,7 +104,7 @@ export const AboutUsPage = memo(() => {
       subTitle: "The Worlds First Fully Onchain Bitcoin Poker Room",
       ctas: [
         { children: 'Create table', onClick: () => setModalOpen(true) },
-        { children: 'Go to lobby', href: '/lobby', filled: true }
+        { children: 'Go to lobby', href: '/cash-games', filled: true }
       ],
       image: {
         type: 'png',

@@ -101,7 +101,7 @@ export const AboutUsPage = memo(() => {
         "Play poker online in a new, safer way. Our platform runs on blockchain technology, meaning no middlemen, just you and other players.",
       ctas: [
         { children: 'Create table', onClick: () => setModalOpen(true) },
-        { children: 'Go to lobby', href: '/', filled: true }
+        { children: 'Go to lobby', href: '/cash-games', filled: true }
       ],
       image: {
         type: 'png',
