@@ -21,6 +21,7 @@ const Element = memo<{
   icon?: string;
   title: string;
   text: string;
+  isComingSoon?: boolean;
   variant?: "default" | 'purple' | "green";
   className?: string;
   href?: string;
@@ -34,6 +35,7 @@ const Element = memo<{
     className,
     href,
     cta,
+    isComingSoon = false
   }) => (
     <div
       className={classNames(
@@ -50,6 +52,7 @@ const Element = memo<{
         })}
       >
         {title}
+        {isComingSoon && <span className='material ml-1 type-tiny text-material-heavy-1 align-middle px-2 py-1 rounded-full'>Soon</span>}
       </p>
       <p className={classNames("type-header")}>{text}</p>
       {href && cta && (
@@ -186,7 +189,8 @@ export const AboutUsPage = memo(() => {
 
         <div className="flex flex-col lg:flex-row items-center">
           <Element
-            title="The Store for any visual upgrade"
+            title="The Store for visual upgrades"
+            isComingSoon
             text="Personalize your gaming experience with unique tables, decks, environments, and other items available as NFTs and purchaseables."
           />
           <div className="flex flex-col justify-center items-center w-full relative gap-16 my-16 lg:my-0">
