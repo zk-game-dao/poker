@@ -79,6 +79,7 @@ fallback_controller_principals:
     # For testing, propose_sns.sh will fill this in automatically.
     - km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe
     - uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae
+    - p2xv2-fhe7e-5wlj3-pkcc2-ekpe4-co4xg-62gaq-37ed5-hufq3-olk4n-4ae
 
 # The list of dapp canister(s) that will be decentralized if the
 # decentralization swap succeeds. These are defined in the form of canister IDs,
@@ -101,6 +102,9 @@ dapp_canisters:
     - "zbspl-ziaaa-aaaam-qbe2q-cai" # table_index canister
     - "zocwf-5qaaa-aaaam-qdfaq-cai" # tournament_index canister
     - "lvq5c-nyaaa-aaaam-qdswa-cai" # users_index canister
+    - "zgtj7-uqaaa-aaaam-qbe2a-cai" # table_canister
+    - "zjdqr-qiaaa-aaaam-qdfaa-cai" # tournament_canister
+    - "laxmp-mqaaa-aaaam-qdsvq-cai" # users_canister
 
 # Configuration of SNS tokens in the SNS Ledger canister deployed as part
 # of the SNS.
@@ -587,4 +591,4 @@ Swap:
     duration: 14 days
 
     # Whether Neurons' Fund participation is requested.
-    neurons_fund_participation: true
+    neurons_fund_participation: false
