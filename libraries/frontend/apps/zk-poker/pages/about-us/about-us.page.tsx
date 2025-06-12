@@ -17,6 +17,7 @@ import { ButtonComponent, LayoutComponent } from '@zk-game-dao/ui';
 const Element = memo<{
   icon?: string;
   title: string;
+  isComingSoon?: boolean;
   text: string;
   variant?: "default" | "green";
   className?: string;
@@ -31,6 +32,7 @@ const Element = memo<{
     className,
     href,
     cta,
+    isComingSoon = false
   }) => (
     <div
       className={classNames(
@@ -46,6 +48,7 @@ const Element = memo<{
         })}
       >
         {title}
+        {isComingSoon && <span className='material ml-1 type-tiny text-material-heavy-1 align-middle px-2 py-1 rounded-full'>Soon</span>}
       </p>
       <p className={classNames("type-header")}>{text}</p>
       {href && cta && (
@@ -122,7 +125,7 @@ export const AboutUsPage = memo(() => {
     }}>
       {/* <AboutUsHeroComponent openCreateTableModal={() => setModalOpen(true)} /> */}
 
-      <div className="container mx-auto mb-24 flex flex-col gap-[120px] mt-16">
+      <div className="container mx-auto mb-24 flex flex-col gap-[120px]">
 
         <div className="flex flex-col lg:flex-row items-start gap-8 justify-center">
           <Element
@@ -176,14 +179,15 @@ export const AboutUsPage = memo(() => {
             </div>
           </div>
           <Element
-            title="Digital poker face"
-            text="We utilize Zero Knowledge Proofs (ZKPs) for secure game outcomes, shuffling verification, hand verification, and enhanced privacy."
+            title="Create & Earn with Custom Tables"
+            text="Players can now create their own poker tables and earn from the action. Enable revenue sharing to receive 50% of the rake generated at your table. Customize your game, invite players, and start building your own poker ecosystem — all while earning as you play."
           />
         </div>
 
         <div className="flex flex-col lg:flex-row items-center">
           <Element
-            title="The Store for any visual upgrade"
+            title="The Store for visual upgrades"
+            isComingSoon
             text="Personalize your gaming experience with unique tables, decks, environments, and other items available as NFTs."
           />
           <div className="flex flex-col justify-center items-center w-full relative gap-16 my-16 lg:my-0">
@@ -220,19 +224,6 @@ export const AboutUsPage = memo(() => {
               visuals={{ color: TableColor.Purple }}
             />
           </div>
-        </div>
-
-        <div className="flex flex-col lg:flex-row items-center">
-          <div className="w-full flex justify-center items-center">
-            <img src="/images/chat.png" className="max-w-[345px]" />
-          </div>
-          <Element
-            icon="/icons/og.svg"
-            title="OpenChat integration"
-            text="Chat with other players seamlessly using OpenChat, integrated directly into our platform."
-            href="https://oc.app/"
-            cta="Visit oc.app"
-          />
         </div>
 
         <div className="flex flex-col lg:flex-row items-center">
