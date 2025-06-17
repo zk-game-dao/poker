@@ -306,6 +306,7 @@ type User = record {
   eth_wallet_address : opt text;
   balance : nat64;
   referred_users : opt vec record { principal; nat64 };
+  created_at : opt nat64;
   is_verified : opt bool;
   address : opt text;
   principal_id : principal;
