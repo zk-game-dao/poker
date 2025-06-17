@@ -36,6 +36,7 @@ pub struct ClanMember {
     pub contribution_points: u64, // Points earned for clan activities
     pub games_played: u64,
     pub tournaments_won: u64,
+    pub xp: u64, // Experience points earned
     pub total_winnings: u64, // In smallest currency unit
     pub last_active: u64,
 }
@@ -52,6 +53,7 @@ impl ClanMember {
             games_played: 0,
             tournaments_won: 0,
             total_winnings: 0,
+            xp: 0,
             last_active: now,
         }
     }
@@ -365,8 +367,7 @@ impl Clan {
 
         // Only owners can promote to admin, only admin+ can change roles
         match new_role {
-            ClanRole::Owner => return Err("Cannot change ownership through role update".to_string()),
-            ClanRole::Admin => {
+            ClanRole::Owner | ClanRole::Admin => {
                 if updater_member.role != ClanRole::Owner {
                     return Err("Only clan owner can promote to admin".to_string());
                 }
@@ -445,9 +446,6 @@ impl Clan {
         // Deduct from treasury
         self.treasury.balance -= distribution_total;
         self.treasury.total_rewards_distributed += distribution_total;
-
-        // Note: In a real implementation, you'd need to actually transfer tokens to members
-        // This would integrate with your existing currency transfer system
 
         Ok(())
     }
