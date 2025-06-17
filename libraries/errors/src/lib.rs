@@ -1,4 +1,6 @@
 pub mod canister_management_error;
+pub mod clan_error;
+pub mod clan_index_error;
 pub mod chat_error;
 pub mod game_error;
 pub mod log_store_error;

@@ -1,11 +1,11 @@
 use candid::{CandidType, Decode, Encode, Principal};
+use currency::Currency;
+use errors::clan_error::ClanError;
 use serde::{Deserialize, Serialize};
 use user::user::{User, UserAvatar};
 use std::collections::HashMap;
 use ic_stable_structures::{storable::Bound, Storable};
 use std::borrow::Cow;
-
-use table::poker::game::table_functions::types::CurrencyType;
 
 const MAX_CLAN_SIZE: u32 = 50_000_000; // 50MB max size for clan data
 
@@ -16,6 +16,212 @@ pub enum ClanRole {
     Admin,
     Moderator,
     Member,
+}
+
+/// Subscription tier identifier - clans can create custom tiers
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct SubscriptionTierId(pub String);
+
+impl SubscriptionTierId {
+    pub fn new(name: &str) -> Self {
+        Self(name.to_string())
+    }
+    
+    pub fn basic() -> Self {
+        Self("Basic".to_string())
+    }
+    
+    pub fn premium() -> Self {
+        Self("Premium".to_string())
+    }
+    
+    pub fn elite() -> Self {
+        Self("Elite".to_string())
+    }
+}
+
+impl Default for SubscriptionTierId {
+    fn default() -> Self {
+        Self::basic()
+    }
+}
+
+/// Requirements that must be met to access a subscription tier
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub struct SubscriptionRequirements {
+    /// Monthly payment required in clan's supported currency
+    pub monthly_payment: Option<u64>,
+    
+    /// One-time payment required in clan's supported currency
+    pub one_time_payment: Option<u64>,
+    
+    /// Minimum user level required
+    pub minimum_level: Option<u64>,
+    
+    /// Minimum experience points required
+    pub minimum_experience_points: Option<u64>,
+    
+    /// Minimum contribution points within the clan
+    pub minimum_contribution_points: Option<u64>,
+    
+    /// Must be invited by an admin/owner
+    pub requires_invitation: bool,
+    
+    /// Must be verified (proof of humanity)
+    pub requires_verification: bool,
+    
+    /// Minimum time as clan member (in nanoseconds)
+    pub minimum_membership_duration: Option<u64>,
+    
+    /// Minimum games played within clan
+    pub minimum_games_played: Option<u64>,
+}
+
+impl Default for SubscriptionRequirements {
+    fn default() -> Self {
+        Self {
+            monthly_payment: None,
+            one_time_payment: None,
+            minimum_level: None,
+            minimum_experience_points: None,
+            minimum_contribution_points: None,
+            requires_invitation: false,
+            requires_verification: false,
+            minimum_membership_duration: None,
+            minimum_games_played: None,
+        }
+    }
+}
+
+/// Benefits provided by a subscription tier
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub struct SubscriptionBenefits {
+    /// Custom description of benefits
+    pub description: String,
+    
+    /// Maximum stakes for tables this tier can access (None = unlimited)
+    pub max_table_stakes: Option<u64>,
+    
+    /// Can participate in clan tournaments
+    pub tournament_access: bool,
+    
+    /// Can create tournaments for the clan
+    pub can_create_tournaments: bool,
+    
+    /// Gets priority in support/moderation
+    pub priority_support: bool,
+    
+    /// Can set custom avatar/colors in clan
+    pub custom_styling: bool,
+    
+    /// Additional percentage points for revenue sharing (0-50)
+    pub revenue_share_bonus: u8,
+    
+    /// Can access exclusive clan channels/areas
+    pub exclusive_access: bool,
+    
+    /// Can invite new members to clan
+    pub can_invite_members: bool,
+    
+    /// Can see detailed clan analytics
+    pub analytics_access: bool,
+    
+    /// Custom role name displayed in clan
+    pub custom_role_name: Option<String>,
+}
+
+impl Default for SubscriptionBenefits {
+    fn default() -> Self {
+        Self {
+            description: "Basic clan access".to_string(),
+            max_table_stakes: Some(1000), // Default low stakes
+            tournament_access: false,
+            can_create_tournaments: false,
+            priority_support: false,
+            custom_styling: false,
+            revenue_share_bonus: 0,
+            exclusive_access: false,
+            can_invite_members: false,
+            analytics_access: false,
+            custom_role_name: None,
+        }
+    }
+}
+
+/// A complete subscription tier configuration
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+pub struct SubscriptionTier {
+    pub id: SubscriptionTierId,
+    pub name: String,
+    pub requirements: SubscriptionRequirements,
+    pub benefits: SubscriptionBenefits,
+    pub is_active: bool, // Admins can disable tiers
+    pub tier_order: u32, // For ordering tiers (higher number = higher tier)
+}
+
+impl SubscriptionTier {
+    pub fn new_basic() -> Self {
+        Self {
+            id: SubscriptionTierId::basic(),
+            name: "Basic".to_string(),
+            requirements: SubscriptionRequirements::default(),
+            benefits: SubscriptionBenefits::default(),
+            is_active: true,
+            tier_order: 1,
+        }
+    }
+    
+    pub fn new_premium() -> Self {
+        Self {
+            id: SubscriptionTierId::premium(),
+            name: "Premium".to_string(),
+            requirements: SubscriptionRequirements {
+                monthly_payment: Some(1000),
+                minimum_level: Some(5),
+                ..Default::default()
+            },
+            benefits: SubscriptionBenefits {
+                description: "Enhanced clan access with tournaments".to_string(),
+                max_table_stakes: Some(10000),
+                tournament_access: true,
+                priority_support: true,
+                revenue_share_bonus: 2,
+                can_invite_members: true,
+                ..Default::default()
+            },
+            is_active: true,
+            tier_order: 2,
+        }
+    }
+    
+    pub fn new_elite() -> Self {
+        Self {
+            id: SubscriptionTierId::elite(),
+            name: "Elite".to_string(),
+            requirements: SubscriptionRequirements {
+                monthly_payment: Some(5000),
+                minimum_level: Some(10),
+                minimum_contribution_points: Some(1000),
+                ..Default::default()
+            },
+            benefits: SubscriptionBenefits {
+                description: "Full clan access with all privileges".to_string(),
+                max_table_stakes: None, // Unlimited
+                tournament_access: true,
+                can_create_tournaments: true,
+                priority_support: true,
+                custom_styling: true,
+                revenue_share_bonus: 5,
+                exclusive_access: true,
+                can_invite_members: true,
+                analytics_access: true,
+                custom_role_name: Some("Elite Member".to_string()),
+                ..Default::default()
+            },
+            is_active: true,
+            tier_order: 3,
+        }
+    }
 }
 
 /// Represents the status of a clan member
@@ -32,12 +238,16 @@ pub struct ClanMember {
     pub principal_id: Principal,
     pub role: ClanRole,
     pub status: MemberStatus,
+    pub subscription_tier: SubscriptionTierId,
+    pub subscription_expires_at: Option<u64>, // None for lifetime/free tiers
+    pub subscription_auto_renew: bool,
     pub joined_at: u64, // Timestamp when member joined
     pub contribution_points: u64, // Points earned for clan activities
     pub games_played: u64,
     pub tournaments_won: u64,
     pub xp: u64, // Experience points earned
     pub total_winnings: u64, // In smallest currency unit
+    pub total_subscription_paid: u64, // Total amount paid for subscriptions
     pub last_active: u64,
 }
 
@@ -48,12 +258,16 @@ impl ClanMember {
             principal_id,
             role,
             status: MemberStatus::Active,
+            subscription_tier: SubscriptionTierId::basic(),
+            subscription_expires_at: None, // Basic is free
+            subscription_auto_renew: false,
             joined_at: now,
             contribution_points: 0,
             games_played: 0,
             tournaments_won: 0,
             total_winnings: 0,
             xp: 0,
+            total_subscription_paid: 0,
             last_active: now,
         }
     }
@@ -64,6 +278,26 @@ impl ClanMember {
 
     pub fn can_moderate(&self) -> bool {
         matches!(self.role, ClanRole::Owner | ClanRole::Admin | ClanRole::Moderator)
+    }
+    
+    /// Check if subscription is currently active (not expired)
+    pub fn is_subscription_active(&self) -> bool {
+        match self.subscription_expires_at {
+            None => true, // No expiration (Basic tier or lifetime)
+            Some(expiry) => ic_cdk::api::time() < expiry,
+        }
+    }
+    
+    /// Get days until subscription expires
+    pub fn days_until_expiry(&self) -> Option<u64> {
+        self.subscription_expires_at.map(|expiry| {
+            let now = ic_cdk::api::time();
+            if expiry > now {
+                (expiry - now) / (24 * 60 * 60 * 1_000_000_000) // Convert nanoseconds to days
+            } else {
+                0
+            }
+        })
     }
 }
 
@@ -89,6 +323,7 @@ pub struct ClanTreasury {
     pub total_revenue_generated: u64,
     pub total_rewards_distributed: u64,
     pub total_joining_fees_collected: u64,
+    pub total_subscription_revenue: u64, // Revenue from member subscriptions
 }
 
 impl Default for ClanTreasury {
@@ -100,6 +335,7 @@ impl Default for ClanTreasury {
             total_revenue_generated: 0,
             total_rewards_distributed: 0,
             total_joining_fees_collected: 0,
+            total_subscription_revenue: 0,
         }
     }
 }
@@ -182,7 +418,7 @@ pub struct Clan {
     pub avatar: Option<UserAvatar>, // Reuse the existing avatar system
     
     // Currency - Each clan supports exactly one token
-    pub supported_currency: CurrencyType,
+    pub supported_currency: Currency,
     
     // Membership
     pub members: HashMap<Principal, ClanMember>,
@@ -194,6 +430,10 @@ pub struct Clan {
     pub privacy: ClanPrivacy,
     pub require_proof_of_humanity: bool,
     pub joining_fee: u64, // Fee required to join clan in supported_currency
+    
+    // Subscription System - Fully customizable by clan admins
+    pub subscription_tiers: HashMap<SubscriptionTierId, SubscriptionTier>,
+    pub subscription_enabled: bool,
     
     // Treasury and Economics
     pub treasury: ClanTreasury,
@@ -224,27 +464,35 @@ impl Clan {
         tag: String,
         creator: Principal,
         privacy: ClanPrivacy,
-        supported_currency: CurrencyType,
+        supported_currency: Currency,
         joining_fee: u64,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, ClanError> {
         // Validate inputs
         if name.is_empty() || name.len() > 50 {
-            return Err("Clan name must be 1-50 characters".to_string());
+            return Err(ClanError::InvalidClanName);
         }
         
         if tag.is_empty() || tag.len() > 10 {
-            return Err("Clan tag must be 1-10 characters".to_string());
+            return Err(ClanError::InvalidClanTag);
         }
         
         if description.len() > 500 {
-            return Err("Description must be under 500 characters".to_string());
+            return Err(ClanError::InvalidDescription);
         }
 
         let now = ic_cdk::api::time();
         let mut members = HashMap::new();
         
-        // Add creator as owner
-        members.insert(creator, ClanMember::new(creator, ClanRole::Owner));
+        // Add creator as owner with elite tier
+        let mut creator_member = ClanMember::new(creator, ClanRole::Owner);
+        creator_member.subscription_tier = SubscriptionTierId::elite();
+        members.insert(creator, creator_member);
+
+        // Initialize default subscription tiers
+        let mut subscription_tiers = HashMap::new();
+        subscription_tiers.insert(SubscriptionTierId::basic(), SubscriptionTier::new_basic());
+        subscription_tiers.insert(SubscriptionTierId::premium(), SubscriptionTier::new_premium());
+        subscription_tiers.insert(SubscriptionTierId::elite(), SubscriptionTier::new_elite());
 
         Ok(Self {
             id,
@@ -260,6 +508,8 @@ impl Clan {
             privacy,
             require_proof_of_humanity: false,
             joining_fee,
+            subscription_tiers,
+            subscription_enabled: true, // Enable subscriptions by default
             treasury: ClanTreasury::default(),
             environment_settings: ClanEnvironmentSettings::default(),
             stats: ClanStats::default(),
@@ -289,13 +539,13 @@ impl Clan {
     }
 
     /// Add a new member to the clan
-    pub fn add_member(&mut self, principal: Principal, role: ClanRole) -> Result<(), String> {
+    pub fn add_member(&mut self, principal: Principal, role: ClanRole) -> Result<(), ClanError> {
         if self.is_full() {
-            return Err("Clan is at maximum capacity".to_string());
+            return Err(ClanError::ClanFull(self.member_limit));
         }
 
         if self.is_member(&principal) {
-            return Err("User is already a member".to_string());
+            return Err(ClanError::UserAlreadyMember);
         }
 
         self.members.insert(principal, ClanMember::new(principal, role));
@@ -310,9 +560,12 @@ impl Clan {
     }
 
     /// Process joining fee payment and add member
-    pub fn join_with_fee(&mut self, principal: Principal, paid_amount: u64) -> Result<(), String> {
+    pub fn join_with_fee(&mut self, principal: Principal, paid_amount: u64) -> Result<(), ClanError> {
         if paid_amount < self.joining_fee {
-            return Err(format!("Insufficient joining fee. Required: {}, Paid: {}", self.joining_fee, paid_amount));
+            return Err(ClanError::InsufficientJoiningFee {
+                required: self.joining_fee,
+                paid: paid_amount,
+            });
         }
 
         // Add the joining fee to treasury
@@ -330,17 +583,283 @@ impl Clan {
         Ok(())
     }
 
+    /// Check if user meets subscription tier requirements
+    pub fn meets_subscription_requirements(
+        &self,
+        user: &User,
+        member: &ClanMember,
+        tier_id: &SubscriptionTierId,
+    ) -> Result<(), ClanError> {
+        let tier = self.subscription_tiers.get(tier_id)
+            .ok_or(ClanError::SubscriptionTierNotFound(tier_id.0.clone()))?;
+
+        if !tier.is_active {
+            return Err(ClanError::SubscriptionTierInactive(tier_id.0.clone()));
+        }
+
+        let req = &tier.requirements;
+
+        // Check level requirement
+        if let Some(min_level) = req.minimum_level {
+            if user.get_level() < min_level as f64 {
+                return Err(ClanError::MinimumLevelRequired(min_level));
+            }
+        }
+
+        // Check experience points
+        if let Some(min_xp) = req.minimum_experience_points {
+            if user.get_experience_points() < min_xp {
+                return Err(ClanError::MinimumExperienceRequired(min_xp));
+            }
+        }
+
+        // Check contribution points
+        if let Some(min_contribution) = req.minimum_contribution_points {
+            if member.contribution_points < min_contribution {
+                return Err(ClanError::MinimumContributionRequired(min_contribution));
+            }
+        }
+
+        // Check verification requirement
+        if req.requires_verification && !user.is_verified.unwrap_or(false) {
+            return Err(ClanError::VerificationRequired);
+        }
+
+        // Check membership duration
+        if let Some(min_duration) = req.minimum_membership_duration {
+            let membership_duration = ic_cdk::api::time() - member.joined_at;
+            if membership_duration < min_duration {
+                return Err(ClanError::MinimumMembershipDurationNotMet);
+            }
+        }
+
+        // Check games played
+        if let Some(min_games) = req.minimum_games_played {
+            if member.games_played < min_games {
+                return Err(ClanError::MinimumGamesRequired(min_games));
+            }
+        }
+
+        // Note: Payment requirements are checked in the upgrade_subscription method
+        // Note: Invitation requirements would be checked during the invitation process
+
+        Ok(())
+    }
+
+    /// Upgrade member subscription tier
+    pub fn upgrade_subscription(
+        &mut self,
+        member_principal: &Principal,
+        new_tier_id: &SubscriptionTierId,
+        paid_amount: u64,
+        months: u32,
+    ) -> Result<(), ClanError> {
+        let member = self.members.get_mut(member_principal)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        let tier = self.subscription_tiers.get(new_tier_id)
+            .ok_or(ClanError::SubscriptionTierNotFound(new_tier_id.0.clone()))?;
+
+        if !tier.is_active {
+            return Err(ClanError::SubscriptionTierInactive(new_tier_id.0.clone()));
+        }
+
+        // Check payment requirements
+        let required_amount = if let Some(monthly_payment) = tier.requirements.monthly_payment {
+            monthly_payment * months as u64
+        } else if let Some(one_time_payment) = tier.requirements.one_time_payment {
+            one_time_payment
+        } else {
+            0 // Free tier
+        };
+
+        if paid_amount < required_amount {
+            return Err(ClanError::InsufficientSubscriptionPayment {
+                required: required_amount,
+                paid: paid_amount,
+            });
+        }
+
+        // Calculate expiry date for monthly subscriptions
+        let new_expiry = if tier.requirements.monthly_payment.is_some() && months > 0 {
+            let now = ic_cdk::api::time();
+            let month_duration = 30 * 24 * 60 * 60 * 1_000_000_000; // 30 days in nanoseconds
+            Some(now + (month_duration * months as u64))
+        } else {
+            None // Lifetime or free tier
+        };
+
+        // Update member subscription
+        member.subscription_tier = new_tier_id.clone();
+        member.subscription_expires_at = new_expiry;
+        member.total_subscription_paid += required_amount;
+
+        // Add to treasury
+        self.treasury.balance += required_amount;
+        self.treasury.total_subscription_revenue += required_amount;
+
+        Ok(())
+    }
+
+    /// Check if member has access to specific functionality based on tier
+    pub fn has_tier_access(&self, member_principal: &Principal, required_benefit: &str) -> Result<bool, ClanError> {
+        let member = self.members.get(member_principal)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !member.is_subscription_active() {
+            return Ok(false);
+        }
+
+        let tier = self.subscription_tiers.get(&member.subscription_tier)
+            .ok_or(ClanError::SubscriptionTierNotFound(member.subscription_tier.0.clone()))?;
+
+        let benefits = &tier.benefits;
+
+        let has_access = match required_benefit {
+            "tournament_access" => benefits.tournament_access,
+            "can_create_tournaments" => benefits.can_create_tournaments,
+            "priority_support" => benefits.priority_support,
+            "custom_styling" => benefits.custom_styling,
+            "exclusive_access" => benefits.exclusive_access,
+            "can_invite_members" => benefits.can_invite_members,
+            "analytics_access" => benefits.analytics_access,
+            _ => false,
+        };
+
+        Ok(has_access)
+    }
+
+    /// Check if member can access table with specific stakes
+    pub fn can_access_table_stakes(&self, member_principal: &Principal, table_stakes: u64) -> Result<bool, ClanError> {
+        let member = self.members.get(member_principal)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !member.is_subscription_active() {
+            return Ok(false);
+        }
+
+        let tier = self.subscription_tiers.get(&member.subscription_tier)
+            .ok_or(ClanError::SubscriptionTierNotFound(member.subscription_tier.0.clone()))?;
+
+        match tier.benefits.max_table_stakes {
+            Some(max_stakes) => Ok(table_stakes <= max_stakes),
+            None => Ok(true), // No limit
+        }
+    }
+
+    /// Create or update a custom subscription tier (admin+ only)
+    pub fn update_subscription_tier(
+        &mut self,
+        tier: SubscriptionTier,
+        updater: &Principal,
+    ) -> Result<(), ClanError> {
+        let updater_member = self.members.get(updater)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !updater_member.is_admin_or_higher() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Validate tier configuration
+        if tier.name.is_empty() || tier.name.len() > 50 {
+            return Err(ClanError::InvalidTierName);
+        }
+
+        if tier.benefits.revenue_share_bonus > 50 {
+            return Err(ClanError::InvalidRevenueShareBonus);
+        }
+
+        self.subscription_tiers.insert(tier.id.clone(), tier);
+        Ok(())
+    }
+
+    /// Remove a subscription tier (admin+ only)
+    pub fn remove_subscription_tier(
+        &mut self,
+        tier_id: &SubscriptionTierId,
+        updater: &Principal,
+    ) -> Result<(), ClanError> {
+        let updater_member = self.members.get(updater)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !updater_member.is_admin_or_higher() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Can't remove basic tier
+        if tier_id == &SubscriptionTierId::basic() {
+            return Err(ClanError::CannotRemoveBasicTier);
+        }
+
+        // Check if any members are using this tier
+        let members_using_tier = self.members.values()
+            .filter(|member| member.subscription_tier == *tier_id)
+            .count();
+
+        if members_using_tier > 0 {
+            return Err(ClanError::TierInUse(members_using_tier));
+        }
+
+        self.subscription_tiers.remove(tier_id);
+        Ok(())
+    }
+
+    /// Get members by subscription tier
+    pub fn get_members_by_tier(&self, tier_id: &SubscriptionTierId) -> Vec<&ClanMember> {
+        self.members.values()
+            .filter(|member| member.subscription_tier == *tier_id && member.is_subscription_active())
+            .collect()
+    }
+
+    /// Get subscription revenue for a specific tier
+    pub fn get_tier_revenue(&self, tier_id: &SubscriptionTierId) -> u64 {
+        if let Some(tier) = self.subscription_tiers.get(tier_id) {
+            if let Some(monthly_payment) = tier.requirements.monthly_payment {
+                let active_members = self.get_members_by_tier(tier_id).len() as u64;
+                active_members * monthly_payment
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+    }
+
+    /// Process subscription renewals for members with auto-renew enabled
+    pub fn process_subscription_renewals(&mut self) -> Vec<(Principal, String)> {
+        let mut renewal_results = Vec::new();
+        let now = ic_cdk::api::time();
+        let members_to_process: Vec<Principal> = self.members.keys().cloned().collect();
+
+        for member_principal in members_to_process {
+            if let Some(member) = self.members.get_mut(&member_principal) {
+                if member.subscription_auto_renew {
+                    if let Some(expiry) = member.subscription_expires_at {
+                        // Check if subscription expires within 7 days
+                        let seven_days = 7 * 24 * 60 * 60 * 1_000_000_000;
+                        if expiry <= now + seven_days {
+                            // In a real implementation, you'd charge their payment method here
+                            renewal_results.push((member_principal, "Renewal required".to_string()));
+                        }
+                    }
+                }
+            }
+        }
+
+        renewal_results
+    }
+
     /// Remove a member from the clan
-    pub fn remove_member(&mut self, principal: &Principal) -> Result<ClanMember, String> {
+    pub fn remove_member(&mut self, principal: &Principal) -> Result<ClanMember, ClanError> {
         // Can't remove the owner
         if let Some(member) = self.members.get(principal) {
             if member.role == ClanRole::Owner {
-                return Err("Cannot remove clan owner".to_string());
+                return Err(ClanError::CannotRemoveOwner);
             }
         }
 
         self.members.remove(principal)
-            .ok_or_else(|| "Member not found".to_string())
+            .ok_or(ClanError::MemberNotFound)
     }
 
     /// Get members by role
@@ -358,30 +877,30 @@ impl Clan {
     }
 
     /// Update member role
-    pub fn update_member_role(&mut self, principal: &Principal, new_role: ClanRole, updater: &Principal) -> Result<(), String> {
+    pub fn update_member_role(&mut self, principal: &Principal, new_role: ClanRole, updater: &Principal) -> Result<(), ClanError> {
         let updater_member = self.members.get(updater)
-            .ok_or("Updater is not a clan member")?;
+            .ok_or(ClanError::MemberNotFound)?;
 
         let target_member = self.members.get(principal)
-            .ok_or("Target member not found")?;
+            .ok_or(ClanError::MemberNotFound)?;
 
         // Only owners can promote to admin, only admin+ can change roles
         match new_role {
             ClanRole::Owner | ClanRole::Admin => {
                 if updater_member.role != ClanRole::Owner {
-                    return Err("Only clan owner can promote to admin".to_string());
+                    return Err(ClanError::InsufficientPermissions);
                 }
             },
             _ => {
                 if !updater_member.is_admin_or_higher() {
-                    return Err("Insufficient permissions to change roles".to_string());
+                    return Err(ClanError::InsufficientPermissions);
                 }
             }
         }
 
         // Can't demote the owner
         if target_member.role == ClanRole::Owner {
-            return Err("Cannot change owner role".to_string());
+            return Err(ClanError::CannotRemoveOwner);
         }
 
         if let Some(member) = self.members.get_mut(principal) {
@@ -392,12 +911,12 @@ impl Clan {
     }
 
     /// Update joining fee (admin+ only)
-    pub fn update_joining_fee(&mut self, new_fee: u64, updater: &Principal) -> Result<(), String> {
+    pub fn update_joining_fee(&mut self, new_fee: u64, updater: &Principal) -> Result<(), ClanError> {
         let updater_member = self.members.get(updater)
-            .ok_or("Updater is not a clan member")?;
+            .ok_or(ClanError::MemberNotFound)?;
 
         if !updater_member.is_admin_or_higher() {
-            return Err("Only admins and owners can update joining fee".to_string());
+            return Err(ClanError::InsufficientPermissions);
         }
 
         self.joining_fee = new_fee;
@@ -405,12 +924,12 @@ impl Clan {
     }
 
     /// Update reward distribution method (admin+ only)
-    pub fn update_reward_distribution(&mut self, new_distribution: RewardDistributionType, updater: &Principal) -> Result<(), String> {
+    pub fn update_reward_distribution(&mut self, new_distribution: RewardDistributionType, updater: &Principal) -> Result<(), ClanError> {
         let updater_member = self.members.get(updater)
-            .ok_or("Updater is not a clan member")?;
+            .ok_or(ClanError::MemberNotFound)?;
 
         if !updater_member.is_admin_or_higher() {
-            return Err("Only admins and owners can update reward distribution".to_string());
+            return Err(ClanError::InsufficientPermissions);
         }
 
         self.treasury.reward_distribution = new_distribution;
@@ -431,16 +950,22 @@ impl Clan {
     }
 
     /// Distribute rewards to members from treasury
-    pub fn distribute_rewards(&mut self, distribution: HashMap<Principal, u64>) -> Result<(), String> {
+    pub fn distribute_rewards(&mut self, distribution: HashMap<Principal, u64>) -> Result<(), ClanError> {
         let distribution_total: u64 = distribution.values().sum();
         let available_amount = self.calculate_available_reward_amount();
         
         if distribution_total > available_amount {
-            return Err(format!("Distribution total ({}) exceeds available reward amount ({})", distribution_total, available_amount));
+            return Err(ClanError::InsufficientFunds { 
+                available: available_amount,
+                required: distribution_total,
+            });
         }
 
         if distribution_total > self.treasury.balance {
-            return Err("Insufficient treasury balance".to_string());
+            return Err(ClanError::InsufficientTreasuryBalance {
+                available: self.treasury.balance,
+                required: distribution_total,
+            });
         }
 
         // Deduct from treasury
@@ -481,9 +1006,9 @@ impl Clan {
     }
 
     /// Check if user meets joining requirements (excluding fee)
-    pub fn meets_joining_requirements(&self, user: &User) -> Result<(), String> {
+    pub fn meets_joining_requirements(&self, user: &User) -> Result<(), ClanError> {
         if self.require_proof_of_humanity && !user.is_verified.unwrap_or(false) {
-            return Err("Proof of humanity verification required".to_string());
+            return Err(ClanError::VerificationRequired);
         }
 
         Ok(())
@@ -509,13 +1034,15 @@ impl Storable for Clan {
                 description: "".to_string(),
                 tag: "ERR".to_string(),
                 avatar: None,
-                supported_currency: CurrencyType::Fake,
+                supported_currency: Currency::ICP,
                 members: HashMap::new(),
                 member_limit: 0,
                 pending_requests: Vec::new(),
                 invited_users: HashMap::new(),
                 privacy: ClanPrivacy::Public,
                 require_proof_of_humanity: false,
+                subscription_enabled: false,
+                subscription_tiers: HashMap::new(),
                 joining_fee: 0,
                 treasury: ClanTreasury::default(),
                 environment_settings: ClanEnvironmentSettings::default(),
@@ -570,7 +1097,7 @@ pub struct CreateClanRequest {
     pub description: String,
     pub tag: String,
     pub privacy: ClanPrivacy,
-    pub supported_currency: CurrencyType,
+    pub supported_currency: Currency,
     pub joining_fee: u64,
     pub require_proof_of_humanity: bool,
     pub minimum_level_required: Option<f64>,
