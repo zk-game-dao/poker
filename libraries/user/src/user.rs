@@ -7,6 +7,22 @@ use std::{borrow::Cow, collections::HashMap};
 const MAX_VALUE_SIZE: u32 = 200_000_000;
 pub const REFERRAL_PERIOD: u64 = 30 * 24 * 60 * 60 * 1_000_000_000;
 
+fn time() -> u64 {
+    #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+    {
+        ic_cdk::api::time()
+    }
+    #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+    {
+        use std::time::SystemTime;
+
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64
+    }
+}
+
 #[derive(Debug, Clone, Hash, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub enum TransferType {
     CardShowRequest,
@@ -35,6 +51,7 @@ pub struct User {
     pub balance: u64,
     pub address: Option<String>,
     pub avatar: Option<UserAvatar>,
+    pub created_at: Option<u64>,
     /// The tables that the user is currently active in.
     pub active_tables: Vec<Principal>,
     pub enlarge_text: Option<bool>,
@@ -70,6 +87,7 @@ impl User {
             address,
             principal_id,
             avatar,
+            created_at: Some(time()),
             active_tables: Vec::new(),
             enlarge_text: None,
             volume_level: None,
@@ -237,7 +255,7 @@ impl User {
 
     pub fn add_referred_user(&mut self, user_id: Principal) {
         let referred_users = self.referred_users.get_or_insert_with(HashMap::new);
-        let timestamp = ic_cdk::api::time();
+        let timestamp = time();
         referred_users.entry(user_id).or_insert(timestamp);
 
         // Check for all referred users and remove those who are no longer within the referral period
@@ -246,7 +264,7 @@ impl User {
 
     pub fn is_within_referral_period(&self) -> bool {
         if let Some(start_date) = self.referral_start_date {
-            let now = ic_cdk::api::time();
+            let now = time();
             let one_month_nanos = REFERRAL_PERIOD;
             now - start_date <= one_month_nanos
         } else {
@@ -285,6 +303,7 @@ impl Storable for User {
                 principal_id: Principal::anonymous(),
                 users_canister_id: Principal::anonymous(),
                 avatar: None,
+                created_at: Some(time()),
                 active_tables: Vec::new(),
                 enlarge_text: None,
                 volume_level: None,

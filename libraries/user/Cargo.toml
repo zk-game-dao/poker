@@ -7,5 +7,5 @@ edition = "2021"
 candid = { workspace = true }
 ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
-serde = { version = "1.0.197", features = ["derive"] }
+serde.workspace = true
 thiserror = "1.0.63"
