@@ -587,6 +587,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "clan"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-stable-structures",
+ "serde",
+ "table",
+ "user",
+]
+
+[[package]]
 name = "clap"
 version = "3.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"

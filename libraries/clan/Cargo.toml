@@ -1,0 +1,13 @@
+[package]
+name = "clan"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+candid.workspace = true
+ic-cdk.workspace = true
+ic-stable-structures.workspace = true
+serde.workspace = true
+
+user = { path = "../user" }
+table = { path = "../table" }
