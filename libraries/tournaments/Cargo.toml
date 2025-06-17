@@ -8,6 +8,6 @@ candid = { workspace = true }
 errors = { path = "../errors" }
 ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
-serde = { version = "1.0.197", features = ["derive"] }
+serde.workspace = true
 table = { path = "../table" }
 thiserror = "1.0.63"

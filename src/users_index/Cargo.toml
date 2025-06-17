@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid = { workspace = true }
-serde = { version = "1.0.197", features = ["derive"] }
+serde.workspace = true
 lazy_static = "1.4.0"
 futures = "0.3.31"
 ic-cdk = { workspace = true }

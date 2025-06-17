@@ -13,7 +13,7 @@ candid = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-timers = { workspace = true } # Feel free to remove this dependency if you don't need timers
 thiserror = "1.0.57"
-serde = { version = "1.0.197", features = ["derive"] }
+serde.workspace = true
 lazy_static = "1.4.0"
 ic-ledger-types = "0.15.0"
 serde_bytes = "0.11.14"
