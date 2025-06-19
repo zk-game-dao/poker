@@ -216,6 +216,7 @@ type TableError = variant {
   Chat : ChatError;
   Game : GameError;
   BlockQueryFailed : text;
+  UserBanned;
   LockError;
   PlayerNotFound;
   InvalidTransactionDetails;
@@ -275,6 +276,7 @@ type TournamentData = record {
 type TournamentError = variant {
   NotRegistered;
   AddonNotAllowed : text;
+  UserBanned;
   LockError;
   RebuyNotAllowed : text;
   AlreadyRegistered;

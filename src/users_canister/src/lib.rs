@@ -475,6 +475,26 @@ fn get_referrer(user_id: WalletPrincipalId) -> Result<Option<WalletPrincipalId>,
 }
 
 #[ic_cdk::update]
+fn add_referred_user(
+    referrer_id: WalletPrincipalId,
+    referred_user_id: WalletPrincipalId,
+) -> Result<(), UserError> {
+    handle_cycle_check();
+    let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
+    let referrer = users.get_mut(&referrer_id).ok_or(UserError::UserNotFound)?;
+    
+    // Add the referred user to the referrer's list
+    referrer.add_referred_user(referred_user_id);
+
+    // Optionally, you can also set the referrer for the referred user
+    if let Some(referred_user) = users.get_mut(&referred_user_id) {
+        referred_user.referrer = Some(referrer_id);
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
 fn reset_users_xp(user_name: String) -> Result<(), UserError> {
     handle_cycle_check();
     validate_caller(CONTROLLER_PRINCIPALS.clone());

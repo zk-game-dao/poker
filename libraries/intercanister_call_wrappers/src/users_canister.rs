@@ -361,3 +361,30 @@ pub async fn clear_pure_poker_experience_points_wrapper(
         }
     }
 }
+
+pub async fn add_referred_user_wrapper(
+    users_canister_id: &UsersCanisterId,
+    referrer_id: WalletPrincipalId,
+    referred_user_id: WalletPrincipalId,
+) -> Result<(), UserError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(users_canister_id.0, "add_referred_user")
+        .with_args(&(referrer_id, referred_user_id))
+        .await;
+
+    match call_result {
+        Ok(res) => match res.candid() {
+            Ok(res) => res,
+            Err(err) => {
+                ic_cdk::println!("Error decoding add_referred_user response: {:?}", err);
+                Err(UserError::CanisterCallFailed(format!(
+                    "Failed to decode add_referred_user response: {:?}",
+                    err
+                )))
+            }
+        },
+        Err(err) => {
+            ic_cdk::println!("Error in add_referred_user call: {:?}", err);
+            Err(UserError::CanisterCallFailed(format!("{:?}", err)))
+        }
+    }
+}
