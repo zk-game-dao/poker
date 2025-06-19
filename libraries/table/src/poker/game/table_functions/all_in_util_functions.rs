@@ -1,5 +1,5 @@
-use candid::Principal;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
+use user::user::WalletPrincipalId;
 
 use super::{
     table::Table,
@@ -26,7 +26,7 @@ impl Table {
     /// # Returns
     ///
     /// Some(Principal) if a player is all in, None otherwise
-    fn get_all_in_player(&self) -> Option<Principal> {
+    fn get_all_in_player(&self) -> Option<WalletPrincipalId> {
         for user_principal in self.seats.iter() {
             if let SeatStatus::Occupied(user_principal) = user_principal {
                 if let Some(user_table_data) = self.user_table_data.get(user_principal) {
@@ -52,10 +52,7 @@ impl Table {
                 })?;
                 user_table_data.total_bet
             };
-
-            if self.pot / self.number_of_players() as u64 == total_bet {
-                return Ok(true);
-            }
+            return Ok(self.pot.0 / self.number_of_players() as u64 == total_bet);
         }
         Ok(false)
     }

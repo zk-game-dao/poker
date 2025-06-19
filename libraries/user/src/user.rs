@@ -1,4 +1,5 @@
 use candid::{CandidType, Decode, Encode, Principal};
+use macros::{impl_principal_traits, impl_u64_comparisons};
 use serde::{Deserialize, Serialize};
 
 use ic_stable_structures::{storable::Bound, Storable};
@@ -42,13 +43,33 @@ pub enum UserAvatar {
     Emoji(EmojiUserAvatar),
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct WalletPrincipalId(pub Principal);
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct UsersCanisterId(pub Principal);
+
+impl_principal_traits!(WalletPrincipalId);
+impl_principal_traits!(UsersCanisterId);
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct UserBalance(pub u64);
+
+impl_u64_comparisons!(UserBalance);
+
+impl Default for UserBalance {
+    fn default() -> Self {
+        UserBalance(0)
+    }
+}
+
 /// The User struct is stored in memory on the user canister.
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub struct User {
-    pub principal_id: Principal,
-    pub users_canister_id: Principal,
+    pub principal_id: WalletPrincipalId,
+    pub users_canister_id: UsersCanisterId,
     pub user_name: String,
-    pub balance: u64,
+    pub balance: UserBalance,
     pub address: Option<String>,
     pub avatar: Option<UserAvatar>,
     pub created_at: Option<u64>,
@@ -62,22 +83,22 @@ pub struct User {
     experience_points_pure_poker: Option<u64>,
 
     /// Referral system fields
-    pub referrer: Option<Principal>,
-    pub referred_users: Option<HashMap<Principal, u64>>,
+    pub referrer: Option<WalletPrincipalId>,
+    pub referred_users: Option<HashMap<WalletPrincipalId, u64>>,
     pub referral_start_date: Option<u64>, // Timestamp when user was referred
 }
 
 impl User {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        principal_id: Principal,
-        users_canister_id: Principal,
+        principal_id: WalletPrincipalId,
+        users_canister_id: UsersCanisterId,
         user_name: String,
-        balance: u64,
+        balance: UserBalance,
         address: Option<String>,
         avatar: Option<UserAvatar>,
         eth_wallet_address: Option<String>,
-        referrer: Option<Principal>,
+        referrer: Option<WalletPrincipalId>,
         referral_start_date: Option<u64>,
     ) -> User {
         User {
@@ -125,7 +146,7 @@ impl User {
     ///
     /// - `balance` - The balance to set.
     pub fn set_balance(&mut self, balance: u64) {
-        self.balance = balance;
+        self.balance = UserBalance(balance);
     }
 
     /// Set the address of the user.
@@ -143,7 +164,7 @@ impl User {
     ///
     /// - `principal_id` - The principal id to set.
     pub fn set_principal_id(&mut self, principal_id: Principal) {
-        self.principal_id = principal_id;
+        self.principal_id = WalletPrincipalId(principal_id);
     }
 
     /// Deposit `amount` into the user's balance.
@@ -152,7 +173,7 @@ impl User {
     ///
     /// - `amount` - The amount to deposit.
     pub fn deposit(&mut self, amount: u64) {
-        self.balance += amount;
+        self.balance.0 += amount;
     }
 
     /// Withdraw `amount` from the user's balance.
@@ -161,7 +182,7 @@ impl User {
     ///
     /// - `amount` - The amount to withdraw.
     pub fn withdraw(&mut self, amount: u64) {
-        self.balance -= amount;
+        self.balance.0 -= amount;
     }
 
     /// Gets the user's level
@@ -253,7 +274,7 @@ impl User {
         }
     }
 
-    pub fn add_referred_user(&mut self, user_id: Principal) {
+    pub fn add_referred_user(&mut self, user_id: WalletPrincipalId) {
         let referred_users = self.referred_users.get_or_insert_with(HashMap::new);
         let timestamp = time();
         referred_users.entry(user_id).or_insert(timestamp);
@@ -298,10 +319,10 @@ impl Storable for User {
             ic_cdk::println!("Deserialization error: {:?}", e);
             User {
                 user_name: String::new(),
-                balance: 0,
+                balance: UserBalance(0),
                 address: None,
-                principal_id: Principal::anonymous(),
-                users_canister_id: Principal::anonymous(),
+                principal_id: WalletPrincipalId(Principal::anonymous()),
+                users_canister_id: UsersCanisterId(Principal::anonymous()),
                 avatar: None,
                 created_at: Some(time()),
                 active_tables: Vec::new(),

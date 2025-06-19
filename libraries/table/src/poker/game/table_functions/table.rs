@@ -9,8 +9,9 @@ use errors::game_error::GameError;
 use errors::trace_err;
 use errors::traced_error::TracedError;
 use ic_cdk_timers::TimerId;
+use macros::{impl_principal_traits, impl_u64_comparisons};
 use serde::{Deserialize, Serialize};
-use user::user::User;
+use user::user::{User, WalletPrincipalId};
 
 use crate::poker::core::{Card, FlatDeck};
 use crate::poker::game::types::TableStatus;
@@ -59,31 +60,54 @@ pub enum TableType {
     Satellite, // Tournament table where winners get entry to larger tournament
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct TableId(pub Principal);
+
+impl_principal_traits!(TableId);
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct SeatIndex(pub u64);
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct Pot(pub u64);
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct BigBlind(pub u64);
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct SmallBlind(pub u64);
+
+// Apply to all your types
+impl_u64_comparisons!(SmallBlind);
+impl_u64_comparisons!(BigBlind);
+impl_u64_comparisons!(Pot);
+impl_u64_comparisons!(SeatIndex);
+
 #[derive(Debug, Clone)]
 pub struct Table {
-    pub id: Principal,
+    pub id: TableId,
     pub config: TableConfig,
     pub seats: Vec<SeatStatus>,
     pub community_cards: Vec<Card>,
     pub deck: FlatDeck,
-    pub pot: u64,
+    pub pot: Pot,
     pub side_pots: Vec<SidePot>,
     pub status: TableStatus,
     pub deal_stage: DealStage,
-    pub big_blind: u64,
-    pub small_blind: u64,
-    pub big_blind_user_principal: Principal,
-    pub small_blind_user_principal: Principal,
+    pub big_blind: BigBlind,
+    pub small_blind: SmallBlind,
+    pub big_blind_user_principal: WalletPrincipalId,
+    pub small_blind_user_principal: WalletPrincipalId,
     pub dealer_position: usize,
     pub current_player_index: usize,
     pub winners: Option<Vec<User>>,
     pub sorted_users: Option<Vec<UserCards>>,
     pub action_logs: Vec<ActionLog>,
-    pub user_table_data: HashMap<Principal, UserTableData>,
+    pub user_table_data: HashMap<WalletPrincipalId, UserTableData>,
     pub highest_bet: u64,
     pub highest_bet_in_pot: u64,
     pub last_raise: u64,
-    pub last_raise_principal: Principal,
+    pub last_raise_principal: WalletPrincipalId,
     pub is_side_pot_active: bool,
     pub round_ticker: u64,
     pub last_timer_started_timestamp: u64,
@@ -151,19 +175,19 @@ impl TableConfig {
 impl Default for Table {
     fn default() -> Self {
         Table {
-            id: Principal::anonymous(),
+            id: TableId(Principal::anonymous()),
             config: TableConfig::default(),
             seats: Vec::new(),
             community_cards: Vec::new(),
             deck: FlatDeck::new(vec![1, 2, 3, 4, 5, 6, 7, 8]),
-            pot: 0,
+            pot: Pot(0),
             side_pots: Vec::new(),
             status: TableStatus::Open,
             deal_stage: DealStage::Fresh,
-            big_blind: 0,
-            small_blind: 0,
-            big_blind_user_principal: Principal::anonymous(),
-            small_blind_user_principal: Principal::anonymous(),
+            big_blind: BigBlind(0),
+            small_blind: SmallBlind(0),
+            big_blind_user_principal: WalletPrincipalId(Principal::anonymous()),
+            small_blind_user_principal: WalletPrincipalId(Principal::anonymous()),
             dealer_position: 0,
             current_player_index: 0,
             winners: None,
@@ -173,7 +197,7 @@ impl Default for Table {
             highest_bet: 0,
             highest_bet_in_pot: 0,
             last_raise: 0,
-            last_raise_principal: Principal::anonymous(),
+            last_raise_principal: WalletPrincipalId(Principal::anonymous()),
             is_side_pot_active: false,
             round_ticker: 0,
             last_timer_started_timestamp: 0,
@@ -233,7 +257,7 @@ impl TableConfig {
 }
 
 impl Table {
-    pub fn new(id: Principal, config: TableConfig, bytes: Vec<u8>) -> Table {
+    pub fn new(id: TableId, config: TableConfig, bytes: Vec<u8>) -> Table {
         let deck = FlatDeck::new(bytes);
 
         let (small_blind, big_blind) = match config.game_type {
@@ -243,7 +267,7 @@ impl Table {
             GameType::PotLimit(small) => (small, small * 2),
         };
         let rake = if let CurrencyType::Real(currency) = &config.currency_type {
-            Rake::new(small_blind, &config.game_type, currency).ok()
+            Rake::new(SmallBlind(small_blind), &config.game_type, currency).ok()
         } else {
             None
         };
@@ -256,14 +280,14 @@ impl Table {
             seats: seats.clone(),
             community_cards: Vec::new(),
             deck,
-            pot: 0,
+            pot: Pot(0),
             side_pots: Vec::new(),
             status: TableStatus::Open,
             deal_stage: DealStage::Fresh,
-            big_blind,
-            small_blind,
-            big_blind_user_principal: Principal::anonymous(),
-            small_blind_user_principal: Principal::anonymous(),
+            big_blind: BigBlind(big_blind),
+            small_blind: SmallBlind(small_blind),
+            big_blind_user_principal: WalletPrincipalId(Principal::anonymous()),
+            small_blind_user_principal: WalletPrincipalId(Principal::anonymous()),
             dealer_position: 0,
             current_player_index: 1,
             winners: None,
@@ -273,7 +297,7 @@ impl Table {
             highest_bet: 0,
             highest_bet_in_pot: 0,
             last_raise: 0,
-            last_raise_principal: Principal::anonymous(),
+            last_raise_principal: WalletPrincipalId(Principal::anonymous()),
             is_side_pot_active: false,
             round_ticker: 0,
             last_timer_started_timestamp: 0,
@@ -300,7 +324,7 @@ impl Table {
     /// - [`GameError::Other`] if the user table data cannot be retrieved
     pub fn all_in(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         amount: u64,
         is_raise: bool,
     ) -> Result<(), TracedError<GameError>> {
@@ -314,11 +338,11 @@ impl Table {
             amount: self.highest_bet,
         };
 
-        if user.balance.checked_sub(amount).is_none() {
+        if user.balance.0.checked_sub(amount).is_none() {
             action_type = ActionType::AllIn {
-                amount: user.balance,
+                amount: user.balance.0,
             };
-            self.update_user_balances(user.balance, user_principal, PlayerAction::AllIn)
+            self.update_user_balances(user.balance.0, user_principal, PlayerAction::AllIn)
                 .map_err(|e| trace_err!(e, "Failed to update user balance"))?;
         } else {
             self.update_user_balances(amount, user_principal, PlayerAction::AllIn)
@@ -345,7 +369,7 @@ impl Table {
     ///
     /// - [`GameError::PlayerNotFound`] if the player is not found
     /// - [`GameError::Other`] if the user table data cannot be retrieved
-    pub fn call(&mut self, user_principal: Principal) -> Result<(), TracedError<GameError>> {
+    pub fn call(&mut self, user_principal: WalletPrincipalId) -> Result<(), TracedError<GameError>> {
         // First verify the user is actually in an occupied seat
         let _ = self
             .seats
@@ -369,7 +393,7 @@ impl Table {
         let amount_to_call = self.highest_bet - user_table_data.current_total_bet;
 
         // User is all in if the amount to call is equal or higher than the user's balance
-        if user.balance.saturating_sub(amount_to_call) == 0 {
+        if user.balance.0.saturating_sub(amount_to_call) == 0 {
             self.all_in(user_principal, amount_to_call, false)
                 .map_err(|e| trace_err!(e, "All in function failed in call."))?;
         } else {
@@ -411,7 +435,7 @@ impl Table {
     /// - [`GameError::PlayerNotFound`] if the player is not found.
     pub fn raise(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         bet_type: BetType,
         amount: u64,
         raw_amount: u64,
@@ -419,8 +443,8 @@ impl Table {
         let mut is_user_all_in = false;
         let amount = match bet_type {
             BetType::Raised(_) => amount,
-            BetType::BigBlind => self.big_blind,
-            BetType::SmallBlind => self.small_blind,
+            BetType::BigBlind => self.big_blind.0,
+            BetType::SmallBlind => self.small_blind.0,
             BetType::Ante(amount) => amount,
             _ => 0,
         };
@@ -445,7 +469,7 @@ impl Table {
             .ok_or_else(|| trace_err!(TracedError::new(GameError::PlayerNotFound)))?
             .clone();
 
-        if user.balance.saturating_sub(raw_amount) == 0 {
+        if user.balance.0.saturating_sub(raw_amount) == 0 {
             self.all_in(user_principal, amount, true)
                 .map_err(|e| trace_err!(e, "All in failed in raise."))?;
             is_user_all_in = true;
@@ -463,6 +487,7 @@ impl Table {
             if self
                 .get_user_balance(user_principal)
                 .map_err(|e| trace_err!(e, "Get user balance failed in raise."))?
+                .0
                 == 0
             {
                 self.set_player_action(user_principal, PlayerAction::AllIn)
@@ -476,8 +501,8 @@ impl Table {
 
         self.last_raise = match bet_type {
             BetType::Raised(_) => amount.saturating_sub(self.last_raise),
-            BetType::BigBlind => self.big_blind,
-            BetType::SmallBlind => self.small_blind,
+            BetType::BigBlind => self.big_blind.0,
+            BetType::SmallBlind => self.small_blind.0,
             _ => 0,
         };
         self.last_raise_principal = user_principal;
@@ -528,7 +553,7 @@ impl Table {
     /// - [`GameError::PlayerNotFound`] if the player is not found
     /// - [`GameError::InsufficientFunds`] if the player has insufficient funds
     pub fn check_and_reset_players_called(&mut self) -> Result<(), TracedError<GameError>> {
-        let user_principals: Vec<Principal> = self
+        let user_principals: Vec<WalletPrincipalId> = self
             .seats
             .iter()
             .filter_map(|status| match status {
@@ -570,7 +595,7 @@ impl Table {
     pub fn start_betting_round(
         &mut self,
         bytes: Vec<u8>,
-    ) -> Result<(Vec<(Principal, u64)>, Vec<(Principal, u64)>), TracedError<GameError>> {
+    ) -> Result<(Vec<(WalletPrincipalId, u64)>, Vec<(WalletPrincipalId, u64)>), TracedError<GameError>> {
         #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
         {
             // ic_cdk::println!("Clearing turn timer in start betting round.");
@@ -593,11 +618,11 @@ impl Table {
         for user_principal in self.seats.clone().into_iter() {
             if let SeatStatus::Occupied(user_principal) = user_principal {
                 let is_kicked = self
-                    .check_and_kick_user_for_insufficient_funds(user_principal, self.big_blind)
+                    .check_and_kick_user_for_insufficient_funds(user_principal, self.big_blind.0)
                     .map_err(|e| trace_err!(e, "Failed to kick user for insufficient funds"))?;
 
                 if let Some(balance) = is_kicked {
-                    self.handle_kicked_player(&mut kicked_players, user_principal, balance);
+                    self.handle_kicked_player(&mut kicked_players, user_principal, balance.0);
                 }
 
                 let is_kicked = self
@@ -716,7 +741,7 @@ impl Table {
             }
         };
 
-        self.pot = 0;
+        self.pot = Pot(0);
         self.side_pots.clear();
         self.is_side_pot_active = false;
         self.winners = None;
@@ -790,7 +815,7 @@ impl Table {
                         SeatStatus::Occupied(principal) => Some(*principal),
                         _ => None,
                     })
-                    .collect::<Vec<Principal>>();
+                    .collect::<Vec<WalletPrincipalId>>();
                 for user_principal in users {
                     self.bet(user_principal, BetType::Ante(ante_amount))?;
                 }
@@ -808,7 +833,7 @@ impl Table {
                         SeatStatus::Occupied(principal) => Some(*principal),
                         _ => None,
                     })
-                    .collect::<Vec<Principal>>();
+                    .collect::<Vec<WalletPrincipalId>>();
                 for user_principal in users {
                     self.bet(user_principal, BetType::Ante(amount))?;
                 }
@@ -821,7 +846,7 @@ impl Table {
     /// Handle the user's blind bet. If the player is sitting out, the blind should still be placed.
     fn handle_blind_sitting_out(
         &mut self,
-        blind_uid: Principal,
+        blind_uid: WalletPrincipalId,
         bet_type: BetType,
     ) -> Result<(), TracedError<GameError>> {
         if self
@@ -854,7 +879,7 @@ impl Table {
 
     fn check_if_seated_out_for_too_long(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
     ) -> Result<Option<u64>, TracedError<GameError>> {
         if let Ok(user_table_data) = self.get_user_table_data(user_principal) {
             if user_table_data.player_action == PlayerAction::SittingOut {
@@ -866,7 +891,7 @@ impl Table {
                                 user_principal,
                                 "Seated out for too long.".to_string(),
                             )?;
-                            return Ok(Some(balance));
+                            return Ok(Some(balance.0));
                         } else if let Ok(user_table_data) =
                             self.get_user_table_data_mut(user_principal)
                         {
@@ -881,8 +906,8 @@ impl Table {
 
     fn handle_kicked_player(
         &mut self,
-        kicked_players: &mut Vec<(Principal, u64)>,
-        user_principal: Principal,
+        kicked_players: &mut Vec<(WalletPrincipalId, u64)>,
+        user_principal: WalletPrincipalId,
         balance: u64,
     ) {
         kicked_players.push((user_principal, balance));

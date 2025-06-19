@@ -410,7 +410,6 @@ service : () -> {
   get_private_tables : () -> (Result_6) query;
   get_rake : (nat64, Currency, GameType) -> (opt Rake) query;
   get_rake_wallet_info : () -> (principal, text) query;
-  get_table : (principal) -> (Result);
   get_tables : (opt FilterOptions, nat16, nat16) -> (Result_4);
   monitor_and_top_up_table_canisters : () -> (Result_1);
   ping : () -> (text) query;

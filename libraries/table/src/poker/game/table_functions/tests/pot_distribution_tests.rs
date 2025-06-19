@@ -1,10 +1,11 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::poker::{
     core::{Card, Suit, Value},
     game::{
         table_functions::{
-            table::Table,
+            table::{Table, TableId},
             tests::{create_user, get_table_config, turn_tests::is_it_users_turn},
             types::{BetType, DealStage, SeatStatus},
         },
@@ -17,7 +18,7 @@ use crate::poker::{
 fn test_two_players_no_side_pot_with_bets() {
     // Initialize table with 2 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2],
     );
@@ -75,14 +76,14 @@ fn test_two_players_no_side_pot_with_bets() {
 
     // Verify that Player 1 receives the correct amount from the pot
     let player1_balance_after = table.users.get(&player1_uid).unwrap().balance;
-    assert_eq!(player1_balance_after, convert_to_e8s(110.0)); // 100 initial - 10 for bet and 20 won from pot
+    assert_eq!(player1_balance_after.0, convert_to_e8s(110.0)); // 100 initial - 10 for bet and 20 won from pot
 }
 
 #[test]
 fn test_three_players_no_side_pot_with_bets() {
     // Initialize table with 3 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3],
     );
@@ -155,14 +156,14 @@ fn test_three_players_no_side_pot_with_bets() {
 
     // Verify that Player 2 receives the correct amount from the pot
     let player2_balance_after = table.users.get(&player2_uid).unwrap().balance;
-    assert_eq!(player2_balance_after, convert_to_e8s(120.0)); // 100 initial - 10 for bet and 30 won from pot
+    assert_eq!(player2_balance_after.0, convert_to_e8s(120.0)); // 100 initial - 10 for bet and 30 won from pot
 }
 
 #[test]
 fn test_four_players_one_side_pot_with_bets() {
     // Initialize table with 4 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 4),
         vec![1, 2, 3, 4],
     );
@@ -271,14 +272,14 @@ fn test_four_players_one_side_pot_with_bets() {
 
     // Verify that Player 2 receives the correct amount from the main pot and side pot
     let player2_balance_after = table.users.get(&player2_uid).unwrap().balance;
-    assert_eq!(player2_balance_after, convert_to_e8s(220.0)); // 80 initial - 20 for bet - 30 from bet + 160 won from main pot and + 30 from side pot
+    assert_eq!(player2_balance_after.0, convert_to_e8s(220.0)); // 80 initial - 20 for bet - 30 from bet + 160 won from main pot and + 30 from side pot
 }
 
 #[test]
 fn test_five_players_multiple_side_pots_with_bets() {
     // Initialize table with 5 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(1), 5),
         vec![1, 2, 3, 4, 5],
     );
@@ -385,14 +386,14 @@ fn test_five_players_multiple_side_pots_with_bets() {
 
     // Verify that Player 1 receives the correct amount from all pots
     let player1_balance_after = table.users.get(&player1_uid).unwrap().balance;
-    assert_eq!(player1_balance_after, 250); // 100 initial - 50 for bet + 175 won from all pots
+    assert_eq!(player1_balance_after.0, 250); // 100 initial - 50 for bet + 175 won from all pots
 }
 
 #[test]
 fn test_three_players_one_all_in_multiple_side_pots_with_bets() {
     // Initialize table with 3 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3],
     );
@@ -456,14 +457,15 @@ fn test_three_players_one_all_in_multiple_side_pots_with_bets() {
 
     // Verify that Player 1 receives the correct amount from the main pot and side pot
     let player1_balance_after = table.users.get(&player1_uid).unwrap().balance;
-    assert!(player1_balance_after >= convert_to_e8s(300.0)); // 100 initial - 50 for bet + 200 won from both pots
+    println!("Player 1 balance after: {:?}", player1_balance_after);
+    assert!(player1_balance_after.0 >= convert_to_e8s(300.0)); // 100 initial - 50 for bet + 200 won from both pots
 }
 
 #[test]
 fn test_six_players_three_side_pots_with_bets() {
     // Initialize table with 6 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 6),
         vec![1, 2, 3, 4, 5, 6],
     );
@@ -590,14 +592,14 @@ fn test_six_players_three_side_pots_with_bets() {
 
     // Verify that Player 1 receives the correct amount from all pots
     let player1_balance_after = table.users.get(&player1_uid).unwrap().balance;
-    assert_eq!(player1_balance_after, convert_to_e8s(550.0)); // 200 initial - 100 for bet + 450 won from all pots
+    assert_eq!(player1_balance_after.0, convert_to_e8s(550.0)); // 200 initial - 100 for bet + 450 won from all pots
 }
 
 #[test]
 fn test_four_players_split_pot_with_bets() {
     // Initialize table with 4 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 4),
         vec![1, 2, 3, 4],
     );
@@ -688,15 +690,15 @@ fn test_four_players_split_pot_with_bets() {
     let player2_balance_after = table.users.get(&player2_uid).unwrap().balance;
 
     // Since players 1 and 2 have identical hands and split the pot, each should receive half of the total pot amount
-    assert_eq!(player1_balance_after, convert_to_e8s(120.0)); // 100 initial - 20 for bet + 30 split pot
-    assert_eq!(player2_balance_after, convert_to_e8s(120.0)); // 100 initial - 20 for bet + 30 split pot
+    assert_eq!(player1_balance_after.0, convert_to_e8s(120.0)); // 100 initial - 20 for bet + 30 split pot
+    assert_eq!(player2_balance_after.0, convert_to_e8s(120.0)); // 100 initial - 20 for bet + 30 split pot
 }
 
 #[test]
 fn test_correct_pot_side_pot_distribution() {
     // Initialize table with 4 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 4),
         vec![1, 2, 3, 4],
     );
@@ -723,7 +725,7 @@ fn test_correct_pot_side_pot_distribution() {
 
     let big_blind_uid = table.big_blind_user_principal;
     let small_blind_uid = table.small_blind_user_principal;
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -744,7 +746,7 @@ fn test_correct_pot_side_pot_distribution() {
     println!("Side Pots: {:#?}", table.side_pots);
     println!("Pot: {:#?}", table.pot);
 
-    assert_eq!(table.pot, convert_to_e8s(5.0));
+    assert_eq!(table.pot.0, convert_to_e8s(5.0));
 
     assert_eq!(table.side_pots.len(), 0);
 }

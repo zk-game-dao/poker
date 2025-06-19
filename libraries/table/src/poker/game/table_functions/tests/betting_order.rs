@@ -1,8 +1,9 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::{
     table_functions::{
-        table::Table,
+        table::{Table, TableId},
         tests::{create_user, get_table_config, turn_tests::is_it_users_turn},
         types::{BetType, DealStage, SeatStatus},
     },
@@ -14,7 +15,7 @@ use crate::poker::game::{
 fn test_pre_flop_betting_heads_up() {
     // Initialize table with 2 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2],
     );
@@ -57,7 +58,7 @@ fn test_pre_flop_betting_heads_up() {
 fn test_pre_flop_betting_with_raises_three_players() {
     // Initialize table with 3 players
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3],
     );
@@ -81,7 +82,7 @@ fn test_pre_flop_betting_with_raises_three_players() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut button_uid = Principal::anonymous();
+    let mut button_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -112,7 +113,7 @@ fn test_pre_flop_betting_with_raises_three_players() {
     assert_eq!(table.bet(button_uid, BetType::Called), Ok(()));
 
     // Verify pot size
-    assert_eq!(table.pot, convert_to_e8s(21.0)); // 10 + 10 + 1 from small blind
+    assert_eq!(table.pot.0, convert_to_e8s(21.0)); // 10 + 10 + 1 from small blind
 
     // Move to flop
     assert_eq!(table.deal_stage, DealStage::Turn);

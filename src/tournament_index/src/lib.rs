@@ -23,16 +23,16 @@ use intercanister_call_wrappers::tournament_canister::{
 };
 use lazy_static::lazy_static;
 use memory::TABLE_CANISTER_POOL;
+use user::user::{UsersCanisterId, WalletPrincipalId};
 use std::sync::Mutex;
-use table::poker::game::table_functions::{table::TableConfig, types::CurrencyType};
+use table::poker::game::table_functions::{table::{TableConfig, TableId}, types::CurrencyType};
 use table::poker::game::types::GameType::NoLimit;
 use tournament_index::{create_spin_go_tournament, TournamentIndex};
 use tournaments::tournaments::{
     blind_level::BlindLevel,
     tournament_type::TournamentType,
     types::{
-        get_blind_level_at_time, NewTournament, NewTournamentSpeedType, TournamentData,
-        TournamentState,
+        get_blind_level_at_time, NewTournament, NewTournamentSpeedType, TournamentData, TournamentId, TournamentState
     },
 };
 
@@ -109,7 +109,7 @@ fn get_account_number() -> Result<Option<String>, TournamentIndexError> {
 async fn create_tournament(
     new_tournament: NewTournament,
     table_config: TableConfig,
-) -> Result<Principal, TournamentIndexError> {
+) -> Result<TournamentId, TournamentIndexError> {
     let mut new_tournament = new_tournament;
     let mut table_config = table_config;
     let tournament_canister = {
@@ -135,7 +135,7 @@ async fn create_tournament(
                 ));
             }
         }
-        let tournament_canister = create_tournament_canister().await?;
+        let tournament_canister = TournamentId(create_tournament_canister().await?);
 
         // Create tournament info
         let (tournament, prize_pool) =
@@ -173,7 +173,7 @@ async fn create_tournament(
                         currency_manager
                             .withdraw(
                                 &currency,
-                                tournament_canister,
+                                tournament_canister.0,
                                 prize_pool - 3 * tournament.buy_in,
                             )
                             .await
@@ -211,12 +211,12 @@ async fn create_tournament(
 
 #[ic_cdk::update]
 async fn update_tournament_state(
-    tournament_id: Principal,
+    tournament_id: TournamentId,
     new_state: TournamentState,
 ) -> Result<(), TournamentIndexError> {
     handle_cycle_check().await?;
     let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-    let valid_callers: Vec<Principal> = state.tournaments.values().map(|t| t.id).collect();
+    let valid_callers: Vec<Principal> = state.tournaments.values().map(|t| t.id.0).collect();
     validate_caller(valid_callers);
 
     let tournament = state
@@ -239,7 +239,7 @@ async fn update_tournament_state(
 }
 
 #[ic_cdk::update]
-async fn delete_tournament(tournament_id: Principal) -> Result<(), TournamentIndexError> {
+async fn delete_tournament(tournament_id: TournamentId) -> Result<(), TournamentIndexError> {
     handle_cycle_check().await?;
     let valid_callers = CONTROLLER_PRINCIPALS.clone();
     validate_caller(valid_callers);
@@ -261,7 +261,7 @@ async fn delete_tournament(tournament_id: Principal) -> Result<(), TournamentInd
 }
 
 #[ic_cdk::query]
-fn get_player_tournaments(player: Principal) -> Vec<TournamentData> {
+fn get_player_tournaments(player: WalletPrincipalId) -> Vec<TournamentData> {
     let state = STATE.lock().unwrap();
     state
         .tournaments
@@ -274,8 +274,8 @@ fn get_player_tournaments(player: Principal) -> Vec<TournamentData> {
 #[ic_cdk::update]
 async fn join_spin_and_go_tournament(
     buy_in: u64,
-    user_principal: Principal,
-    user_wallet_principal_id: Principal,
+    user_principal: UsersCanisterId,
+    user_wallet_principal_id: WalletPrincipalId,
 ) -> Result<(), TournamentIndexError> {
     let pool = {
         let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
@@ -354,31 +354,31 @@ fn purge_table_pool() {
 }
 
 #[ic_cdk::update]
-fn add_to_pool(principal: Principal) -> Result<(), TournamentIndexError> {
+fn add_to_pool(principal: TableId) -> Result<(), TournamentIndexError> {
     ic_cdk::println!("Adding to pool: {:?}", principal);
     {
         let tournament_index = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
         let valid_callers: Vec<Principal> = tournament_index
             .tournaments
             .values()
-            .map(|t| t.id)
+            .map(|t| t.id.0)
             .collect();
         validate_caller(valid_callers);
     }
     TABLE_CANISTER_POOL
-        .with(|pool| pool.borrow_mut().push(&principal))
+        .with(|pool| pool.borrow_mut().push(&principal.0))
         .map_err(|e| TournamentIndexError::FailedToAddToTablePool(format!("{:?}", e)))
 }
 
 #[ic_cdk::update]
-async fn get_and_remove_from_pool() -> Result<Option<Principal>, TournamentIndexError> {
+async fn get_and_remove_from_pool() -> Result<Option<TableId>, TournamentIndexError> {
     ic_cdk::println!("Getting and removing from pool");
     {
         let tournament_index = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
         let valid_callers: Vec<Principal> = tournament_index
             .tournaments
             .values()
-            .map(|t| t.id)
+            .map(|t| t.id.0)
             .collect();
 
         validate_caller(valid_callers);
@@ -401,7 +401,7 @@ async fn get_and_remove_from_pool() -> Result<Option<Principal>, TournamentIndex
                 ic_cdk::println!("Error setting caller as controller: {:?}", e);
                 TournamentIndexError::CanisterCallFailed(format!("{:?}", e))
             })?;
-        Ok(Some(canister_id))
+        Ok(Some(TableId(canister_id)))
     } else {
         Ok(None)
     }
@@ -665,7 +665,7 @@ fn get_completed_tournaments() -> Vec<TournamentData> {
 
 #[ic_cdk::update]
 async fn upgrade_all_tournament_canisters(
-) -> Result<Vec<(Principal, CanisterManagementError)>, TournamentIndexError> {
+) -> Result<Vec<(TournamentId, CanisterManagementError)>, TournamentIndexError> {
     // Validate caller permissions
     let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
@@ -676,7 +676,7 @@ async fn upgrade_all_tournament_canisters(
 
     const BATCH_SIZE: usize = 30; // Process 30 tournaments at a time
 
-    let tournaments: Vec<Principal> = {
+    let tournaments: Vec<TournamentId> = {
         let state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
         state.tournaments.keys().copied().collect()
     };
@@ -691,20 +691,20 @@ async fn upgrade_all_tournament_canisters(
             .map(|&tournament_canister| {
                 let wasm_clone = wasm_module.clone();
                 async move {
-                    match canister_functions::upgrade_wasm_code(tournament_canister, wasm_clone)
+                    match canister_functions::upgrade_wasm_code(tournament_canister.0, wasm_clone)
                         .await
                     {
                         Ok(_) => {
                             ic_cdk::println!(
                                 "Successfully upgraded tournament canister {}",
-                                tournament_canister
+                                tournament_canister.0.to_text()
                             );
                             Ok(tournament_canister)
                         }
                         Err(e) => {
                             ic_cdk::println!(
                                 "Failed to upgrade tournament canister {}: {:?}",
-                                tournament_canister,
+                                tournament_canister.0.to_text(),
                                 e
                             );
                             Err((tournament_canister, e))

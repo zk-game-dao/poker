@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
-use candid::{CandidType, Decode, Encode, Principal};
+use candid::{CandidType, Decode, Encode};
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
+use table::poker::game::table_functions::table::TableId;
 
 #[derive(Debug, Clone, Default, CandidType, Serialize, Deserialize)]
 pub struct RakeStats {
@@ -51,7 +52,7 @@ impl Storable for RakeStats {
 
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
 pub struct TableRakeStats {
-    pub table_id: Principal,
+    pub table_id: TableId,
     pub total_rake_collected: u64,
     pub total_rake_shared: u64,
 }

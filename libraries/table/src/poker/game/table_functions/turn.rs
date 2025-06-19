@@ -1,6 +1,6 @@
-use candid::Principal;
 use errors::game_error::GameError;
 use errors::{trace_err, traced_error::TracedError};
+use user::user::WalletPrincipalId;
 
 use super::{
     table::Table,
@@ -86,7 +86,7 @@ impl Table {
     /// Is every player ready for the showdown?
     pub fn all_in_cycle_to_showdown(&self) -> Result<bool, TracedError<GameError>> {
         // Step 1: Get active players (excluding Folded, SittingOut, or Joining)
-        let active_players: Vec<Principal> = self
+        let active_players: Vec<WalletPrincipalId> = self
             .seats
             .iter()
             .filter_map(|seat_status| {
@@ -150,7 +150,7 @@ impl Table {
             .filter(|user| {
                 let user_data = self.user_table_data.get(user).unwrap();
                 let user = self.users.get(user).unwrap();
-                user_data.player_action != PlayerAction::AllIn && user.balance > 0
+                user_data.player_action != PlayerAction::AllIn && user.balance.0 > 0
             })
             .count();
 

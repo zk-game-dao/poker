@@ -1,17 +1,17 @@
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
-use candid::Principal;
 use errors::{table_error::TableError, tournament_error::TournamentError};
 use intercanister_call_wrappers::tournament_canister::{
     add_to_table_pool_wrapper, ensure_principal_is_controller,
 };
-use table::table_canister::{
+use table::{poker::game::table_functions::table::TableId, table_canister::{
     get_players_on_table, leave_table_for_table_balancing, set_as_final_table_wrapper,
-};
+}};
 use tournaments::tournaments::{
     tournament_type::{TournamentSizeType, TournamentType},
     types::{TournamentData, TournamentState},
 };
+use user::user::WalletPrincipalId;
 
 use crate::{
     utils::{move_player_from_current_players_to_all_players, update_tournament_state},
@@ -85,7 +85,7 @@ pub async fn check_and_balance_tables(skip_check: bool) -> Result<(), Tournament
             "Moves: {:?}",
             moves
                 .iter()
-                .map(|(a, b)| (a.to_text(), b.to_text()))
+                .map(|(a, b)| (a.0.to_text(), b.0.to_text()))
                 .collect::<Vec<_>>()
         );
 
@@ -94,7 +94,7 @@ pub async fn check_and_balance_tables(skip_check: bool) -> Result<(), Tournament
         // Clean up empty tables
         for (table_id, table_info) in tournament.tables.clone().iter() {
             if table_info.players.is_empty() {
-                if let Err(e) = ensure_principal_is_controller(*table_id, tournament_index).await {
+                if let Err(e) = ensure_principal_is_controller(table_id.0, tournament_index).await {
                     ic_cdk::println!("Error ensuring principal is controller: {:?}", e);
                 } else if let Err(e) = add_to_table_pool_wrapper(tournament_index, *table_id).await
                 {
@@ -127,9 +127,9 @@ pub async fn check_and_balance_tables(skip_check: bool) -> Result<(), Tournament
 }
 
 async fn execute_moves(
-    moves: Vec<(Principal, Principal)>,
+    moves: Vec<(TableId, TableId)>,
     tournament: &mut TournamentData,
-    mut cached_tables: HashMap<Principal, Vec<Principal>>,
+    mut cached_tables: HashMap<TableId, Vec<WalletPrincipalId>>,
 ) -> Result<(), TournamentError> {
     // Execute moves
     let mut processed_players = HashMap::new();
@@ -168,7 +168,7 @@ async fn execute_moves(
             // This shouldn't happen if the balancer is working correctly, but log if it does
             ic_cdk::println!(
                 "Warning: No available players to move from table {}",
-                from_table.to_text()
+                from_table.0.to_text()
             );
         }
     }
@@ -177,7 +177,7 @@ async fn execute_moves(
 
 async fn synchronize_tables(
     tournament: &mut TournamentData,
-) -> Result<HashMap<Principal, Vec<Principal>>, TournamentError> {
+) -> Result<HashMap<TableId, Vec<WalletPrincipalId>>, TournamentError> {
     let mut cached_tables = HashMap::new();
     let mut players_on_tables = HashSet::new();
 
@@ -196,7 +196,7 @@ async fn synchronize_tables(
         return Ok(cached_tables);
     }
 
-    let unassigned_players: Vec<Principal> = tournament
+    let unassigned_players: Vec<WalletPrincipalId> = tournament
         .current_players
         .keys()
         .filter(|player| !players_on_tables.contains(player))
@@ -209,7 +209,7 @@ async fn synchronize_tables(
             unassigned_players.len(),
             unassigned_players
                 .iter()
-                .map(|p| p.to_text())
+                .map(|p| p.0.to_text())
                 .collect::<Vec<_>>()
         );
     }
@@ -231,7 +231,7 @@ async fn synchronize_tables(
                 }
             },
             Err(e) => {
-                ic_cdk::println!("Error moving player {}: {:?}", player.to_text(), e);
+                ic_cdk::println!("Error moving player {}: {:?}", player.0.to_text(), e);
             }
         }
     }
@@ -240,9 +240,9 @@ async fn synchronize_tables(
 }
 
 pub async fn move_player_to_table(
-    player: Principal,
-    from_table: Principal,
-    to_table: Principal,
+    player: WalletPrincipalId,
+    from_table: TableId,
+    to_table: TableId,
     tournament: &mut TournamentData,
 ) -> Result<(), TournamentError> {
     let user_tournament_data =
@@ -254,9 +254,9 @@ pub async fn move_player_to_table(
             ))?;
     ic_cdk::println!(
         "Moving player {} from table {} to table {}",
-        player.to_text(),
-        from_table.to_text(),
-        to_table.to_text()
+        player.0.to_text(),
+        from_table.0.to_text(),
+        to_table.0.to_text()
     );
     let res = leave_table_for_table_balancing(
         user_tournament_data.users_canister_principal,

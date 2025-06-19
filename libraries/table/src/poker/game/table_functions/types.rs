@@ -1,7 +1,7 @@
 use candid::{CandidType, Principal};
 use currency::Currency;
 use serde::{Deserialize, Serialize};
-use user::user::User;
+use user::user::{User, WalletPrincipalId};
 
 use crate::poker::core::Card;
 
@@ -9,11 +9,11 @@ use crate::poker::core::Card;
 pub enum SeatStatus {
     Empty,
     Reserved {
-        principal: Principal,
+        principal: WalletPrincipalId,
         timestamp: u64,
     },
-    Occupied(Principal),
-    QueuedForNextRound(Principal, Box<User>, bool),
+    Occupied(WalletPrincipalId),
+    QueuedForNextRound(WalletPrincipalId, Box<User>, bool),
 }
 
 /// Indicates whether the currency used on the table is real or fake.
@@ -167,7 +167,7 @@ impl Notifications {
         }
     }
 
-    pub fn add_notification(&mut self, user_principal: Principal, message: NotificationMessage) {
+    pub fn add_notification(&mut self, user_principal: WalletPrincipalId, message: NotificationMessage) {
         let notification = Notification::new(self.id_counter, user_principal, message);
         self.id_counter += 1;
         self.notifications.push(notification);
@@ -187,7 +187,7 @@ impl Notifications {
 pub struct Notification {
     pub id: u64,
     pub timestamp: u64,
-    pub user_principal: Principal,
+    pub user_principal: WalletPrincipalId,
     pub message: NotificationMessage,
 }
 
@@ -197,7 +197,7 @@ pub enum NotificationMessage {
 }
 
 impl Notification {
-    pub fn new(id: u64, user_principal: Principal, message: NotificationMessage) -> Notification {
+    pub fn new(id: u64, user_principal: WalletPrincipalId, message: NotificationMessage) -> Notification {
         #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
         {
             Notification {

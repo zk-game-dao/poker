@@ -1,8 +1,9 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::{
     table_functions::{
-        table::Table,
+        table::{Table, TableId},
         tests::{create_user, get_table_config},
         types::{BetType, DealStage, PlayerAction, SeatStatus},
     },
@@ -13,7 +14,7 @@ use crate::poker::game::{
 #[test]
 fn test_all_in_side_pot_basic() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -36,7 +37,7 @@ fn test_all_in_side_pot_basic() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -46,9 +47,9 @@ fn test_all_in_side_pot_basic() {
         }
     }
 
-    table.users.get_mut(&small_blind_uid).unwrap().balance = convert_to_e8s(50.0);
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(150.0);
-    table.users.get_mut(&other_uid).unwrap().balance = convert_to_e8s(100.0);
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = convert_to_e8s(50.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(150.0);
+    table.users.get_mut(&other_uid).unwrap().balance.0 = convert_to_e8s(100.0);
 
     assert!(table
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
@@ -99,7 +100,7 @@ fn test_all_in_side_pot_basic() {
 #[test]
 fn test_all_in_side_pot_basic_two() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -126,7 +127,7 @@ fn test_all_in_side_pot_basic_two() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -136,9 +137,9 @@ fn test_all_in_side_pot_basic_two() {
         }
     }
 
-    table.users.get_mut(&small_blind_uid).unwrap().balance = convert_to_e8s(100.0);
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(150.0);
-    table.users.get_mut(&other_uid).unwrap().balance = convert_to_e8s(50.0);
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = convert_to_e8s(100.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(150.0);
+    table.users.get_mut(&other_uid).unwrap().balance.0 = convert_to_e8s(50.0);
 
     // User 2 goes all in
     assert_eq!(
@@ -189,7 +190,7 @@ fn test_all_in_side_pot_basic_two() {
 #[test]
 fn test_all_in_side_pot_basic_three() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -212,7 +213,7 @@ fn test_all_in_side_pot_basic_three() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -221,9 +222,9 @@ fn test_all_in_side_pot_basic_three() {
             }
         }
     }
-    table.users.get_mut(&small_blind_uid).unwrap().balance = convert_to_e8s(10.0);
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(4.0);
-    table.users.get_mut(&other_uid).unwrap().balance = convert_to_e8s(8.0);
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = convert_to_e8s(10.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(4.0);
+    table.users.get_mut(&other_uid).unwrap().balance.0 = convert_to_e8s(8.0);
 
     assert!(table
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
@@ -252,7 +253,7 @@ fn test_all_in_side_pot_basic_three() {
 
     assert_eq!(table.bet(big_blind_uid, BetType::Called), Ok(()));
 
-    assert_eq!(table.users.get(&big_blind_uid).unwrap().balance, 0);
+    assert_eq!(table.users.get(&big_blind_uid).unwrap().balance.0, 0);
 
     assert_eq!(
         table
@@ -278,7 +279,7 @@ fn test_all_in_side_pot_basic_three() {
 #[test]
 fn test_all_in_side_pot_basic_four() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -301,7 +302,7 @@ fn test_all_in_side_pot_basic_four() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -310,9 +311,9 @@ fn test_all_in_side_pot_basic_four() {
             }
         }
     }
-    table.users.get_mut(&small_blind_uid).unwrap().balance = convert_to_e8s(6.0);
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(4.0);
-    table.users.get_mut(&other_uid).unwrap().balance = convert_to_e8s(10.0);
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = convert_to_e8s(6.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(4.0);
+    table.users.get_mut(&other_uid).unwrap().balance.0 = convert_to_e8s(10.0);
 
     assert!(table
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
@@ -341,7 +342,7 @@ fn test_all_in_side_pot_basic_four() {
 
     assert_eq!(table.bet(big_blind_uid, BetType::Called), Ok(()));
 
-    assert_eq!(table.users.get(&big_blind_uid).unwrap().balance, 0);
+    assert_eq!(table.users.get(&big_blind_uid).unwrap().balance.0, 0);
 
     assert_eq!(
         table
@@ -360,7 +361,7 @@ fn test_all_in_side_pot_basic_four() {
     assert_eq!(table.bet(small_blind_uid, BetType::Called), Ok(()));
 
     assert_eq!(
-        table.users.get(&small_blind_uid).unwrap().balance,
+        table.users.get(&small_blind_uid).unwrap().balance.0,
         convert_to_e8s(1.5)
     );
 
@@ -372,7 +373,7 @@ fn test_all_in_side_pot_basic_four() {
 #[test]
 fn test_all_in_side_pot_basic_five() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -395,7 +396,7 @@ fn test_all_in_side_pot_basic_five() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -404,12 +405,12 @@ fn test_all_in_side_pot_basic_five() {
             }
         }
     }
-    println!("Small blind: {}", small_blind_uid);
-    println!("Big blind: {}", big_blind_uid);
-    println!("Other: {}", other_uid);
-    table.users.get_mut(&small_blind_uid).unwrap().balance = convert_to_e8s(6.0);
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(4.0);
-    table.users.get_mut(&other_uid).unwrap().balance = convert_to_e8s(10.0);
+    println!("Small blind: {}", small_blind_uid.0.to_text());
+    println!("Big blind: {}", big_blind_uid.0.to_text());
+    println!("Other: {}", other_uid.0.to_text());
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = convert_to_e8s(6.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(4.0);
+    table.users.get_mut(&other_uid).unwrap().balance.0 = convert_to_e8s(10.0);
 
     assert!(table
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
@@ -440,7 +441,7 @@ fn test_all_in_side_pot_basic_five() {
 
     assert_eq!(table.bet(big_blind_uid, BetType::Called), Ok(()));
 
-    assert_eq!(table.users.get(&big_blind_uid).unwrap().balance, 0);
+    assert_eq!(table.users.get(&big_blind_uid).unwrap().balance.0, 0);
 
     assert_eq!(
         table
@@ -451,7 +452,7 @@ fn test_all_in_side_pot_basic_five() {
         PlayerAction::AllIn
     );
 
-    assert_eq!(table.pot, convert_to_e8s(12.0));
+    assert_eq!(table.pot.0, convert_to_e8s(12.0));
 
     assert_eq!(
         table.bet(other_uid, BetType::Raised(convert_to_e8s(2.0))),
@@ -473,7 +474,7 @@ fn test_all_in_side_pot_basic_five() {
 #[test]
 fn test_multiple_side_pots() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -500,7 +501,7 @@ fn test_multiple_side_pots() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -510,9 +511,9 @@ fn test_multiple_side_pots() {
         }
     }
 
-    table.users.get_mut(&small_blind_uid).unwrap().balance = convert_to_e8s(100.0);
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(150.0);
-    table.users.get_mut(&other_uid).unwrap().balance = convert_to_e8s(50.0);
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = convert_to_e8s(100.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(150.0);
+    table.users.get_mut(&other_uid).unwrap().balance.0 = convert_to_e8s(50.0);
 
     // User 1 goes all in
     assert_eq!(
@@ -552,7 +553,7 @@ fn test_multiple_side_pots() {
 #[test]
 fn test_all_in_side_pot_multiple_players() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(1), 4),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -580,7 +581,7 @@ fn test_all_in_side_pot_multiple_players() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -589,7 +590,7 @@ fn test_all_in_side_pot_multiple_players() {
             }
         }
     }
-    let mut user_4_uid = Principal::anonymous();
+    let mut user_4_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid && *user_id != other_uid {
@@ -599,10 +600,10 @@ fn test_all_in_side_pot_multiple_players() {
         }
     }
 
-    table.users.get_mut(&small_blind_uid).unwrap().balance = 50;
-    table.users.get_mut(&big_blind_uid).unwrap().balance = 100;
-    table.users.get_mut(&other_uid).unwrap().balance = 150;
-    table.users.get_mut(&user_4_uid).unwrap().balance = 200;
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = 50;
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = 100;
+    table.users.get_mut(&other_uid).unwrap().balance.0 = 150;
+    table.users.get_mut(&user_4_uid).unwrap().balance.0 = 200;
 
     assert_eq!(
         table.start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8]),
@@ -671,7 +672,7 @@ fn test_all_in_side_pot_multiple_players() {
 fn test_betting_round_from_logs() {
     // Initialize the table
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -697,7 +698,7 @@ fn test_betting_round_from_logs() {
 
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -707,7 +708,7 @@ fn test_betting_round_from_logs() {
         }
     }
 
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(4.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(4.0);
 
     // Start a betting round
     assert!(table
@@ -736,7 +737,7 @@ fn test_betting_round_from_logs() {
     assert_eq!(table.bet(small_blind_uid, BetType::Called), Ok(()));
 
     // Assess the state at the end of the round
-    assert_eq!(table.pot, convert_to_e8s(12.0)); // As mentioned in the logs, the final pot amount is 12
+    assert_eq!(table.pot.0, convert_to_e8s(12.0)); // As mentioned in the logs, the final pot amount is 12
     assert_eq!(
         table
             .user_table_data
@@ -753,7 +754,7 @@ fn test_betting_round_from_logs() {
 fn test_all_in_call() {
     // Initialize the table
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -779,7 +780,7 @@ fn test_all_in_call() {
 
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -789,7 +790,7 @@ fn test_all_in_call() {
         }
     }
 
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(4.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(4.0);
 
     // Start a betting round
     assert!(table
@@ -806,7 +807,7 @@ fn test_all_in_call() {
 
     assert_eq!(table.deal_stage, DealStage::Turn);
 
-    assert_eq!(table.pot, convert_to_e8s(6.0));
+    assert_eq!(table.pot.0, convert_to_e8s(6.0));
 
     assert_eq!(
         table.bet(other_uid, BetType::Raised(convert_to_e8s(4.0))),
@@ -817,7 +818,7 @@ fn test_all_in_call() {
 
     assert_eq!(table.bet(big_blind_uid, BetType::Called), Ok(()));
 
-    assert_eq!(table.pot, convert_to_e8s(12.0));
+    assert_eq!(table.pot.0, convert_to_e8s(12.0));
     assert_eq!(table.side_pots[0].confirmed_pot, convert_to_e8s(4.0));
 }
 
@@ -825,7 +826,7 @@ fn test_all_in_call() {
 fn test_all_in_and_fold() {
     // Initialize the table
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -851,7 +852,7 @@ fn test_all_in_and_fold() {
 
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -861,8 +862,8 @@ fn test_all_in_and_fold() {
         }
     }
 
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(4.0);
-    table.users.get_mut(&other_uid).unwrap().balance = convert_to_e8s(6.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(4.0);
+    table.users.get_mut(&other_uid).unwrap().balance.0 = convert_to_e8s(6.0);
 
     // Start a betting round
     assert!(table
@@ -879,7 +880,7 @@ fn test_all_in_and_fold() {
 
     assert_eq!(table.deal_stage, DealStage::Turn);
 
-    assert_eq!(table.pot, convert_to_e8s(6.0));
+    assert_eq!(table.pot.0, convert_to_e8s(6.0));
 
     assert_eq!(
         table.bet(other_uid, BetType::Raised(convert_to_e8s(4.0))),

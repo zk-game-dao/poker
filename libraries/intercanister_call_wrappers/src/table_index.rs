@@ -1,6 +1,7 @@
 use candid::Principal;
 use canister_functions::rake_stats::RakeStats;
 use errors::{table_error::TableError, table_index_error::TableIndexError};
+use table::poker::game::table_functions::table::TableId;
 
 pub async fn update_table_player_count_wrapper(
     backend_principal: Principal,
@@ -30,8 +31,8 @@ pub async fn update_table_player_count_wrapper(
     }
 }
 
-pub async fn get_rake_stats(table_id: Principal) -> Result<RakeStats, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "get_rake_stats").await;
+pub async fn get_rake_stats(table_id: TableId) -> Result<RakeStats, TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "get_rake_stats").await;
 
     match call_result {
         Ok(stats_result) => match stats_result.candid() {

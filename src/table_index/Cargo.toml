@@ -28,6 +28,7 @@ errors = { path = "../../libraries/errors" }
 intercanister_call_wrappers = { path = "../../libraries/intercanister_call_wrappers" }
 table = { path = "../../libraries/table" }
 table_index_types = { path = "../../libraries/table_index_types" }
+user = { path = "../../libraries/user" }
 
 [features]
 default = []

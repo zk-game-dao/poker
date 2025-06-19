@@ -601,56 +601,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clans_canister"
-version = "0.1.0"
-dependencies = [
- "authentication",
- "candid",
- "canister_functions",
- "currency",
- "errors",
- "futures",
- "ic-cdk",
- "ic-cdk-timers",
- "ic-ledger-types",
- "ic-stable-structures",
- "intercanister_call_wrappers",
- "lazy_static",
- "serde",
- "serde_bytes",
- "sha2 0.10.9",
- "table",
- "thiserror 1.0.69",
- "tournaments",
-]
-
-[[package]]
-name = "clans_index"
-version = "0.1.0"
-dependencies = [
- "authentication",
- "candid",
- "canister_functions",
- "clan",
- "currency",
- "errors",
- "futures",
- "ic-cdk",
- "ic-cdk-timers",
- "ic-ledger-types",
- "ic-stable-structures",
- "intercanister_call_wrappers",
- "lazy_static",
- "serde",
- "serde_bytes",
- "sha2 0.10.9",
- "table",
- "thiserror 1.0.69",
- "tournaments",
- "user",
-]
-
-[[package]]
 name = "clap"
 version = "3.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2844,6 +2794,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
 
 [[package]]
+name = "macros"
+version = "0.1.0"
+
+[[package]]
 name = "matchers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4789,6 +4743,7 @@ dependencies = [
  "ic-ledger-types",
  "ic-stable-structures",
  "lazy_static",
+ "macros",
  "serde",
  "serde_bytes",
  "sha2 0.10.9",
@@ -4844,6 +4799,7 @@ dependencies = [
  "table",
  "table_index_types",
  "thiserror 1.0.69",
+ "user",
 ]
 
 [[package]]
@@ -5175,6 +5131,7 @@ dependencies = [
  "table",
  "thiserror 1.0.69",
  "tournaments",
+ "user",
 ]
 
 [[package]]
@@ -5185,9 +5142,11 @@ dependencies = [
  "errors",
  "ic-cdk",
  "ic-stable-structures",
+ "macros",
  "serde",
  "table",
  "thiserror 1.0.69",
+ "user",
 ]
 
 [[package]]
@@ -5443,6 +5402,7 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-stable-structures",
+ "macros",
  "serde",
  "thiserror 1.0.69",
 ]

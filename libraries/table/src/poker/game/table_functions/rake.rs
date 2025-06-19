@@ -3,7 +3,7 @@ use currency::Currency;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
 use serde::{Deserialize, Serialize};
 
-use crate::poker::game::types::GameType;
+use crate::poker::game::{table_functions::table::SmallBlind, types::GameType};
 
 /// # Poker Rake System
 ///
@@ -64,15 +64,15 @@ impl Rake {
     /// # Returns
     /// * `Result<Self, TracedError<GameError>>` - The rake configuration or an error
     pub fn new(
-        small_blind: u64,
+        small_blind: SmallBlind,
         game_type: &GameType,
         currency: &Currency,
     ) -> Result<Self, TracedError<GameError>> {
         let mut scaled_small_blind = if currency.decimals() > 8 {
-            scale_amount(small_blind, currency.decimals(), 8)
+            scale_amount(small_blind.0, currency.decimals(), 8)
         } else {
             // For currencies with less decimals, scale up carefully
-            let scaled = scale_amount(small_blind, currency.decimals(), 8);
+            let scaled = scale_amount(small_blind.0, currency.decimals(), 8);
             if scaled == u64::MAX {
                 return Err(trace_err!(TracedError::new(
                     GameError::CouldNotCalculateRake

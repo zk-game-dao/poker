@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use candid::{decode_one, encode_args, Principal};
 use serial_test::serial;
 use table::poker::game::table_functions::table::TableConfig;
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use crate::TestEnv;
 
@@ -39,12 +40,12 @@ fn test_create_table() {
         .create_table(&table_config)
         .expect("Failed to create table");
 
-    assert!(test_env.pocket_ic.canister_exists(public_table.id));
+    assert!(test_env.pocket_ic.canister_exists(public_table.id.0));
     assert_eq!(public_table.config.name, table_config.name);
 
     // Call a function on the newly created table canister to verify its state
     let table_state = test_env.pocket_ic.query_call(
-        public_table.id,
+        public_table.id.0,
         Principal::anonymous(),
         "ping",
         encode_args(()).unwrap(),
@@ -64,17 +65,17 @@ fn test_create_table() {
 fn test_create_user() {
     let test_env = TestEnv::get();
 
-    let user_id = Principal::self_authenticating("usertest");
+    let user_id = WalletPrincipalId(Principal::self_authenticating("usertest"));
     let user_canister = test_env
         .create_user("Test User".to_string(), user_id)
         .expect("Failed to create user");
 
     assert!(test_env
         .pocket_ic
-        .canister_exists(user_canister.users_canister_id));
+        .canister_exists(user_canister.users_canister_id.0));
 
     let user = test_env
-        .get_user(user_canister.users_canister_id, user_id)
+        .get_user(user_canister.users_canister_id, user_canister.principal_id)
         .expect("Failed to get user");
 
     assert_eq!(user.user_name, "Test User");
@@ -88,14 +89,14 @@ fn test_creating_1100_users() {
         let user = test_env
             .create_user(
                 format!("User {}", i),
-                Principal::self_authenticating(format!("user{}", i)),
+                WalletPrincipalId(Principal::self_authenticating(format!("user{}", i))),
             )
             .unwrap();
         users.push((user.users_canister_id, user.principal_id));
         println!("Created user: {}", i);
     }
     assert_eq!(users.len(), 1100);
-    let users_canister: HashSet<Principal> =
+    let users_canister: HashSet<UsersCanisterId> =
         HashSet::from_iter(users.iter().map(|(canister_id, _)| *canister_id));
     assert_eq!(users_canister.len(), 2);
 }

@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use serde::Deserialize;
-use table::poker::game::table_functions::table::TableConfig;
+use table::poker::game::table_functions::table::{TableConfig, TableId};
 
 #[derive(Debug, Clone, PartialEq, CandidType, Deserialize)]
 pub struct PublicTableIndex {
-    pub tables: HashMap<Principal, TableConfig>,
+    pub tables: HashMap<TableId, TableConfig>,
 }
 
 impl Default for PublicTableIndex {
@@ -25,7 +25,7 @@ impl PublicTableIndex {
 
 #[derive(Debug, Clone, PartialEq, CandidType, Deserialize)]
 pub struct PrivateTableIndex {
-    pub tables: HashMap<Principal, TableConfig>,
+    pub tables: HashMap<TableId, TableConfig>,
 }
 
 impl Default for PrivateTableIndex {

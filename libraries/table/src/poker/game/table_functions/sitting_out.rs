@@ -1,5 +1,5 @@
-use candid::Principal;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::types::QueueItem;
 
@@ -18,7 +18,7 @@ impl Table {
     /// - [`GameError::InsufficientFunds`] if the user has insufficient funds to check
     pub fn user_sitting_out(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         is_inactive_user: bool,
     ) -> Result<(), TracedError<GameError>> {
         self.users

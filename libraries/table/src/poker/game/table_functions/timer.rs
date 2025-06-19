@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use candid::Principal;
 use errors::{game_error::GameError, table_error::TableError};
 use ic_cdk::futures::spawn;
+use user::user::WalletPrincipalId;
 
 use crate::table_canister::{handle_timer_expiration_wrapper, start_new_betting_round_wrapper};
 
@@ -15,12 +15,12 @@ impl Table {
     ///
     /// - `user_id`: The principal of the user whose turn timer is being set
     /// - `delay_seconds`: The number of seconds to wait before the timer expires
-    pub fn start_turn_timer(&mut self, user_id: Principal, delay_seconds: u64) {
+    pub fn start_turn_timer(&mut self, user_id: WalletPrincipalId, delay_seconds: u64) {
         let delay = Duration::from_secs(delay_seconds);
 
         ic_cdk::println!(
             "Starting turn timer for user: {:?} with delay: {} seconds",
-            user_id.to_text(),
+            user_id.0.to_text(),
             delay_seconds
         );
         // If a timer already exists, clear it before setting a new one

@@ -1,5 +1,6 @@
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use serde::{Deserialize, Serialize};
+use user::user::WalletPrincipalId;
 
 use crate::poker::core::Card;
 
@@ -48,13 +49,13 @@ pub struct ActionLog {
     /// The Unix timestamp of when the action was taken.
     pub timestamp: u64,
     /// The principal of the user who took the action.
-    pub user_principal: Option<Principal>,
+    pub user_principal: Option<WalletPrincipalId>,
     /// The type of action that was taken.
     pub action_type: ActionType,
 }
 
 impl ActionLog {
-    pub fn new(user_principal: Option<Principal>, action_type: ActionType) -> ActionLog {
+    pub fn new(user_principal: Option<WalletPrincipalId>, action_type: ActionType) -> ActionLog {
         ActionLog {
             #[cfg(not(target_arch = "wasm32"))]
             timestamp: 0,
@@ -73,7 +74,7 @@ impl Table {
     ///
     /// - `user_principal` - The principal of the user who took the action.
     /// - `action_type` - The type of action that was taken.
-    pub fn log_action(&mut self, user_principal: Option<Principal>, action_type: ActionType) {
+    pub fn log_action(&mut self, user_principal: Option<WalletPrincipalId>, action_type: ActionType) {
         let action_log = ActionLog::new(user_principal, action_type);
 
         self.action_logs.push(action_log);

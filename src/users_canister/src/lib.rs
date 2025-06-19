@@ -8,7 +8,7 @@ use ic_verifiable_credentials::{
     issuer_api::CredentialSpec, validate_ii_presentation_and_claims, VcFlowSigners,
 };
 use lazy_static::lazy_static;
-use user::user::{User, UserAvatar};
+use user::user::{User, UserAvatar, UserBalance, UsersCanisterId, WalletPrincipalId};
 
 use std::{collections::HashMap, sync::Mutex};
 
@@ -18,7 +18,7 @@ const MINIMUM_CYCLE_THRESHOLD: u128 = 350_000_000_000;
 
 #[derive(Debug, Clone, CandidType, serde::Serialize, serde::Deserialize)]
 pub struct Users {
-    pub users: HashMap<Principal, User>,
+    pub users: HashMap<WalletPrincipalId, User>,
 }
 
 impl Default for Users {
@@ -34,15 +34,15 @@ impl Users {
         }
     }
 
-    pub fn insert(&mut self, principal: Principal, user: User) {
+    pub fn insert(&mut self, principal: WalletPrincipalId, user: User) {
         self.users.insert(principal, user);
     }
 
-    pub fn get(&self, principal: &Principal) -> Option<&User> {
+    pub fn get(&self, principal: &WalletPrincipalId) -> Option<&User> {
         self.users.get(principal)
     }
 
-    pub fn get_mut(&mut self, principal: &Principal) -> Option<&mut User> {
+    pub fn get_mut(&mut self, principal: &WalletPrincipalId) -> Option<&mut User> {
         self.users.get_mut(principal)
     }
 
@@ -51,12 +51,12 @@ impl Users {
     }
 
     // Add iter method for immutable iteration
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, Principal, User> {
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, WalletPrincipalId, User> {
         self.users.iter()
     }
 
     // Add iter_mut method for mutable iteration
-    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<'_, Principal, User> {
+    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<'_, WalletPrincipalId, User> {
         self.users.iter_mut()
     }
 
@@ -64,7 +64,7 @@ impl Users {
         self.users.into_values()
     }
 
-    pub fn into_iter(self) -> impl Iterator<Item = (Principal, User)> {
+    pub fn into_iter(self) -> impl Iterator<Item = (WalletPrincipalId, User)> {
         self.users.into_iter()
     }
 }
@@ -142,10 +142,10 @@ fn ping() -> String {
 fn create_user(
     user_name: String,
     address: Option<String>,
-    internet_identity_principal_id: Principal,
+    internet_identity_principal_id: WalletPrincipalId,
     avatar: Option<UserAvatar>,
     eth_wallet_address: Option<String>,
-    referrer: Option<Principal>,
+    referrer: Option<WalletPrincipalId>,
 ) -> Result<(User, usize), UserError> {
     if user_name.is_empty() {
         return Err(UserError::InvalidRequest(
@@ -167,9 +167,9 @@ fn create_user(
 
     let user = User::new(
         internet_identity_principal_id,
-        ic_cdk::api::canister_self(),
+        UsersCanisterId(ic_cdk::api::canister_self()),
         user_name,
-        0,
+        UserBalance::default(),
         address,
         avatar,
         eth_wallet_address,
@@ -185,7 +185,7 @@ fn create_user(
 #[ic_cdk::update]
 #[allow(clippy::too_many_arguments)]
 fn update_user(
-    user_id: Principal,
+    user_id: WalletPrincipalId,
     user_name: Option<String>,
     balance: Option<u64>,
     address: Option<String>,
@@ -201,7 +201,7 @@ fn update_user(
         .lock()
         .map_err(|_| UserError::LockError)?)
     .unwrap_or(Principal::from_text("zpqcd-cyaaa-aaaam-qbe3q-cai").unwrap()); // The user principal in the canister_ids.json
-    validate_caller(vec![user.principal_id, user_index]);
+    validate_caller(vec![user.principal_id.0, user_index]);
     if let Some(user_name) = user_name {
         user.set_user_name(user_name);
     }
@@ -227,14 +227,14 @@ fn update_user(
 }
 
 #[ic_cdk::query]
-fn get_user(user_id: Principal) -> Result<User, UserError> {
+fn get_user(user_id: WalletPrincipalId) -> Result<User, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.clone())
 }
 
 #[ic_cdk::update]
-fn get_user_icc(user_id: Principal) -> Result<User, UserError> {
+fn get_user_icc(user_id: WalletPrincipalId) -> Result<User, UserError> {
     handle_cycle_check();
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
@@ -242,7 +242,7 @@ fn get_user_icc(user_id: Principal) -> Result<User, UserError> {
 }
 
 #[ic_cdk::update]
-fn add_active_table(table_principal: Principal, user_id: Principal) -> Result<User, UserError> {
+fn add_active_table(table_principal: Principal, user_id: WalletPrincipalId) -> Result<User, UserError> {
     handle_cycle_check();
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
@@ -252,7 +252,7 @@ fn add_active_table(table_principal: Principal, user_id: Principal) -> Result<Us
 }
 
 #[ic_cdk::update]
-fn remove_active_table(table_principal: Principal, user_id: Principal) -> Result<User, UserError> {
+fn remove_active_table(table_principal: Principal, user_id: WalletPrincipalId) -> Result<User, UserError> {
     handle_cycle_check();
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
@@ -262,7 +262,7 @@ fn remove_active_table(table_principal: Principal, user_id: Principal) -> Result
 }
 
 #[ic_cdk::query]
-fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
+fn get_active_tables(user_id: WalletPrincipalId) -> Result<Vec<Principal>, UserError> {
     handle_cycle_check();
 
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
@@ -274,7 +274,7 @@ fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
 fn add_experience_points(
     experience_points: u64,
     currency: String,
-    user_id: Principal,
+    user_id: WalletPrincipalId,
 ) -> Result<User, UserError> {
     handle_cycle_check();
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
@@ -312,14 +312,14 @@ fn clear_pure_poker_experience_points() -> Result<(), UserError> {
 }
 
 #[ic_cdk::query]
-fn get_user_level(user_id: Principal) -> Result<f64, UserError> {
+fn get_user_level(user_id: WalletPrincipalId) -> Result<f64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.get_level())
 }
 
 #[ic_cdk::query]
-fn get_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
+fn get_user_experience_points() -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let experience_points = user
         .into_values()
@@ -329,7 +329,7 @@ fn get_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
 }
 
 #[ic_cdk::query]
-fn get_pure_poker_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
+fn get_pure_poker_user_experience_points() -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let experience_points = user
         .into_values()
@@ -339,7 +339,7 @@ fn get_pure_poker_user_experience_points() -> Result<Vec<(Principal, u64)>, User
 }
 
 #[ic_cdk::query]
-fn get_verified_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
+fn get_verified_user_experience_points() -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let experience_points = user
         .into_iter()
@@ -350,7 +350,7 @@ fn get_verified_user_experience_points() -> Result<Vec<(Principal, u64)>, UserEr
 }
 
 #[ic_cdk::query]
-fn get_verified_pure_poker_user_experience_points() -> Result<Vec<(Principal, u64)>, UserError> {
+fn get_verified_pure_poker_user_experience_points() -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let experience_points = user
         .into_iter()
@@ -361,14 +361,14 @@ fn get_verified_pure_poker_user_experience_points() -> Result<Vec<(Principal, u6
 }
 
 #[ic_cdk::query]
-fn get_experience_points_by_uid(user_id: Principal) -> Result<u64, UserError> {
+fn get_experience_points_by_uid(user_id: WalletPrincipalId) -> Result<u64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.get_experience_points())
 }
 
 #[ic_cdk::query]
-fn get_pure_poker_experience_points_by_uid(user_id: Principal) -> Result<u64, UserError> {
+fn get_pure_poker_experience_points_by_uid(user_id: WalletPrincipalId) -> Result<u64, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.get_pure_poker_experience_points())
@@ -378,7 +378,7 @@ pub const IC_ROOT_KEY: &[u8; 133] = b"\x30\x81\x82\x30\x1d\x06\x0d\x2b\x06\x01\x
 
 #[ic_cdk::update]
 async fn verify_credential(
-    user_id: Principal,
+    user_id: WalletPrincipalId,
     vp_jwt: String,
     derivation_origin: String,
     effective_subject: Principal,
@@ -429,7 +429,7 @@ async fn verify_credential(
 
 /// Referral system
 #[ic_cdk::query]
-fn get_referred_users(user_id: Principal) -> Result<Vec<Principal>, UserError> {
+fn get_referred_users(user_id: WalletPrincipalId) -> Result<Vec<WalletPrincipalId>, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
 
@@ -443,7 +443,7 @@ fn get_referred_users(user_id: Principal) -> Result<Vec<Principal>, UserError> {
 }
 
 #[ic_cdk::query]
-fn get_referral_tier(user_id: Principal) -> Result<u8, UserError> {
+fn get_referral_tier(user_id: WalletPrincipalId) -> Result<u8, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
 
@@ -451,7 +451,7 @@ fn get_referral_tier(user_id: Principal) -> Result<u8, UserError> {
 }
 
 #[ic_cdk::update]
-fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
+fn get_referral_rake_percentage(user_id: WalletPrincipalId) -> Result<u8, UserError> {
     handle_cycle_check();
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
@@ -460,7 +460,7 @@ fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
 }
 
 #[ic_cdk::update]
-fn get_referrer(user_id: Principal) -> Result<Option<Principal>, UserError> {
+fn get_referrer(user_id: WalletPrincipalId) -> Result<Option<WalletPrincipalId>, UserError> {
     handle_cycle_check();
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;

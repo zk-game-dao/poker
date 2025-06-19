@@ -17,7 +17,7 @@ use intercanister_call_wrappers::tournament_canister::{
 };
 use table::{
     poker::game::{
-        table_functions::{table::TableConfig, types::CurrencyType},
+        table_functions::{table::{TableConfig, TableId}, types::CurrencyType},
         types::PublicTable,
     },
     table_canister::{
@@ -27,9 +27,10 @@ use table::{
 };
 use tournaments::tournaments::{
     tournament_type::{TournamentSizeType, TournamentType},
-    types::{TournamentData, TournamentState},
+    types::{TournamentData, TournamentId, TournamentState},
     utils::calculate_rake,
 };
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use crate::{
     CONTROLLER_PRINCIPALS, CURRENCY_MANAGER, LAST_LEADERBOARD_UPDATE, LEADERBOARD,
@@ -190,7 +191,7 @@ pub async fn create_table(
         }
     };
 
-    let table = create_table_wrapper(table_canister_principal, config, raw_bytes).await?;
+    let table = create_table_wrapper(TableId(table_canister_principal), config, raw_bytes).await?;
 
     Ok(table)
 }
@@ -217,7 +218,7 @@ fn get_table_config(
 }
 
 pub fn handle_refund(
-    wallet_principal_id: Principal,
+    wallet_principal_id: WalletPrincipalId,
     amount: u64,
     currency_type: String,
 ) -> Result<(), TableError> {
@@ -237,7 +238,7 @@ pub fn handle_refund(
                 .clone()
         };
         if let Err(e) = currency_manager
-            .withdraw(&currency, wallet_principal_id, amount)
+            .withdraw(&currency, wallet_principal_id.0, amount)
             .await
         {
             ic_cdk::println!("Failed to refund user: {:?}", e);
@@ -250,7 +251,7 @@ pub fn handle_refund(
 pub async fn handle_tournament_deposit(
     currency: CurrencyType,
     amount: u64,
-    wallet_principal_id: Principal,
+    wallet_principal_id: WalletPrincipalId,
 ) -> Result<(), TournamentError> {
     match currency {
         CurrencyType::Real(currency) => {
@@ -271,7 +272,7 @@ pub async fn handle_tournament_deposit(
                 .deposit(
                     &mut transaction_state,
                     &currency,
-                    wallet_principal_id,
+                    wallet_principal_id.0,
                     amount,
                 )
                 .await
@@ -288,7 +289,7 @@ pub async fn handle_tournament_deposit(
 }
 
 pub fn handle_invalid_join<T>(
-    user_id: Principal,
+    user_id: WalletPrincipalId,
     currency_type: String,
     should_refund: bool,
     error: T,
@@ -314,13 +315,13 @@ where
 
 pub async fn check_tournament_end(remaining_players: usize) -> Result<(), TournamentError> {
     if remaining_players == 1 {
-        handle_tournament_end_wrapper(ic_cdk::api::canister_self()).await?;
+        handle_tournament_end_wrapper(TournamentId(ic_cdk::api::canister_self())).await?;
     }
 
     Ok(())
 }
 
-pub async fn delete_table(table_principal: Principal) -> Result<(), TournamentError> {
+pub async fn delete_table(table_principal: TableId) -> Result<(), TournamentError> {
     handle_cycle_check();
     let res = is_game_ongoing_wrapper(table_principal).await?;
 
@@ -331,7 +332,7 @@ pub async fn delete_table(table_principal: Principal) -> Result<(), TournamentEr
     } else {
         return_all_cycles_to_index(table_principal).await?;
 
-        stop_and_delete_canister(table_principal).await?;
+        stop_and_delete_canister(table_principal.0).await?;
     }
     Ok(())
 }
@@ -339,9 +340,9 @@ pub async fn delete_table(table_principal: Principal) -> Result<(), TournamentEr
 #[allow(clippy::too_many_arguments)]
 pub async fn handle_reentry(
     buy_in_type: TournamentSizeType,
-    users_canister_id: Principal,
-    user_id: Principal,
-    table_id: Principal,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
+    table_id: TableId,
     tournament_state: &TournamentData,
     currency_type: String,
 ) -> Result<u64, TournamentError> {
@@ -403,9 +404,9 @@ pub async fn handle_reentry(
 #[allow(clippy::too_many_arguments)]
 pub async fn handle_rebuy(
     buy_in_type: TournamentSizeType,
-    users_canister_id: Principal,
-    user_id: Principal,
-    table_id: Principal,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
+    table_id: TableId,
     tournament_state: &TournamentData,
     currency_type: String,
 ) -> Result<u64, TournamentError> {
@@ -466,9 +467,9 @@ pub async fn handle_rebuy(
 
 pub async fn handle_addon(
     buy_in_type: &TournamentSizeType,
-    users_canister_id: Principal,
-    user_id: Principal,
-    table_id: Principal,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
+    table_id: TableId,
     currency_type: String,
     tournament: &TournamentData,
 ) -> Result<u64, TournamentError> {
@@ -527,8 +528,8 @@ pub async fn handle_addon(
 
 pub async fn handle_lost_user_rebuy_availability(
     buy_in_type: &TournamentSizeType,
-    user_principal: Principal,
-    table_id: Principal,
+    user_principal: WalletPrincipalId,
+    table_id: TableId,
     tournament: &TournamentData,
 ) -> Result<(), TournamentError> {
     match buy_in_type {
@@ -619,8 +620,8 @@ pub async fn handle_lost_user_rebuy_availability(
 }
 
 pub async fn handle_user_kick(
-    table_id: Option<Principal>,
-    user_principal: Principal,
+    table_id: Option<TableId>,
+    user_principal: WalletPrincipalId,
 ) -> Result<(), TournamentError> {
     let tournament = {
         let mut tournament = match TOURNAMENT.lock() {
@@ -695,7 +696,7 @@ pub async fn handle_user_kick(
 
 pub fn move_player_from_current_players_to_all_players(
     tournament: &mut TournamentData,
-    user_principals: &Vec<Principal>,
+    user_principals: &Vec<WalletPrincipalId>,
 ) -> Result<(), TournamentError> {
     for user_principal in user_principals {
         let user_data = tournament
@@ -754,7 +755,7 @@ pub async fn update_tournament_state(new_state: TournamentState) -> Result<(), T
 }
 
 pub async fn update_tournament_state_wrapper(
-    tournament_id: Principal,
+    tournament_id: TournamentId,
     new_state: TournamentState,
 ) -> Result<(), TournamentIndexError> {
     let tournament_index = {
@@ -821,14 +822,14 @@ pub async fn update_live_leaderboard() -> Result<(), TournamentError> {
 
                 for (principal, user_data) in &table.users.users {
                     if tournament.current_players.contains_key(principal) {
-                        player_chips.insert(*principal, user_data.balance);
+                        player_chips.insert(*principal, user_data.balance.0);
 
                         // Update UserTournamentData with latest chip count
                         if let Some(user_tournament_data) =
                             tournament.current_players.get_mut(principal)
                         {
                             if user_tournament_data.chips != user_data.balance {
-                                user_tournament_data.chips = user_data.balance;
+                                user_tournament_data.chips = user_data.balance.0;
                                 updated_tournament = true;
                             }
                         }
@@ -861,7 +862,7 @@ pub async fn update_live_leaderboard() -> Result<(), TournamentError> {
     }
 
     // Convert to sorted vec
-    let mut players_with_chips: Vec<(Principal, u64)> = player_chips.into_iter().collect();
+    let mut players_with_chips: Vec<(WalletPrincipalId, u64)> = player_chips.into_iter().collect();
 
     // Sort by chip count in descending order
     players_with_chips.sort_by(|a, b| b.1.cmp(&a.1));

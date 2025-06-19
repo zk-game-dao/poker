@@ -1,6 +1,7 @@
 use candid::{Decode, Encode, Principal};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{storable::Bound, DefaultMemoryImpl, StableBTreeMap, Storable};
+use user::user::{UsersCanisterId, WalletPrincipalId};
 use std::{borrow::Cow, cell::RefCell};
 
 use crate::user_index::UserIndex;
@@ -67,7 +68,7 @@ fn pre_upgrade() {
             USER_CANISTER_MAP.with(|p| {
                 let mut map = p.borrow_mut();
                 for (user_id, canister_id) in user_index_state.user_to_canister.iter() {
-                    map.insert(*user_id, *canister_id);
+                    map.insert(user_id.0, canister_id.0);
                 }
             });
 
@@ -75,7 +76,7 @@ fn pre_upgrade() {
             CANISTER_COUNT_MAP.with(|p| {
                 let mut map = p.borrow_mut();
                 for (canister_id, count) in user_index_state.canister_user_count.iter() {
-                    map.insert(*canister_id, *count as u64);
+                    map.insert(canister_id.0, *count as u64);
                 }
             });
 
@@ -106,7 +107,7 @@ fn post_upgrade() {
                 for (user_id, canister_id) in map.iter() {
                     user_index_state
                         .user_to_canister
-                        .insert(user_id, canister_id);
+                        .insert(WalletPrincipalId(user_id), UsersCanisterId(canister_id));
                 }
             });
 
@@ -116,7 +117,7 @@ fn post_upgrade() {
                 for (canister_id, count) in map.iter() {
                     user_index_state
                         .canister_user_count
-                        .insert(canister_id, count as usize);
+                        .insert(UsersCanisterId(canister_id), count as usize);
                 }
             });
 

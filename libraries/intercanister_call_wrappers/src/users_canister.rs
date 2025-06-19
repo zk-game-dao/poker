@@ -1,16 +1,17 @@
 use candid::Principal;
 use errors::user_error::UserError;
-use user::user::{User, UserAvatar};
+use table::poker::game::table_functions::table::TableId;
+use user::user::{User, UserAvatar, UsersCanisterId, WalletPrincipalId};
 
 pub async fn create_user_wrapper(
-    user_canister: Principal,
+    user_canister: UsersCanisterId,
     user_name: String,
     address: Option<String>,
-    principal_id: Principal,
+    principal_id: WalletPrincipalId,
     avatar: Option<UserAvatar>,
-    referrer: Option<Principal>,
+    referrer: Option<WalletPrincipalId>,
 ) -> Result<(User, usize), UserError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(user_canister, "create_user")
+    let call_result = ic_cdk::call::Call::unbounded_wait(user_canister.0, "create_user")
         .with_args(&(
             user_name,
             address,
@@ -40,15 +41,15 @@ pub async fn create_user_wrapper(
 }
 
 pub async fn update_user_wrapper(
-    user_canister_principal_id: Principal,
+    user_canister_principal_id: UsersCanisterId,
     user_name: Option<String>,
     balance: Option<u64>,
     address: Option<String>,
-    principal_id: Principal,
+    principal_id: WalletPrincipalId,
     wallet_principal_id: Option<String>,
     avatar: Option<UserAvatar>,
 ) -> Result<User, UserError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(user_canister_principal_id, "update_user")
+    let call_result = ic_cdk::call::Call::unbounded_wait(user_canister_principal_id.0, "update_user")
         .with_args(&(
             principal_id,
             user_name,
@@ -80,10 +81,10 @@ pub async fn update_user_wrapper(
 }
 
 pub async fn get_user_wrapper(
-    user_principal: Principal,
-    user_id: Principal,
+    user_principal: UsersCanisterId,
+    user_id: WalletPrincipalId,
 ) -> Result<User, UserError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(user_principal, "get_user")
+    let call_result = ic_cdk::call::Call::unbounded_wait(user_principal.0, "get_user")
         .with_arg(user_id)
         .await;
 
@@ -106,11 +107,11 @@ pub async fn get_user_wrapper(
 }
 
 pub async fn add_users_active_table(
-    users_canister_id: Principal,
-    user_id: Principal,
-    table_principal: Principal,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
+    table_principal: TableId,
 ) -> Result<User, UserError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(users_canister_id, "add_active_table")
+    let call_result = ic_cdk::call::Call::unbounded_wait(users_canister_id.0, "add_active_table")
         .with_args(&(table_principal, user_id))
         .await;
 
@@ -133,11 +134,11 @@ pub async fn add_users_active_table(
 }
 
 pub async fn remove_users_active_table(
-    users_canister_id: Principal,
-    user_id: Principal,
-    table_id: Principal,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
+    table_id: TableId,
 ) -> Result<User, UserError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(users_canister_id, "remove_active_table")
+    let call_result = ic_cdk::call::Call::unbounded_wait(users_canister_id.0, "remove_active_table")
         .with_args(&(table_id, user_id))
         .await;
 
@@ -162,8 +163,8 @@ pub async fn remove_users_active_table(
 #[ic_cdk::update]
 pub async fn get_users_canister_principal_by_id_wrapper(
     index_principal: Principal,
-    user_id: Principal,
-) -> Result<Principal, UserError> {
+    user_id: WalletPrincipalId,
+) -> Result<UsersCanisterId, UserError> {
     let call_result =
         ic_cdk::call::Call::unbounded_wait(index_principal, "get_users_canister_principal_by_id")
             .with_arg(user_id)
@@ -191,10 +192,10 @@ pub async fn get_users_canister_principal_by_id_wrapper(
 }
 
 pub async fn get_user_experience_points_wrapper(
-    users_canister_id: Principal,
-) -> Result<Vec<(Principal, u64)>, UserError> {
+    users_canister_id: UsersCanisterId,
+) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(users_canister_id, "get_user_experience_points").await;
+        ic_cdk::call::Call::unbounded_wait(users_canister_id.0, "get_user_experience_points").await;
 
     match call_result {
         Ok(points) => match points.candid() {
@@ -215,10 +216,10 @@ pub async fn get_user_experience_points_wrapper(
 }
 
 pub async fn get_pure_poker_user_experience_points_wrapper(
-    users_canister_id: Principal,
-) -> Result<Vec<(Principal, u64)>, UserError> {
+    users_canister_id: UsersCanisterId,
+) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(
-        users_canister_id,
+        users_canister_id.0,
         "get_pure_poker_user_experience_points",
     )
     .await;
@@ -248,10 +249,10 @@ pub async fn get_pure_poker_user_experience_points_wrapper(
 }
 
 pub async fn get_verified_user_experience_points_wrapper(
-    users_canister: Principal,
-) -> Result<Vec<(Principal, u64)>, UserError> {
+    users_canister: UsersCanisterId,
+) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(users_canister, "get_verified_user_experience_points")
+        ic_cdk::call::Call::unbounded_wait(users_canister.0, "get_verified_user_experience_points")
             .await;
 
     match call_result {
@@ -276,10 +277,10 @@ pub async fn get_verified_user_experience_points_wrapper(
 }
 
 pub async fn get_verified_pure_poker_user_experience_points_wrapper(
-    users_canister: Principal,
-) -> Result<Vec<(Principal, u64)>, UserError> {
+    users_canister: UsersCanisterId,
+) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(
-        users_canister,
+        users_canister.0,
         "get_verified_pure_poker_user_experience_points",
     )
     .await;
@@ -308,9 +309,9 @@ pub async fn get_verified_pure_poker_user_experience_points_wrapper(
     }
 }
 
-pub async fn clear_experience_points_wrapper(user_canister: Principal) -> Result<(), UserError> {
+pub async fn clear_experience_points_wrapper(user_canister: UsersCanisterId) -> Result<(), UserError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(user_canister, "clear_experience_points").await;
+        ic_cdk::call::Call::unbounded_wait(user_canister.0, "clear_experience_points").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -331,10 +332,10 @@ pub async fn clear_experience_points_wrapper(user_canister: Principal) -> Result
 }
 
 pub async fn clear_pure_poker_experience_points_wrapper(
-    user_canister: Principal,
+    user_canister: UsersCanisterId,
 ) -> Result<(), UserError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(user_canister, "clear_pure_poker_experience_points")
+        ic_cdk::call::Call::unbounded_wait(user_canister.0, "clear_pure_poker_experience_points")
             .await;
 
     match call_result {

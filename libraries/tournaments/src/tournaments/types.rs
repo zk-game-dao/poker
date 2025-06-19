@@ -2,8 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use candid::{CandidType, Principal};
 use errors::tournament_error::TournamentError;
+use macros::impl_principal_traits;
 use serde::{Deserialize, Serialize};
-use table::poker::game::table_functions::{table::TableConfig, types::CurrencyType};
+use table::poker::game::table_functions::{table::{TableConfig, TableId}, types::CurrencyType};
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use super::{
     blind_level::{BlindLevel, SpeedType},
@@ -14,13 +16,18 @@ use super::{
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum UserTournamentAction {
-    Join(Principal),
-    Leave(Principal),
+    Join(WalletPrincipalId),
+    Leave(WalletPrincipalId),
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+pub struct TournamentId(pub Principal);
+
+impl_principal_traits!(TournamentId);
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct TournamentData {
-    pub id: Principal,
+    pub id: TournamentId,
     pub name: String,
     pub description: String,
     pub hero_picture: String,
@@ -37,21 +44,21 @@ pub struct TournamentData {
     pub payout_structure: Vec<PayoutPercentage>,
     pub tournament_type: TournamentType,
 
-    pub current_players: HashMap<Principal, UserTournamentData>,
-    pub all_players: HashMap<Principal, UserTournamentData>,
+    pub current_players: HashMap<WalletPrincipalId, UserTournamentData>,
+    pub all_players: HashMap<WalletPrincipalId, UserTournamentData>,
     pub state: TournamentState,
     pub start_time: u64,
 
     pub table_config: TableConfig,
-    pub tables: HashMap<Principal, TableInfo>, // Key is canister id of table and value is list of players
-    pub sorted_users: Option<Vec<Principal>>,
+    pub tables: HashMap<TableId, TableInfo>, // Key is canister id of table and value is list of players
+    pub sorted_users: Option<Vec<WalletPrincipalId>>,
 
     pub require_proof_of_humanity: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct TableInfo {
-    pub players: HashSet<Principal>,
+    pub players: HashSet<WalletPrincipalId>,
     pub last_balance_time: Option<u64>,
 }
 
@@ -73,7 +80,7 @@ impl TableInfo {
 impl Default for TournamentData {
     fn default() -> Self {
         Self {
-            id: Principal::anonymous(),
+            id: TournamentId::default(),
             name: "".to_string(),
             description: "".to_string(),
             hero_picture: "".to_string(),
@@ -102,7 +109,7 @@ impl Default for TournamentData {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct UserTournamentData {
-    pub users_canister_principal: Principal,
+    pub users_canister_principal: UsersCanisterId,
     pub chips: u64,
     pub position: u32,
     pub reentries: u32,
@@ -111,7 +118,7 @@ pub struct UserTournamentData {
 }
 
 impl UserTournamentData {
-    pub fn new(users_canister_principal: Principal, chips: u64, position: u32) -> Self {
+    pub fn new(users_canister_principal: UsersCanisterId, chips: u64, position: u32) -> Self {
         Self {
             users_canister_principal,
             chips,
@@ -126,7 +133,7 @@ impl UserTournamentData {
 impl Default for UserTournamentData {
     fn default() -> Self {
         Self {
-            users_canister_principal: Principal::anonymous(),
+            users_canister_principal: UsersCanisterId::default(),
             chips: 0,
             position: 0,
             reentries: 0,
@@ -190,7 +197,7 @@ pub struct NewTournament {
 
 impl TournamentData {
     pub fn new(
-        id: Principal,
+        id: TournamentId,
         mut new_tournament_data: NewTournament,
         table_config: TableConfig,
     ) -> Result<Self, TournamentError> {
@@ -320,7 +327,7 @@ impl TournamentData {
     }
 
     pub async fn new_spin_and_go(
-        id: Principal,
+        id: TournamentId,
         new_tournament_data: NewTournament,
         table_config: TableConfig,
     ) -> Result<(Self, u64), TournamentError> {
@@ -449,7 +456,7 @@ impl TournamentData {
 
     pub fn get_user_tournament_data(
         &self,
-        user_principal: &Principal,
+        user_principal: &WalletPrincipalId,
     ) -> Result<&UserTournamentData, TournamentError> {
         match self
             .current_players
@@ -469,7 +476,7 @@ impl TournamentData {
 
     pub fn get_user_tournament_data_mut(
         &mut self,
-        user_principal: &Principal,
+        user_principal: &WalletPrincipalId,
     ) -> Result<&mut UserTournamentData, TournamentError> {
         match self
             .current_players

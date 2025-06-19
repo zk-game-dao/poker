@@ -1,9 +1,9 @@
-use candid::Principal;
 use serial_test::serial;
 use table::poker::game::{
     table_functions::types::{BetType, DealStage},
     utils::convert_to_e8s,
 };
+use user::user::WalletPrincipalId;
 
 use crate::TestEnv;
 
@@ -71,7 +71,7 @@ fn deposit_mid_game() {
         .unwrap();
 
     let mut public_table = test_env.get_table(public_table.id).unwrap();
-    let mut deposit_player = Principal::anonymous();
+    let mut deposit_player = WalletPrincipalId::default();
 
     while public_table.sorted_users.is_none() {
         let current_player = public_table
@@ -140,7 +140,7 @@ fn deposit_mid_game() {
 
     println!(
         "Balance of deposit player: {}",
-        public_table.users.get(&deposit_player).unwrap().balance
+        public_table.users.get(&deposit_player).unwrap().balance.0
     );
     assert!(public_table.users.get(&deposit_player).unwrap().balance > convert_to_e8s(150.0));
 }

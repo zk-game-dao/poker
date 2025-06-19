@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use errors::tournament_error::TournamentError;
 use serde::{Deserialize, Serialize};
+use table::poker::game::table_functions::table::TableId;
 
 use super::{
     blind_level::SpeedType,
@@ -38,9 +39,9 @@ impl TableBalancer {
 
     pub fn get_balance_moves(
         &self,
-        tables: &mut HashMap<Principal, TableInfo>,
-    ) -> Vec<(Principal, Principal)> {
-        let mut table_sizes: Vec<(Principal, usize)> = tables
+        tables: &mut HashMap<TableId, TableInfo>,
+    ) -> Vec<(TableId, TableId)> {
+        let mut table_sizes: Vec<(TableId, usize)> = tables
             .iter()
             .map(|(id, table)| (*id, table.players.len()))
             .collect();
@@ -49,7 +50,7 @@ impl TableBalancer {
 
         // Skip recently balanced tables
         let current_time = get_time();
-        let recently_balanced: HashSet<Principal> = tables
+        let recently_balanced: HashSet<TableId> = tables
             .iter()
             .filter_map(|(id, table)| {
                 if let Some(last_time) = table.last_balance_time {
@@ -61,11 +62,11 @@ impl TableBalancer {
             })
             .collect();
 
-        let mut affected_tables: HashSet<Principal> = HashSet::new();
+        let mut affected_tables: HashSet<TableId> = HashSet::new();
         let mut moves = Vec::new();
 
         // Get non-empty tables
-        let mut non_empty_tables: Vec<(Principal, usize)> = table_sizes
+        let mut non_empty_tables: Vec<(TableId, usize)> = table_sizes
             .iter()
             .filter(|(id, count)| *count > 0 && !recently_balanced.contains(id))
             .map(|(id, count)| (*id, *count))
@@ -77,7 +78,7 @@ impl TableBalancer {
             .sum::<usize>();
 
         // remove empty tables from table sizes
-        let all_tables: Vec<(Principal, usize)> = table_sizes
+        let all_tables: Vec<(TableId, usize)> = table_sizes
             .iter()
             .filter(|(_, count)| *count > 0)
             .map(|(id, count)| (*id, *count))
@@ -145,9 +146,9 @@ impl TableBalancer {
     // Priority 0: Create final table
     fn create_final_table(
         &self,
-        all_tables: &[(Principal, usize)],
-        affected_tables: &mut HashSet<Principal>,
-    ) -> Vec<(Principal, Principal)> {
+        all_tables: &[(TableId, usize)],
+        affected_tables: &mut HashSet<TableId>,
+    ) -> Vec<(TableId, TableId)> {
         let mut moves = Vec::new();
 
         if all_tables.len() < 2 {
@@ -194,14 +195,14 @@ impl TableBalancer {
     // PRIORITY 1: Consolidate small tables
     fn consolidate_small_tables(
         &self,
-        non_empty_tables: &[(Principal, usize)],
-        recently_balanced: &HashSet<Principal>,
-        affected_tables: &mut HashSet<Principal>,
-    ) -> Vec<(Principal, Principal)> {
+        non_empty_tables: &[(TableId, usize)],
+        recently_balanced: &HashSet<TableId>,
+        affected_tables: &mut HashSet<TableId>,
+    ) -> Vec<(TableId, TableId)> {
         let mut moves = Vec::new();
 
         // Find tables that are small but not empty
-        let small_tables: Vec<(Principal, usize)> = non_empty_tables
+        let small_tables: Vec<(TableId, usize)> = non_empty_tables
             .iter()
             .filter(|(id, count)| {
                 *count <= self.max_players_per_table as usize && // Include tables slightly above min
@@ -218,7 +219,7 @@ impl TableBalancer {
         let (smallest_id, smallest_count) = small_tables[0];
 
         // Find tables that can receive players
-        let receivers: Vec<(Principal, usize)> = non_empty_tables
+        let receivers: Vec<(TableId, usize)> = non_empty_tables
             .iter()
             .filter(|(id, count)| {
                 *id != smallest_id
@@ -266,9 +267,9 @@ impl TableBalancer {
     // PRIORITY 2: Balance tables with large differences
     fn balance_large_differences(
         &self,
-        non_empty_tables: &mut [(Principal, usize)],
-        affected_tables: &mut HashSet<Principal>,
-    ) -> Vec<(Principal, Principal)> {
+        non_empty_tables: &mut [(TableId, usize)],
+        affected_tables: &mut HashSet<TableId>,
+    ) -> Vec<(TableId, TableId)> {
         let mut moves = Vec::new();
 
         if non_empty_tables.len() < 2 {
@@ -330,7 +331,7 @@ impl TableBalancer {
     }
 
     // Add a new method to check if consolidation is possible
-    fn should_consolidate_tables(&self, non_empty_tables: &[(Principal, usize)]) -> bool {
+    fn should_consolidate_tables(&self, non_empty_tables: &[(TableId, usize)]) -> bool {
         if non_empty_tables.len() <= 1 {
             return false;
         }
@@ -347,7 +348,7 @@ impl TableBalancer {
 }
 
 impl TournamentData {
-    pub fn should_break_table(&self, table_id: Principal) -> bool {
+    pub fn should_break_table(&self, table_id: TableId) -> bool {
         if let Some(table) = self.tables.get(&table_id) {
             table.players.len() <= 3
         } else {
@@ -355,7 +356,7 @@ impl TournamentData {
         }
     }
 
-    pub fn get_table_counts(&self) -> Vec<(Principal, usize)> {
+    pub fn get_table_counts(&self) -> Vec<(TableId, usize)> {
         self.tables
             .iter()
             .map(|(id, table)| (*id, table.players.len()))
@@ -374,7 +375,7 @@ impl TournamentData {
         max_count - min_count > 2
     }
 
-    pub fn can_move_from_table(&self, table_id: Principal) -> bool {
+    pub fn can_move_from_table(&self, table_id: TableId) -> bool {
         if let Some(table) = self.tables.get(&table_id) {
             if let Some(last_balance) = table.last_balance_time {
                 // Don't move from tables that were balanced in last 3 hands
@@ -387,7 +388,7 @@ impl TournamentData {
         }
     }
 
-    pub fn record_table_move(&mut self, table_id: Principal) -> Result<(), TournamentError> {
+    pub fn record_table_move(&mut self, table_id: TableId) -> Result<(), TournamentError> {
         if let Some(table) = self.tables.get_mut(&table_id) {
             table.last_balance_time = Some(get_time());
             Ok(())

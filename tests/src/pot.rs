@@ -78,27 +78,27 @@ fn pot_split_when_player_leaves_table() {
         }
         println!(
             "User 1 balance: {}",
-            public_table.users.get(&user_1_id).unwrap().balance
+            public_table.users.get(&user_1_id).unwrap().balance.0
         );
         println!(
             "User 2 balance: {}",
-            public_table.users.get(&user_2_id).unwrap().balance
+            public_table.users.get(&user_2_id).unwrap().balance.0
         );
-        if public_table.users.users.contains_key(&user_3) {
+        if public_table.users.users.contains_key(&user_3_id) {
             println!(
                 "User 3 balance: {}",
-                public_table.users.get(&user_3_id).unwrap().balance
+                public_table.users.get(&user_3_id).unwrap().balance.0
             );
         }
     }
     let public_table = test_env.get_table(public_table.id).unwrap();
     println!(
         "User 1 balance: {}",
-        public_table.users.get(&user_1_id).unwrap().balance
+        public_table.users.get(&user_1_id).unwrap().balance.0
     );
     println!(
         "User 2 balance: {}",
-        public_table.users.get(&user_2_id).unwrap().balance
+        public_table.users.get(&user_2_id).unwrap().balance.0
     );
     assert!(
         public_table.users.get(&user_1_id).unwrap().balance

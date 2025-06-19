@@ -1,5 +1,5 @@
-use candid::Principal;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
+use user::user::WalletPrincipalId;
 
 use super::{
     action_log::ActionType,
@@ -20,13 +20,13 @@ impl Table {
     /// - [`GameError::PlayerNotFound`] if retrieving a player fails
     pub fn user_fold(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         is_inactive_user: bool,
     ) -> Result<(), TracedError<GameError>> {
         if !is_inactive_user {
             #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
             {
-                ic_cdk::println!("Clearing turn timer in user fold function for user {:?} with inactive user : {}", user_principal.to_text(), is_inactive_user);
+                ic_cdk::println!("Clearing turn timer in user fold function for user {:?} with inactive user : {}", user_principal.0.to_text(), is_inactive_user);
                 self.clear_turn_timer();
             }
         }
@@ -45,7 +45,7 @@ impl Table {
         let current_total_bet = user_table_data.current_total_bet;
         user_table_data.current_total_bet = 0;
         if !self.is_side_pot_active {
-            self.pot += current_total_bet;
+            self.add_to_pot(current_total_bet);
         } else {
             self.side_pots
                 .last_mut()
@@ -78,7 +78,7 @@ impl Table {
     /// - [`GameError::PlayerNotFound`] if retrieving a player fails
     pub fn user_pre_fold(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
     ) -> Result<(), TracedError<GameError>> {
         let user_table_data = self.get_user_table_data_mut(user_principal).map_err(|e| {
             trace_err!(
@@ -91,7 +91,7 @@ impl Table {
         user_table_data.inactive_turns = 0;
         user_table_data.current_total_bet = 0;
         if !self.is_side_pot_active {
-            self.pot += current_total_bet;
+            self.add_to_pot(current_total_bet);
         } else {
             self.side_pots
                 .last_mut()
@@ -123,7 +123,7 @@ impl Table {
     ///
     /// - [`GameError::Other`] if the user table data cannot be retrieved
     /// - [`GameError::PlayerNotFound`] if retrieving a player fails
-    pub fn force_fold(&mut self, user_principal: Principal) -> Result<(), TracedError<GameError>> {
+    pub fn force_fold(&mut self, user_principal: WalletPrincipalId) -> Result<(), TracedError<GameError>> {
         if self.sorted_users.is_none() {
             if self
                 .handle_inactive_user(user_principal)
@@ -138,7 +138,7 @@ impl Table {
                 let current_total_bet = user_table_data.current_total_bet;
                 user_table_data.current_total_bet = 0;
                 if !self.is_side_pot_active {
-                    self.pot += current_total_bet;
+                    self.add_to_pot(current_total_bet);
                 } else {
                     self.side_pots
                         .last_mut()

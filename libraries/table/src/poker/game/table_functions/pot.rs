@@ -1,12 +1,12 @@
-use candid::Principal;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
+use user::user::WalletPrincipalId;
 
 use super::{action_log::ActionType, side_pot::SidePot, table::Table, types::PlayerAction};
 
 impl Table {
     /// Adds the given `amount` to the pot
     pub fn add_to_pot(&mut self, amount: u64) {
-        self.pot += amount;
+        self.pot.0 += amount;
     }
 
     /// Removes the given `amount` from the pot
@@ -19,13 +19,13 @@ impl Table {
     ///
     /// - [`GameError::Other`] if the amount to remove is greater than the pot
     pub fn remove_from_pot(&mut self, amount: u64) -> Result<(), TracedError<GameError>> {
-        if self.pot.checked_sub(amount).is_none() {
+        if self.pot.0.checked_sub(amount).is_none() {
             Err(trace_err!(TracedError::new(GameError::Other(format!(
                 "Cannot remove {} from pot as it only has {} left",
-                amount, self.pot
+                amount, self.pot.0
             )))))
         } else {
-            self.pot -= amount;
+            self.pot.0 -= amount;
             Ok(())
         }
     }
@@ -78,7 +78,7 @@ impl Table {
     ///
     /// - `user_principal` - The principal of the user who is contributing to the side pot
     /// - `amount` - The starting amount of the side pot
-    pub fn create_side_pot(&mut self, user_principal: Principal, amount: u64) {
+    pub fn create_side_pot(&mut self, user_principal: WalletPrincipalId, amount: u64) {
         let mut side_pot = SidePot::new();
         side_pot.highest_bet = amount;
         side_pot.pot = amount;
@@ -93,7 +93,7 @@ impl Table {
     pub fn calculate_pots(&mut self) -> Result<(), TracedError<GameError>> {
         // Collect all active players and their current_total_bet.
         // Active players are those who have not folded.
-        let mut players_bets: Vec<(Principal, u64)> = self
+        let mut players_bets: Vec<(WalletPrincipalId, u64)> = self
             .user_table_data
             .iter()
             .filter(|(_, data)| {
@@ -119,12 +119,12 @@ impl Table {
 
         let mut previous_bet = if !self.is_side_pot_active {
             let lowest_bet = bet_amounts.remove(0);
-            let players_in_pot: Vec<Principal> = players_bets
+            let players_in_pot: Vec<WalletPrincipalId> = players_bets
                 .iter()
                 .filter(|&&(_, player_bet)| player_bet >= lowest_bet)
                 .map(|&(principal, _)| principal)
                 .collect();
-            self.pot += lowest_bet * players_in_pot.len() as u64;
+            self.add_to_pot(lowest_bet * players_in_pot.len() as u64);
             lowest_bet
         } else {
             0
@@ -133,7 +133,7 @@ impl Table {
         for &bet in &bet_amounts {
             let bet_difference = bet - previous_bet;
             // Players who have bet at least the current bet amount.
-            let players_in_pot: Vec<Principal> = players_bets
+            let players_in_pot: Vec<WalletPrincipalId> = players_bets
                 .iter()
                 .filter(|&&(_, player_bet)| player_bet >= bet)
                 .map(|&(principal, _)| principal)
@@ -170,7 +170,7 @@ impl Table {
     pub fn calculate_seated_out_pots(&mut self) -> Result<(), TracedError<GameError>> {
         // Collect all active players and their current_total_bet.
         // Active players are those who have not folded.
-        let players_bets: Vec<(Principal, u64)> = self
+        let players_bets: Vec<(WalletPrincipalId, u64)> = self
             .user_table_data
             .iter()
             .filter(|(_, data)| {
@@ -186,7 +186,7 @@ impl Table {
         }
 
         for bet in players_bets {
-            self.pot += bet.1;
+            self.add_to_pot(bet.1);
         }
 
         Ok(())

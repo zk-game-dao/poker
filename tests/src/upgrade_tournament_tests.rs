@@ -9,7 +9,7 @@ use tournaments::tournaments::{
         TournamentType,
     },
     types::{
-        NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentData, TournamentState,
+        NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentData, TournamentId, TournamentState
     },
 };
 
@@ -135,12 +135,12 @@ impl TestEnv {
     // Method to update tournament state
     pub fn update_tournament_state(
         &self,
-        tournament_id: Principal,
+        tournament_id: TournamentId,
         new_state: TournamentState,
     ) -> Result<(), TournamentIndexError> {
         let result = self.pocket_ic.update_call(
             self.canister_ids.tournament_index,
-            tournament_id,
+            tournament_id.0,
             "update_tournament_state",
             encode_args((tournament_id, new_state)).unwrap(),
         );
@@ -270,9 +270,9 @@ fn test_tournament_canister_basic_persistence() {
     let (user1, user1_id) = test_env.create_test_user("user1tournament");
     let (user2, user2_id) = test_env.create_test_user("user2tournament");
 
-    test_env.transfer_approve_tokens_for_testing(tournament_id, user1_id, 1000.0, true);
+    test_env.transfer_approve_tokens_for_testing(tournament_id.0, user1_id, 1000.0, true);
 
-    test_env.transfer_approve_tokens_for_testing(tournament_id, user2_id, 1000.0, true);
+    test_env.transfer_approve_tokens_for_testing(tournament_id.0, user2_id, 1000.0, true);
 
     // Join tournament
     test_env
@@ -306,7 +306,7 @@ fn test_tournament_canister_basic_persistence() {
 
     // 7. Verify canister is still functional by adding another player
     let (user3, user3_id) = test_env.create_test_user("user3tournament");
-    test_env.transfer_approve_tokens_for_testing(tournament_id, user3_id, 1000.0, true);
+    test_env.transfer_approve_tokens_for_testing(tournament_id.0, user3_id, 1000.0, true);
 
     test_env
         .join_tournament(tournament_id, user3, user3_id)
@@ -339,9 +339,9 @@ fn test_tournament_state_transition_across_upgrade() {
     let (user1, user1_id) = test_env.create_test_user("user1phases");
     let (user2, user2_id) = test_env.create_test_user("user2phases");
 
-    test_env.transfer_approve_tokens_for_testing(tournament_id, user1_id, 1000.0, true);
+    test_env.transfer_approve_tokens_for_testing(tournament_id.0, user1_id, 1000.0, true);
 
-    test_env.transfer_approve_tokens_for_testing(tournament_id, user2_id, 1000.0, true);
+    test_env.transfer_approve_tokens_for_testing(tournament_id.0, user2_id, 1000.0, true);
 
     // Join tournament
     test_env
@@ -353,7 +353,7 @@ fn test_tournament_state_transition_across_upgrade() {
         .expect("Failed to join tournament for user2");
 
     // 4. Upgrade the canister while in registration state
-    upgrade_tournament_canister(&test_env, tournament_id);
+    upgrade_tournament_canister(&test_env, tournament_id.0);
 
     // Tick a few times to ensure the heartbeat runs
     test_env.pocket_ic.advance_time(Duration::from_secs(60000));

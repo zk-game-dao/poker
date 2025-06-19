@@ -1,8 +1,9 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::{
     table_functions::{
-        table::Table,
+        table::{Table, TableId},
         tests::{create_user, get_table_config},
         types::{BetType, DealStage, SeatStatus},
     },
@@ -14,7 +15,7 @@ use crate::poker::game::{
 fn test_pot_limit_insufficient_funds_when_raising() {
     // This test ensures that a player cannot raise more than their available balance in a pot limit game
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::PotLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -45,7 +46,7 @@ fn test_pot_limit_insufficient_funds_when_raising() {
 fn test_pot_limit_correct_blinds() {
     // This test ensures that blinds are posted correctly in a pot limit game
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::PotLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -93,7 +94,7 @@ fn test_pot_limit_correct_blinds() {
 fn test_pot_limit_raise_within_pot() {
     // Test that a player can raise within the pot limit
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::PotLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -135,7 +136,7 @@ fn test_pot_limit_raise_within_pot() {
 fn test_pot_limit_raise_exceeds_pot() {
     // Test that a player cannot raise more than the pot limit
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::PotLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -166,7 +167,7 @@ fn test_pot_limit_raise_exceeds_pot() {
 fn test_pot_limit_correct_pot_calculation() {
     // Test that the pot is correctly calculated after bets and raises
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::PotLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -202,14 +203,14 @@ fn test_pot_limit_correct_pot_calculation() {
     // Proceed to next stage to confirm bets and update pot
     table.set_deal_stage(DealStage::Flop);
 
-    assert_eq!(table.pot, convert_to_e8s(6.0));
+    assert_eq!(table.pot.0, convert_to_e8s(6.0));
 }
 
 #[test]
 fn test_pot_limit_multiple_raises() {
     // Test multiple raises in a pot limit game
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::PotLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -237,7 +238,7 @@ fn test_pot_limit_multiple_raises() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -269,5 +270,5 @@ fn test_pot_limit_multiple_raises() {
     table.set_deal_stage(DealStage::Flop);
 
     // Pot should now be 1.5 (blinds) + 3.5 (other) + 3.0 (small blind call) + 14.0 (big blind raise) + 10.5 (other call) = 32.5
-    assert_eq!(table.pot, convert_to_e8s(19.0));
+    assert_eq!(table.pot.0, convert_to_e8s(19.0));
 }

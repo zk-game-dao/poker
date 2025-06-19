@@ -9,6 +9,7 @@ use intercanister_call_wrappers::users_canister::{
     get_verified_user_experience_points_wrapper,
 };
 use serde::Deserialize;
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use crate::{
     LEADERBOARD_CACHE, LEADERBOARD_CACHE_TIMESTAMP, PURE_POKER_LEADERBOARD_CACHE,
@@ -18,10 +19,10 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, CandidType, Deserialize)]
 pub struct UserIndex {
     // Maps user principal to their canister
-    pub user_to_canister: HashMap<Principal, Principal>,
+    pub user_to_canister: HashMap<WalletPrincipalId, UsersCanisterId>,
 
     // Maps canister to count of users it contains
-    pub canister_user_count: HashMap<Principal, usize>,
+    pub canister_user_count: HashMap<UsersCanisterId, usize>,
 
     pub processed_transactions: HashSet<String>,
 }
@@ -51,18 +52,18 @@ impl UserIndex {
 
     pub fn add_user(
         &mut self,
-        user_id: Principal,
-        user_canister_id: Principal,
+        user_id: WalletPrincipalId,
+        user_canister_id: UsersCanisterId,
     ) -> Result<(), UserError> {
         self.user_to_canister.insert(user_id, user_canister_id);
         Ok(())
     }
 
-    pub fn get_users_canister_principal(&self, user_id: Principal) -> Option<&Principal> {
+    pub fn get_users_canister_principal(&self, user_id: WalletPrincipalId) -> Option<&UsersCanisterId> {
         self.user_to_canister.get(&user_id)
     }
 
-    pub fn remove_user(&mut self, user_id: Principal) {
+    pub fn remove_user(&mut self, user_id: WalletPrincipalId) {
         self.user_to_canister.remove(&user_id);
     }
 
@@ -70,11 +71,11 @@ impl UserIndex {
         self.user_to_canister.len()
     }
 
-    pub fn get_user_canisters(&self) -> Vec<Principal> {
+    pub fn get_user_canisters(&self) -> Vec<WalletPrincipalId> {
         self.user_to_canister.keys().cloned().collect()
     }
 
-    pub fn get_available_canister(&self) -> Option<Principal> {
+    pub fn get_available_canister(&self) -> Option<UsersCanisterId> {
         // Find a canister with less than 1000 users
         self.canister_user_count
             .iter()
@@ -82,16 +83,16 @@ impl UserIndex {
             .map(|(canister_id, _)| *canister_id)
     }
 
-    pub fn get_users_canisters(&self) -> Vec<Principal> {
+    pub fn get_users_canisters(&self) -> Vec<UsersCanisterId> {
         self.canister_user_count.keys().copied().collect()
     }
 
     pub async fn get_experience_points_leaderboard(
         &self,
-    ) -> Result<Vec<(Principal, u64)>, UserError> {
+    ) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
         const BATCH_SIZE: usize = 30; // Process 30 users at a time
 
-        let users: Vec<Principal> = self.canister_user_count.keys().copied().collect();
+        let users: Vec<UsersCanisterId> = self.canister_user_count.keys().copied().collect();
         let mut all_results = Vec::new();
 
         // Process users in batches
@@ -104,7 +105,7 @@ impl UserIndex {
                         Err(e) => {
                             ic_cdk::println!(
                                 "Failed to get experience points for user {}: {:?}",
-                                users_canister,
+                                users_canister.0.to_text(),
                                 e
                             );
                             vec![]
@@ -114,7 +115,7 @@ impl UserIndex {
                 .collect();
 
             // Execute batch of queries
-            let batch_results: Vec<Vec<(Principal, u64)>> = join_all(futures).await;
+            let batch_results: Vec<Vec<(WalletPrincipalId, u64)>> = join_all(futures).await;
             all_results.extend(batch_results.into_iter().flatten());
         }
 
@@ -126,10 +127,10 @@ impl UserIndex {
 
     pub async fn get_pure_poker_experience_points_leaderboard(
         &self,
-    ) -> Result<Vec<(Principal, u64)>, UserError> {
+    ) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
         const BATCH_SIZE: usize = 30; // Process 30 users at a time
 
-        let users: Vec<Principal> = self.canister_user_count.keys().copied().collect();
+        let users: Vec<UsersCanisterId> = self.canister_user_count.keys().copied().collect();
         let mut all_results = Vec::new();
 
         // Process users in batches
@@ -142,7 +143,7 @@ impl UserIndex {
                         Err(e) => {
                             ic_cdk::println!(
                                 "Failed to get experience points for user {}: {:?}",
-                                user,
+                                user.0.to_text(),
                                 e
                             );
                             vec![]
@@ -152,7 +153,7 @@ impl UserIndex {
                 .collect();
 
             // Execute batch of queries
-            let batch_results: Vec<Vec<(Principal, u64)>> = join_all(futures).await;
+            let batch_results: Vec<Vec<(WalletPrincipalId, u64)>> = join_all(futures).await;
             all_results.extend(batch_results.into_iter().flatten());
         }
 
@@ -164,10 +165,10 @@ impl UserIndex {
 
     pub async fn get_verified_experience_points_leaderboard(
         &self,
-    ) -> Result<Vec<(Principal, u64)>, UserError> {
+    ) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
         const BATCH_SIZE: usize = 30; // Process 30 users at a time
 
-        let users: Vec<Principal> = self.canister_user_count.keys().copied().collect();
+        let users: Vec<UsersCanisterId> = self.canister_user_count.keys().copied().collect();
         let mut all_results = Vec::new();
 
         // Process users in batches
@@ -180,7 +181,7 @@ impl UserIndex {
                         Err(e) => {
                             ic_cdk::println!(
                                 "Failed to get verified experience points for user {}: {:?}",
-                                users_canister,
+                                users_canister.0.to_text(),
                                 e
                             );
                             vec![]
@@ -190,7 +191,7 @@ impl UserIndex {
                 .collect();
 
             // Execute batch of queries
-            let batch_results: Vec<Vec<(Principal, u64)>> = join_all(futures).await;
+            let batch_results: Vec<Vec<(WalletPrincipalId, u64)>> = join_all(futures).await;
             all_results.extend(batch_results.into_iter().flatten());
         }
 
@@ -202,10 +203,10 @@ impl UserIndex {
 
     pub async fn get_verified_pure_poker_experience_points_leaderboard(
         &self,
-    ) -> Result<Vec<(Principal, u64)>, UserError> {
+    ) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
         const BATCH_SIZE: usize = 30; // Process 30 users at a time
 
-        let users: Vec<Principal> = self.canister_user_count.keys().copied().collect();
+        let users: Vec<UsersCanisterId> = self.canister_user_count.keys().copied().collect();
         let mut all_results = Vec::new();
 
         // Process users in batches
@@ -218,7 +219,7 @@ impl UserIndex {
                         Err(e) => {
                             ic_cdk::println!(
                                 "Failed to get verified pure poker experience points for user {}: {:?}",
-                                user,
+                                user.0.to_text(),
                                 e
                             );
                             vec![]
@@ -228,7 +229,7 @@ impl UserIndex {
                 .collect();
 
             // Execute batch of queries
-            let batch_results: Vec<Vec<(Principal, u64)>> = join_all(futures).await;
+            let batch_results: Vec<Vec<(WalletPrincipalId, u64)>> = join_all(futures).await;
             all_results.extend(batch_results.into_iter().flatten());
         }
 

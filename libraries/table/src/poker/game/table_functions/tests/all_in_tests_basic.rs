@@ -1,8 +1,9 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::{
     table_functions::{
-        table::Table,
+        table::{Table, TableId},
         tests::{create_user, get_table_config, turn_tests::is_it_users_turn},
         types::{BetType, DealStage, PlayerAction, SeatStatus},
     },
@@ -13,7 +14,7 @@ use crate::poker::game::{
 #[test]
 fn test_all_in_basic() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -33,7 +34,7 @@ fn test_all_in_basic() {
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
         .is_ok());
 
-    let big_blind_uid: Principal = table.get_big_blind_user_principal().unwrap();
+    let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
 
     // Small blind re-raises
@@ -72,7 +73,7 @@ fn test_all_in_basic() {
 #[test]
 fn test_all_in_one_player_larger_balance() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -95,7 +96,7 @@ fn test_all_in_one_player_larger_balance() {
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
 
-    table.users.get_mut(&big_blind_uid).unwrap().balance = convert_to_e8s(200.0);
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = convert_to_e8s(200.0);
 
     // Big blind re-raises
     assert_eq!(
@@ -131,7 +132,7 @@ fn test_all_in_one_player_larger_balance() {
 #[test]
 fn test_multiple_users_all_in_basic() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -158,7 +159,7 @@ fn test_multiple_users_all_in_basic() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -220,7 +221,7 @@ fn test_multiple_users_all_in_basic() {
 #[test]
 fn test_multiple_users_all_in_basic_one_folds() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -247,7 +248,7 @@ fn test_multiple_users_all_in_basic_one_folds() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -300,7 +301,7 @@ fn test_multiple_users_all_in_basic_one_folds() {
 #[test]
 fn test_all_in_basic_current_player_index() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -359,7 +360,7 @@ fn test_all_in_basic_current_player_index() {
 #[test]
 fn test_all_in_multiple_all_ins() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -386,7 +387,7 @@ fn test_all_in_multiple_all_ins() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid {
@@ -397,12 +398,12 @@ fn test_all_in_multiple_all_ins() {
     }
 
     println!("---------------------------------------");
-    println!("Big blind id: {}", big_blind_uid);
-    println!("Small blind id: {}", small_blind_uid);
-    println!("Other id: {}", other_uid);
+    println!("Big blind id: {}", big_blind_uid.0.to_text());
+    println!("Small blind id: {}", small_blind_uid.0.to_text());
+    println!("Other id: {}", other_uid.0.to_text());
     println!("---------------------------------------");
 
-    table.users.get_mut(&small_blind_uid).unwrap().balance = convert_to_e8s(200.0);
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = convert_to_e8s(200.0);
 
     // Big blind re-raises
     assert_eq!(table.bet(small_blind_uid, BetType::Called), Ok(()));
@@ -456,7 +457,7 @@ fn test_all_in_multiple_all_ins() {
 #[test]
 fn test_all_in_opening() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 4),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -494,7 +495,7 @@ fn test_all_in_opening() {
     } else {
         panic!("Dealer position is not occupied");
     };
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid && *user_id != dealer_uid {
@@ -505,9 +506,9 @@ fn test_all_in_opening() {
     }
 
     println!("---------------------------------------");
-    println!("Big blind id: {}", big_blind_uid);
-    println!("Small blind id: {}", small_blind_uid);
-    println!("Other id: {}", dealer_uid);
+    println!("Big blind id: {}", big_blind_uid.0.to_text());
+    println!("Small blind id: {}", small_blind_uid.0.to_text());
+    println!("Other id: {}", dealer_uid.0.to_text());
     println!("---------------------------------------");
 
     assert!(is_it_users_turn(&table, other_uid));
@@ -564,7 +565,7 @@ fn test_all_in_opening() {
 #[test]
 fn test_all_players_all_in_opening() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 4),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -602,7 +603,7 @@ fn test_all_players_all_in_opening() {
     } else {
         panic!("Dealer position is not occupied");
     };
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for user_id in table.seats.iter() {
         if let SeatStatus::Occupied(user_id) = user_id {
             if *user_id != big_blind_uid && *user_id != small_blind_uid && *user_id != dealer_uid {
@@ -613,10 +614,10 @@ fn test_all_players_all_in_opening() {
     }
 
     println!("---------------------------------------");
-    println!("Big blind id: {}", big_blind_uid);
-    println!("Small blind id: {}", small_blind_uid);
-    println!("Dealer id: {}", dealer_uid);
-    println!("Other id: {}", other_uid);
+    println!("Big blind id: {}", big_blind_uid.0.to_text());
+    println!("Small blind id: {}", small_blind_uid.0.to_text());
+    println!("Dealer id: {}", dealer_uid.0.to_text());
+    println!("Other id: {}", other_uid.0.to_text());
     println!("---------------------------------------");
 
     println!(
@@ -624,6 +625,7 @@ fn test_all_players_all_in_opening() {
         table
             .get_player_at_seat(table.current_player_index)
             .unwrap()
+            .0
             .to_text()
     );
 
@@ -681,7 +683,7 @@ fn test_all_players_all_in_opening() {
 #[test]
 fn test_all_in_with_side_pot_uneven_balances() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(1), 4),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -703,7 +705,7 @@ fn test_all_in_with_side_pot_uneven_balances() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    table.users.get_mut(&big_blind_uid).unwrap().balance = 200;
+    table.users.get_mut(&big_blind_uid).unwrap().balance.0 = 200;
 
     let user_3 = create_user(
         Principal::from_text("bw4dl-smaaa-aaaaa-qaacq-cai").expect("Could not decode principal"),

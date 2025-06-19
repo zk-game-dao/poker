@@ -1,7 +1,7 @@
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use serde::Deserialize;
 use table::poker::game::{
-    table_functions::{table::TableConfig, types::CurrencyType},
+    table_functions::{table::{TableConfig, TableId}, types::CurrencyType},
     types::GameType,
 };
 
@@ -90,8 +90,8 @@ impl FilterOptions {
 
     pub fn filter_tables(
         &self,
-        tables: Vec<(Principal, TableConfig)>,
-    ) -> Vec<(Principal, TableConfig)> {
+        tables: Vec<(TableId, TableConfig)>,
+    ) -> Vec<(TableId, TableConfig)> {
         tables
             .into_iter()
             .filter(|(_, table_config)| {

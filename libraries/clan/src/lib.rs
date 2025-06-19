@@ -51,15 +51,9 @@ impl Default for SubscriptionTierId {
 pub struct SubscriptionRequirements {
     /// Monthly payment required in clan's supported currency
     pub monthly_payment: Option<u64>,
-    
+
     /// One-time payment required in clan's supported currency
     pub one_time_payment: Option<u64>,
-    
-    /// Minimum user level required
-    pub minimum_level: Option<u64>,
-    
-    /// Minimum experience points required
-    pub minimum_experience_points: Option<u64>,
     
     /// Minimum contribution points within the clan
     pub minimum_contribution_points: Option<u64>,
@@ -82,8 +76,6 @@ impl Default for SubscriptionRequirements {
         Self {
             monthly_payment: None,
             one_time_payment: None,
-            minimum_level: None,
-            minimum_experience_points: None,
             minimum_contribution_points: None,
             requires_invitation: false,
             requires_verification: false,
@@ -177,7 +169,6 @@ impl SubscriptionTier {
             name: "Premium".to_string(),
             requirements: SubscriptionRequirements {
                 monthly_payment: Some(1000),
-                minimum_level: Some(5),
                 ..Default::default()
             },
             benefits: SubscriptionBenefits {
@@ -200,7 +191,6 @@ impl SubscriptionTier {
             name: "Elite".to_string(),
             requirements: SubscriptionRequirements {
                 monthly_payment: Some(5000),
-                minimum_level: Some(10),
                 minimum_contribution_points: Some(1000),
                 ..Default::default()
             },
@@ -598,20 +588,6 @@ impl Clan {
         }
 
         let req = &tier.requirements;
-
-        // Check level requirement
-        if let Some(min_level) = req.minimum_level {
-            if user.get_level() < min_level as f64 {
-                return Err(ClanError::MinimumLevelRequired(min_level));
-            }
-        }
-
-        // Check experience points
-        if let Some(min_xp) = req.minimum_experience_points {
-            if user.get_experience_points() < min_xp {
-                return Err(ClanError::MinimumExperienceRequired(min_xp));
-            }
-        }
 
         // Check contribution points
         if let Some(min_contribution) = req.minimum_contribution_points {

@@ -7,7 +7,7 @@ use intercanister_call_wrappers::{
     tournament_canister::update_player_count_tournament_wrapper,
 };
 use table::poker::game::table_functions::types::CurrencyType;
-use tournaments::tournaments::types::UserTournamentAction;
+use tournaments::tournaments::types::{TournamentId, UserTournamentAction};
 
 use crate::{BACKEND_PRINCIPAL, CURRENCY_MANAGER, RAKE_WALLET_ADDRESS_PRINCIPAL, TABLE};
 
@@ -78,12 +78,12 @@ pub fn update_player_count_tournament(user_action: UserTournamentAction) -> Resu
     match &user_action {
         UserTournamentAction::Join(uid) => ic_cdk::println!(
             "User {} joined the table {}",
-            uid.to_text(),
+            uid.0.to_text(),
             ic_cdk::api::canister_self().to_text()
         ),
         UserTournamentAction::Leave(uid) => ic_cdk::println!(
             "User {} left the table {}",
-            uid.to_text(),
+            uid.0.to_text(),
             ic_cdk::api::canister_self().to_text()
         ),
     }
@@ -103,7 +103,7 @@ pub fn update_player_count_tournament(user_action: UserTournamentAction) -> Resu
     };
     ic_cdk::futures::spawn(async move {
         if let Err(e) = update_player_count_tournament_wrapper(
-            backend_principal,
+            TournamentId(backend_principal),
             ic_cdk::api::canister_self(),
             user_action,
         )

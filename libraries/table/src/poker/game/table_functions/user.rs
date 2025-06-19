@@ -4,8 +4,9 @@ use candid::Principal;
 use errors::game_error::GameError;
 use errors::trace_err;
 use errors::traced_error::TracedError;
-use user::user::User;
+use user::user::{User, UserBalance, UsersCanisterId, WalletPrincipalId};
 
+use crate::poker::game::table_functions::table::TableId;
 use crate::poker::game::types::QueueItem;
 use crate::table_canister::{get_table_wrapper, join_table};
 
@@ -21,7 +22,7 @@ impl Table {
     /// - [`GameError::Other`] if the user is not found.
     pub fn get_user_table_data(
         &self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
     ) -> Result<&UserTableData, TracedError<GameError>> {
         // TODO: Return a PlayerNotFound error instead?
         self.user_table_data.get(&user_principal).ok_or_else(|| {
@@ -41,7 +42,7 @@ impl Table {
     /// - [`GameError::Other`] if the user is not found.
     pub fn get_user_table_data_mut(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
     ) -> Result<&mut UserTableData, TracedError<GameError>> {
         // TODO: Return a PlayerNotFound error instead?
         self.user_table_data
@@ -68,7 +69,7 @@ impl Table {
     /// - [`GameError::Other`] if the user is not found.
     pub fn clear_user_table_data(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
     ) -> Result<(), TracedError<GameError>> {
         if let Ok(table_data) = self.get_user_table_data_mut(user_principal) {
             if table_data.player_action != PlayerAction::SittingOut {
@@ -94,7 +95,7 @@ impl Table {
     /// - [`GameError::Other`] if the user is not found.
     pub fn request_user_cards(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         amount: u64,
         user_principal_of_requester: Principal,
     ) -> Result<(), TracedError<GameError>> {
@@ -119,7 +120,7 @@ impl Table {
     /// - [`GameError::Other`] if the user is not found.
     pub fn cancel_user_cards_request(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         user_principal_of_requester: Principal,
     ) -> Result<(), TracedError<GameError>> {
         let user_data = self.get_user_table_data_mut(user_principal)?;
@@ -142,7 +143,7 @@ impl Table {
     /// - [`GameError::Other`] if the user is not found.
     pub fn confirm_user_cards_request(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         user_principal_of_requester: Principal,
     ) -> Result<UserTableData, TracedError<GameError>> {
         let user_data = self.get_user_table_data_mut(user_principal)?;
@@ -171,7 +172,7 @@ impl Table {
         seat_index: u8,
         player_sitting_out: bool,
     ) -> Result<(), TracedError<GameError>> {
-        ic_cdk::println!("Adding user to table: {}", user.principal_id);
+        ic_cdk::println!("Adding user to table: {:?}", user.principal_id);
         // Check table capacity
         if self.number_of_players() as u8 == self.config.seats {
             return Err(trace_err!(TracedError::new(GameError::GameFull)));
@@ -239,7 +240,7 @@ impl Table {
     /// # Returns
     ///
     /// - `true` if the user is in the table, `false` otherwise.
-    pub fn is_user_in_table(&self, user_principal: Principal) -> bool {
+    pub fn is_user_in_table(&self, user_principal: WalletPrincipalId) -> bool {
         self.seats.iter().any(|status| {
             matches!(status,
                 SeatStatus::Occupied(p) |
@@ -259,7 +260,7 @@ impl Table {
     /// - `action_type` - The action type to log.
     pub fn remove_user(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         action_type: ActionType,
     ) -> Result<(), TracedError<GameError>> {
         if !self.is_user_in_table(user_principal) {
@@ -299,9 +300,9 @@ impl Table {
     /// - `action_type` - The action type to log.
     pub fn remove_user_for_table_balancing(
         &mut self,
-        users_canister_id: Principal,
-        user_id: Principal,
-        table_to_move_to: Principal,
+        users_canister_id: UsersCanisterId,
+        user_id: WalletPrincipalId,
+        table_to_move_to: TableId,
     ) -> Result<(), TracedError<GameError>> {
         if !self.is_user_in_table(user_id) {
             return Err(trace_err!(TracedError::new(GameError::PlayerNotFound)));
@@ -310,7 +311,7 @@ impl Table {
         if self.is_game_ongoing() {
             ic_cdk::println!(
                 "Queueing user {} to leave table for table balancing",
-                user_id.to_text()
+                user_id.0.to_text()
             );
             self.queue.push(QueueItem::LeaveTableToMove(
                 users_canister_id,
@@ -320,7 +321,7 @@ impl Table {
         } else {
             ic_cdk::println!(
                 "Removing user {} from table for table balancing",
-                user_id.to_text()
+                user_id.0.to_text()
             );
             if let Some(player_seat_index) = self.seats.iter().position(|status| {
                 matches!(status,
@@ -356,7 +357,7 @@ impl Table {
                                 users_canister_id,
                                 user_id,
                                 None,
-                                balance,
+                                balance.0,
                                 false,
                             )
                             .await;
@@ -379,7 +380,7 @@ impl Table {
         Ok(())
     }
 
-    pub fn has_user_left(&self, user_principal: Principal) -> bool {
+    pub fn has_user_left(&self, user_principal: WalletPrincipalId) -> bool {
         self.queue
             .iter()
             .any(|item| matches!(item, QueueItem::RemoveUser(p, _) if *p == user_principal))
@@ -393,9 +394,9 @@ impl Table {
     /// - `reason` - The reason for kicking the user.
     pub fn kick_user(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         reason: String,
-    ) -> Result<u64, TracedError<GameError>> {
+    ) -> Result<UserBalance, TracedError<GameError>> {
         // Clean up all user state immediately
         if let Some(idx) = self
             .seats
@@ -409,7 +410,7 @@ impl Table {
             .users
             .get(&user_principal)
             .map(|u| u.balance)
-            .unwrap_or(0);
+            .unwrap_or(UserBalance(0));
         self.users.remove_user(user_principal);
         self.log_action(Some(user_principal), ActionType::Kicked { reason });
         Ok(balance)
@@ -430,14 +431,14 @@ impl Table {
     pub fn check_user_balance(
         &self,
         amount: u64,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
     ) -> Result<(), TracedError<GameError>> {
         let user = self
             .users
             .get(&user_principal)
             .ok_or_else(|| trace_err!(TracedError::new(GameError::PlayerNotFound)))?;
 
-        if amount > user.balance {
+        if amount > user.balance.0 {
             return Err(trace_err!(TracedError::new(GameError::InsufficientFunds)));
         }
         Ok(())
@@ -452,9 +453,9 @@ impl Table {
     /// - `amount` - The amount to check if the user has enough balance for.
     pub fn check_and_kick_user_for_insufficient_funds(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         amount: u64,
-    ) -> Result<Option<u64>, TracedError<GameError>> {
+    ) -> Result<Option<UserBalance>, TracedError<GameError>> {
         if self.check_user_balance(amount, user_principal).is_err() {
             let balance = self.kick_user(user_principal, "Insufficient funds".to_string())?;
             return Ok(Some(balance));
@@ -473,8 +474,8 @@ impl Table {
     /// - [`GameError::PlayerNotFound`] if the user is not found.
     pub fn get_user_balance(
         &self,
-        user_principal: Principal,
-    ) -> Result<u64, TracedError<GameError>> {
+        user_principal: WalletPrincipalId,
+    ) -> Result<UserBalance, TracedError<GameError>> {
         let user = self
             .users
             .get(&user_principal)
@@ -493,7 +494,7 @@ impl Table {
     /// - [`GameError::Other`] if the user is not found.
     pub fn get_users_current_total_bet(
         &self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
     ) -> Result<u64, TracedError<GameError>> {
         let user_table_data = self.get_user_table_data(user_principal)?;
         Ok(user_table_data.current_total_bet)
@@ -516,7 +517,7 @@ impl Table {
     pub fn update_user_balances(
         &mut self,
         amount: u64,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         player_action: PlayerAction,
     ) -> Result<(), TracedError<GameError>> {
         // TODO: Refactor: get the user before mutating the user's table data
@@ -529,7 +530,7 @@ impl Table {
             .users
             .get_mut(&user_principal)
             .ok_or_else(|| trace_err!(TracedError::new(GameError::PlayerNotFound)))?;
-        user.balance -= amount;
+        user.balance.0 -= amount;
         Ok(())
     }
 
@@ -545,7 +546,7 @@ impl Table {
     /// - [`GameError::Other`] if the user is not found.
     pub fn set_player_action(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         player_action: PlayerAction,
     ) -> Result<(), TracedError<GameError>> {
         let user_table_data = self.get_user_table_data_mut(user_principal)?;

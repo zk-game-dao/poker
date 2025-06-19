@@ -2,6 +2,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use candid::Principal;
 use serial_test::serial;
+use user::user::WalletPrincipalId;
 
 use crate::{utils::transfer::transfer_tokens, TestEnv};
 
@@ -22,7 +23,7 @@ fn test_experience_points_reset_and_payout() {
 
     let mut user_canisters = Vec::new();
     for (name, exp) in users {
-        let user_id = Principal::self_authenticating(name);
+        let user_id = WalletPrincipalId(Principal::self_authenticating(name));
         let user_canister = test_env
             .create_user(name.to_string(), user_id)
             .expect("Failed to create user");
@@ -99,7 +100,7 @@ fn test_experience_points_reset_and_payout_btc() {
 
     let mut user_canisters = Vec::new();
     for (name, exp) in users {
-        let user_id = Principal::self_authenticating(name);
+        let user_id = WalletPrincipalId(Principal::self_authenticating(name));
         let user_canister = test_env
             .create_user(name.to_string(), user_id)
             .expect("Failed to create user");

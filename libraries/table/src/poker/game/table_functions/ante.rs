@@ -17,9 +17,9 @@ impl Table {
             match ante_type {
                 AnteType::None => 0,
                 AnteType::Fixed(amount) => *amount,
-                AnteType::BigBlindAnte => self.big_blind,
+                AnteType::BigBlindAnte => self.big_blind.0,
                 AnteType::PercentageOfBigBlind(percentage) => {
-                    (self.big_blind * *percentage as u64) / 100
+                    (self.big_blind.0 * *percentage as u64) / 100
                 }
             }
         } else {

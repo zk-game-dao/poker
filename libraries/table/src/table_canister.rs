@@ -1,17 +1,17 @@
 use crate::{
-    poker::game::{table_functions::table::TableConfig, types::PublicTable},
+    poker::game::{table_functions::table::{SeatIndex, TableConfig, TableId}, types::PublicTable},
     types::ReturnResult,
 };
 use candid::Principal;
 use errors::{table_error::TableError, tournament_error::TournamentError, user_error::UserError};
-use user::user::User;
+use user::user::{User, UsersCanisterId, WalletPrincipalId};
 
 pub async fn create_table_wrapper(
-    table_id: Principal,
+    table_id: TableId,
     config: TableConfig,
     raw_bytes: Vec<u8>,
 ) -> Result<PublicTable, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "create_table")
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "create_table")
         .with_args(&(config, raw_bytes))
         .await;
 
@@ -33,8 +33,8 @@ pub async fn create_table_wrapper(
     }
 }
 
-pub async fn get_table_wrapper(table_principal: Principal) -> Result<PublicTable, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_principal, "get_table").await;
+pub async fn get_table_wrapper(table_id: TableId) -> Result<PublicTable, TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "get_table").await;
 
     match call_result {
         Ok(table_result) => match table_result.candid() {
@@ -55,10 +55,10 @@ pub async fn get_table_wrapper(table_principal: Principal) -> Result<PublicTable
 }
 
 pub async fn get_players_on_table(
-    table_principal: Principal,
-) -> Result<Vec<Principal>, TableError> {
+    table_id: TableId,
+) -> Result<Vec<WalletPrincipalId>, TableError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(table_principal, "get_players_on_table").await;
+        ic_cdk::call::Call::unbounded_wait(table_id.0, "get_players_on_table").await;
 
     match call_result {
         Ok(table_result) => match table_result.candid() {
@@ -78,8 +78,8 @@ pub async fn get_players_on_table(
     }
 }
 
-pub async fn get_free_seat_index(table_id: Principal) -> Result<Option<u8>, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "get_free_seat_index").await;
+pub async fn get_free_seat_index(table_id: TableId) -> Result<Option<u8>, TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "get_free_seat_index").await;
 
     match call_result {
         Ok(seat_index_result) => match seat_index_result.candid() {
@@ -99,8 +99,8 @@ pub async fn get_free_seat_index(table_id: Principal) -> Result<Option<u8>, Tabl
     }
 }
 
-pub async fn get_seat_index(player: Principal, table: Principal) -> Result<Option<u8>, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table, "get_seat_index")
+pub async fn get_seat_index(player: WalletPrincipalId, table: TableId) -> Result<Option<u8>, TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table.0, "get_seat_index")
         .with_arg(player)
         .await;
 
@@ -123,11 +123,11 @@ pub async fn get_seat_index(player: Principal, table: Principal) -> Result<Optio
 }
 
 pub async fn leave_table_wrapper(
-    table: Principal,
-    users_canister_id: Principal,
-    user_id: Principal,
+    table: TableId,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
 ) -> Result<PublicTable, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table, "leave_table")
+    let call_result = ic_cdk::call::Call::unbounded_wait(table.0, "leave_table")
         .with_args(&(users_canister_id, user_id))
         .await;
 
@@ -150,12 +150,12 @@ pub async fn leave_table_wrapper(
 }
 
 pub async fn leave_table_for_table_balancing(
-    users_canister_id: Principal,
-    user_id: Principal,
-    table: Principal,
-    to_table: Principal,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
+    table: TableId,
+    to_table: TableId,
 ) -> Result<PublicTable, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table, "leave_table_for_table_balancing")
+    let call_result = ic_cdk::call::Call::unbounded_wait(table.0, "leave_table_for_table_balancing")
         .with_args(&(users_canister_id, user_id, to_table))
         .await;
 
@@ -178,14 +178,14 @@ pub async fn leave_table_for_table_balancing(
 }
 
 pub async fn join_table(
-    table_id: Principal,
-    users_canister_principal: Principal,
-    user_id: Principal,
-    seat_index: Option<u64>, // javascript can't send u8
+    table_id: TableId,
+    users_canister_principal: UsersCanisterId,
+    user_id: WalletPrincipalId,
+    seat_index: Option<SeatIndex>, // javascript can't send u8
     deposit_amount: u64,
     player_sitting_out: bool,
 ) -> Result<PublicTable, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "join_table")
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "join_table")
         .with_args(&(
             users_canister_principal,
             user_id,
@@ -213,8 +213,8 @@ pub async fn join_table(
     }
 }
 
-pub async fn clear_table(table_id: Principal) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "clear_table").await;
+pub async fn clear_table(table_id: TableId) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "clear_table").await;
 
     match call_result {
         Ok(clear_result) => match clear_result.candid() {
@@ -235,11 +235,11 @@ pub async fn clear_table(table_id: Principal) -> Result<(), TableError> {
 }
 
 pub async fn player_sitting_in(
-    table_id: Principal,
+    table_id: TableId,
     user_principal: Principal,
     auto_start: bool,
 ) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "player_sitting_in")
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "player_sitting_in")
         .with_args(&(user_principal, auto_start))
         .await;
 
@@ -261,8 +261,8 @@ pub async fn player_sitting_in(
     }
 }
 
-pub async fn start_new_betting_round_wrapper(table_id: Principal) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "start_new_betting_round").await;
+pub async fn start_new_betting_round_wrapper(table_id: TableId) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "start_new_betting_round").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -283,10 +283,10 @@ pub async fn start_new_betting_round_wrapper(table_id: Principal) -> Result<(), 
 }
 
 pub async fn pause_table_for_addon_wrapper(
-    table_id: Principal,
+    table_id: TableId,
     duration: u64,
 ) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "pause_table_for_addon")
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "pause_table_for_addon")
         .with_arg(duration)
         .await;
 
@@ -308,8 +308,8 @@ pub async fn pause_table_for_addon_wrapper(
     }
 }
 
-pub async fn pause_table(table_id: Principal) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "pause_table").await;
+pub async fn pause_table(table_id: TableId) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "pause_table").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -329,8 +329,8 @@ pub async fn pause_table(table_id: Principal) -> Result<(), TableError> {
     }
 }
 
-pub async fn resume_table_wrapper(table_id: Principal) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "resume_table").await;
+pub async fn resume_table_wrapper(table_id: TableId) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "resume_table").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -351,13 +351,13 @@ pub async fn resume_table_wrapper(table_id: Principal) -> Result<(), TableError>
 }
 
 pub async fn deposit_to_table(
-    table_id: Principal,
-    users_canister_id: Principal,
-    user_id: Principal,
+    table_id: TableId,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
     amount: u64,
     is_queued: bool,
 ) -> Result<ReturnResult, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "deposit_to_table")
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "deposit_to_table")
         .with_args(&(users_canister_id, user_id, amount, is_queued))
         .await;
 
@@ -379,9 +379,9 @@ pub async fn deposit_to_table(
     }
 }
 
-pub async fn return_all_cycles_to_index(table_id: Principal) -> Result<(), TableError> {
+pub async fn return_all_cycles_to_index(table_id: TableId) -> Result<(), TableError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(table_id, "return_all_cycles_to_index").await;
+        ic_cdk::call::Call::unbounded_wait(table_id.0, "return_all_cycles_to_index").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -401,8 +401,8 @@ pub async fn return_all_cycles_to_index(table_id: Principal) -> Result<(), Table
     }
 }
 
-pub async fn set_as_final_table_wrapper(table_id: Principal) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "set_as_final_table").await;
+pub async fn set_as_final_table_wrapper(table_id: TableId) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "set_as_final_table").await;
 
     match call_result {
         Ok(set_result) => match set_result.candid() {
@@ -423,12 +423,12 @@ pub async fn set_as_final_table_wrapper(table_id: Principal) -> Result<(), Table
 }
 
 pub async fn kick_player_wrapper(
-    table_id: Principal,
-    users_canister_id: Principal,
-    user_id: Principal,
+    table_id: TableId,
+    users_canister_id: UsersCanisterId,
+    user_id: WalletPrincipalId,
     balance: u64,
 ) -> Result<PublicTable, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "kick_player")
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "kick_player")
         .with_args(&(users_canister_id, user_id, balance))
         .await;
 
@@ -450,8 +450,8 @@ pub async fn kick_player_wrapper(
     }
 }
 
-pub async fn is_game_ongoing_wrapper(table_principal: Principal) -> Result<bool, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_principal, "is_game_ongoing").await;
+pub async fn is_game_ongoing_wrapper(table_id: TableId) -> Result<bool, TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "is_game_ongoing").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -472,13 +472,13 @@ pub async fn is_game_ongoing_wrapper(table_principal: Principal) -> Result<bool,
 }
 
 pub async fn add_experience_points_wrapper(
-    users_canister_id: Principal,
-    user_principal: Principal,
+    users_canister_id: UsersCanisterId,
+    user_principal: WalletPrincipalId,
     experience_points: u64,
     currency: String,
 ) -> Result<User, UserError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(users_canister_id, "add_experience_points")
+        ic_cdk::call::Call::unbounded_wait(users_canister_id.0, "add_experience_points")
             .with_args(&(experience_points, currency, user_principal))
             .await;
 
@@ -501,11 +501,11 @@ pub async fn add_experience_points_wrapper(
 }
 
 pub async fn handle_timer_expiration_wrapper(
-    table_principal: Principal,
-    user_id: Principal,
+    table_id: TableId,
+    user_id: WalletPrincipalId,
 ) -> Result<(), TableError> {
     let call_result =
-        ic_cdk::call::Call::unbounded_wait(table_principal, "handle_timer_expiration")
+        ic_cdk::call::Call::unbounded_wait(table_id.0, "handle_timer_expiration")
             .with_arg(user_id)
             .await;
 
@@ -529,8 +529,8 @@ pub async fn handle_timer_expiration_wrapper(
 
 pub async fn handle_user_losing_wrapper(
     tournament_id: Principal,
-    user_principal: Principal,
-    id: Principal,
+    user_principal: WalletPrincipalId,
+    id: TableId,
 ) -> Result<(), TournamentError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(tournament_id, "handle_user_losing")
         .with_args(&(user_principal, id))
@@ -554,8 +554,8 @@ pub async fn handle_user_losing_wrapper(
     }
 }
 
-pub async fn withdraw_rake_wrapper(table_id: Principal, rake_total: u64) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id, "withdraw_rake")
+pub async fn withdraw_rake_wrapper(table_id: TableId, rake_total: u64) -> Result<(), TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "withdraw_rake")
         .with_arg(rake_total)
         .await;
 

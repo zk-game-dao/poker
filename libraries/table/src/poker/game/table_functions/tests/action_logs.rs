@@ -1,9 +1,10 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::{
     table_functions::{
         action_log::ActionType,
-        table::Table,
+        table::{Table, TableId},
         tests::{create_user, get_table_config, turn_tests::is_it_users_turn},
         types::{BetType, DealStage, PlayerAction},
     },
@@ -16,7 +17,8 @@ pub fn print_action_logs(table: &Table) {
         println!(
             "{}: {:#?}",
             log.user_principal
-                .unwrap_or_else(Principal::anonymous)
+                .unwrap_or_else(|| WalletPrincipalId(Principal::anonymous()))
+                .0
                 .to_text(),
             log.action_type
         )
@@ -26,7 +28,7 @@ pub fn print_action_logs(table: &Table) {
 #[test]
 fn test_raising_action_log() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -46,7 +48,7 @@ fn test_raising_action_log() {
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
         .is_ok());
 
-    let big_blind_uid: Principal = table.get_big_blind_user_principal().unwrap();
+    let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
 
     assert!(is_it_users_turn(&table, small_blind_uid));
@@ -76,7 +78,7 @@ fn test_raising_action_log() {
 #[test]
 fn test_raising_on_raising_action_log() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -96,7 +98,7 @@ fn test_raising_on_raising_action_log() {
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
         .is_ok());
 
-    let big_blind_uid: Principal = table.get_big_blind_user_principal().unwrap();
+    let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
 
     assert!(is_it_users_turn(&table, small_blind_uid));
@@ -148,7 +150,7 @@ fn test_raising_on_raising_action_log() {
 #[test]
 fn test_all_in_action_log() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -194,7 +196,7 @@ fn test_all_in_action_log() {
 #[test]
 fn test_calling_all_in_action_log() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8],
     );
@@ -214,9 +216,9 @@ fn test_calling_all_in_action_log() {
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
         .is_ok());
 
-    let big_blind_uid: Principal = table.get_big_blind_user_principal().unwrap();
+    let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    table.users.get_mut(&small_blind_uid).unwrap().balance = convert_to_e8s(200.0);
+    table.users.get_mut(&small_blind_uid).unwrap().balance.0 = convert_to_e8s(200.0);
 
     assert!(is_it_users_turn(&table, small_blind_uid));
     assert_eq!(

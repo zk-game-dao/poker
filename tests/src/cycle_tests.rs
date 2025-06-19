@@ -12,6 +12,7 @@ use tournaments::tournaments::{
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
     types::{NewTournament, NewTournamentSpeedType, PayoutPercentage},
 };
+use user::user::WalletPrincipalId;
 
 use crate::{TestEnv, INIT_CYCLES_BALANCE};
 
@@ -78,7 +79,7 @@ fn test_cycles_create_user() {
     let _user_1 = test_env
         .create_user(
             "User 1".to_string(),
-            Principal::self_authenticating("user1cyclestest"),
+            WalletPrincipalId(Principal::self_authenticating("user1cyclestest")),
         )
         .expect("Failed to create user");
 
@@ -158,10 +159,10 @@ fn test_cycles_create_tournament() {
         .expect("Failed to create tournament");
 
     // Verify the tournament canister was created
-    assert!(test_env.pocket_ic.canister_exists(tournament_id));
+    assert!(test_env.pocket_ic.canister_exists(tournament_id.0));
 
     // Check if cycles were transferred to the new tournament canister
-    let tournament_cycles = test_env.pocket_ic.cycle_balance(tournament_id);
+    let tournament_cycles = test_env.pocket_ic.cycle_balance(tournament_id.0);
     println!("Tournament canister cycles: {:?}", tournament_cycles);
     assert!(
         tournament_cycles > 0,

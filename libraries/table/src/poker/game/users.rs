@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
 use serde::{Deserialize, Serialize};
-use user::user::User;
+use user::user::{User, WalletPrincipalId};
 
 /// A collection of users
 /// that maps a user principal to a user object.
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
 pub struct Users {
     /// Map of user principal to user object.
-    pub users: HashMap<Principal, User>,
+    pub users: HashMap<WalletPrincipalId, User>,
 }
 
 impl Default for Users {
@@ -37,7 +37,7 @@ impl Users {
     /// - [`GameError::PlayerNotFound`] if the user cannot be found.
     pub fn get_user_by_principal(
         &self,
-        internet_identity_principal_id: &Principal,
+        internet_identity_principal_id: &WalletPrincipalId,
     ) -> Result<&User, TracedError<GameError>> {
         self.users
             .values()
@@ -75,7 +75,7 @@ impl Users {
     /// - [`GameError::PlayerNotFound`] if the user cannot be found.
     pub fn update_user(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         user: User,
     ) -> Result<(), TracedError<GameError>> {
         if let Some(u) = self.users.get_mut(&user_principal) {
@@ -92,7 +92,7 @@ impl Users {
     /// # Parameters
     ///
     /// - `user_principal` - The principal of the user.
-    pub fn get(&self, user_principal: &Principal) -> Option<&User> {
+    pub fn get(&self, user_principal: &WalletPrincipalId) -> Option<&User> {
         self.users.get(user_principal)
     }
 
@@ -102,7 +102,7 @@ impl Users {
     /// # Parameters
     ///
     /// - `user_principal` - The principal of the user.
-    pub fn get_mut(&mut self, user_principal: &Principal) -> Option<&mut User> {
+    pub fn get_mut(&mut self, user_principal: &WalletPrincipalId) -> Option<&mut User> {
         self.users.get_mut(user_principal)
     }
 
@@ -111,7 +111,7 @@ impl Users {
     /// # Parameters
     ///
     /// - `user_principal` - The principal of the user.
-    pub fn remove_user(&mut self, user_principal: Principal) {
+    pub fn remove_user(&mut self, user_principal: WalletPrincipalId) {
         self.users.remove(&user_principal);
     }
 

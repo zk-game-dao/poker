@@ -1,13 +1,13 @@
 use candid::Principal;
 use errors::table_index_error::TableIndexError;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
-use table::poker::game::table_functions::table::TableConfig;
+use table::poker::game::table_functions::table::{TableConfig, TableId};
 
 use crate::TABLE_PLAYER_COUNTS;
 
 pub async fn is_table_full(
     table: &TableConfig,
-    table_id: &Principal,
+    table_id: &TableId,
 ) -> Result<bool, TableIndexError> {
     let player_counts = TABLE_PLAYER_COUNTS
         .lock()

@@ -3,6 +3,7 @@ members = [
     "libraries/authentication",
     "libraries/canister_functions",
     "libraries/chat",
+    "libraries/clan",
     "libraries/errors",
     "libraries/intercanister_call_wrappers",
     "libraries/table",
@@ -10,8 +11,8 @@ members = [
     "libraries/tournaments",
     "libraries/user",
     "src/cycle_dispenser",
-    "src/clans_canister",
-    "src/clans_index",
+    # "src/clans_canister",
+    # "src/clans_index",
     "src/log_store",
     "src/table_canister",
     "src/tournament_canister",
@@ -20,7 +21,7 @@ members = [
     "src/users_canister",
     "src/users_index",
     "tests",
-    "webserver", "libraries/clan",
+    "webserver", "libraries/macros",
 ]
 resolver = "2"
 

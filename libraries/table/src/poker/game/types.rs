@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use candid::{CandidType, Principal};
 use errors::game_error::GameError;
 use serde::{Deserialize, Serialize};
-use user::user::User;
+use user::user::{User, UsersCanisterId, WalletPrincipalId};
 
-use crate::poker::core::{Card, FlatDeck, Hand, Rank};
+use crate::poker::{core::{Card, FlatDeck, Hand, Rank}, game::table_functions::table::{BigBlind, Pot, SmallBlind, TableId}};
 
 use super::{
     table_functions::{
@@ -20,12 +20,12 @@ use super::{
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub enum QueueItem {
-    SittingIn(Principal, bool),
-    Deposit(Principal, Principal, u64),
-    SittingOut(Principal),
-    RemoveUser(Principal, ActionType),
-    LeaveTableToMove(Principal, Principal, Principal),
-    UpdateBlinds(u64, u64, Option<AnteType>),
+    SittingIn(WalletPrincipalId, bool),
+    Deposit(WalletPrincipalId, UsersCanisterId, u64),
+    SittingOut(WalletPrincipalId),
+    RemoveUser(WalletPrincipalId, ActionType),
+    LeaveTableToMove(UsersCanisterId, WalletPrincipalId, TableId),
+    UpdateBlinds(SmallBlind, BigBlind, Option<AnteType>),
     PauseTable,
     PauseTableForAddon(u64),
 }
@@ -60,14 +60,14 @@ pub enum GameType {
 /// used for comparing players' hands.
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct UserCards {
-    pub id: Principal,
+    pub id: WalletPrincipalId,
     pub cards: Hand,
     pub rank: Rank,
     pub amount_won: u64,
 }
 
 impl UserCards {
-    pub fn new(id: Principal, cards: Hand, rank: Rank, amount_won: u64) -> UserCards {
+    pub fn new(id: WalletPrincipalId, cards: Hand, rank: Rank, amount_won: u64) -> UserCards {
         UserCards {
             id,
             cards,
@@ -83,22 +83,22 @@ impl UserCards {
 /// like the deck and the timer.
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct PublicTable {
-    pub id: Principal,
+    pub id: TableId,
     pub config: TableConfig,
     pub seats: Vec<SeatStatus>,
     pub community_cards: Vec<Card>,
-    pub pot: u64,
+    pub pot: Pot,
     pub side_pots: Vec<SidePot>,
     pub status: TableStatus,
     pub deal_stage: DealStage,
-    pub big_blind: u64,
-    pub small_blind: u64,
+    pub big_blind: BigBlind,
+    pub small_blind: SmallBlind,
     pub dealer_position: usize,
     pub current_player_index: usize,
     pub winners: Option<Vec<User>>,
     pub sorted_users: Option<Vec<UserCards>>,
     pub action_logs: Vec<ActionLog>,
-    pub user_table_data: HashMap<Principal, UserTableData>,
+    pub user_table_data: HashMap<WalletPrincipalId, UserTableData>,
     pub highest_bet: u64,
     pub last_raise: u64,
     pub round_ticker: u64,
@@ -120,7 +120,7 @@ impl PublicTable {
             && self.sorted_users.is_none()
     }
 
-    pub fn is_user_queued_to_leave(&self, user: Principal) -> bool {
+    pub fn is_user_queued_to_leave(&self, user: WalletPrincipalId) -> bool {
         self.queue.iter().any(|item| {
             matches!(item, QueueItem::RemoveUser(principal, _) if *principal == user)
                 | matches!(item, QueueItem::LeaveTableToMove(_, principal, _) if *principal == user)
@@ -149,7 +149,7 @@ impl PublicTable {
         None
     }
 
-    pub fn get_big_blind_user_principal(&self) -> Option<Principal> {
+    pub fn get_big_blind_user_principal(&self) -> Option<WalletPrincipalId> {
         let mut index = (self.dealer_position + 1) % self.seats.len();
 
         let mut found_small_blind = false;
@@ -169,16 +169,16 @@ impl PublicTable {
 impl Default for PublicTable {
     fn default() -> Self {
         PublicTable {
-            id: Principal::anonymous(),
+            id: TableId(Principal::anonymous()),
             config: TableConfig::default(),
             seats: Vec::new(),
             community_cards: vec![],
-            pot: 0,
+            pot: Pot(0),
             side_pots: vec![],
             status: TableStatus::Open,
             deal_stage: DealStage::Opening,
-            big_blind: 0,
-            small_blind: 0,
+            big_blind: BigBlind(0),
+            small_blind: SmallBlind(0),
             dealer_position: 0,
             current_player_index: 0,
             winners: None,
@@ -288,29 +288,29 @@ impl From<&mut Table> for PublicTable {
 /// in memory and then restored after the upgrade.
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct StorableTable {
-    pub id: Principal,
+    pub id: TableId,
     pub config: TableConfig,
     pub seats: Vec<SeatStatus>,
     pub community_cards: Vec<Card>,
     pub deck: FlatDeck,
-    pub pot: u64,
+    pub pot: Pot,
     pub side_pots: Vec<SidePot>,
     pub status: TableStatus,
     pub deal_stage: DealStage,
-    pub big_blind: u64,
-    pub small_blind: u64,
-    pub big_blind_user_principal: Principal,
-    pub small_blind_user_principal: Principal,
+    pub big_blind: BigBlind,
+    pub small_blind: SmallBlind,
+    pub big_blind_user_principal: WalletPrincipalId,
+    pub small_blind_user_principal: WalletPrincipalId,
     pub dealer_position: usize,
     pub current_player_index: usize,
     pub winners: Option<Vec<User>>,
     pub sorted_users: Option<Vec<UserCards>>,
     pub action_logs: Vec<ActionLog>,
-    pub user_table_data: HashMap<Principal, UserTableData>,
+    pub user_table_data: HashMap<WalletPrincipalId, UserTableData>,
     pub highest_bet: u64,
     pub highest_bet_in_pot: u64,
     pub last_raise: u64,
-    pub last_raise_principal: Principal,
+    pub last_raise_principal: WalletPrincipalId,
     pub is_side_pot_active: bool,
     pub round_ticker: u64,
     pub last_timer_started_timestamp: u64,
@@ -321,19 +321,19 @@ pub struct StorableTable {
 impl Default for StorableTable {
     fn default() -> Self {
         StorableTable {
-            id: Principal::anonymous(),
+            id: TableId(Principal::anonymous()),
             config: TableConfig::default(),
             seats: Vec::new(),
             community_cards: vec![],
             deck: FlatDeck::new(vec![1, 2, 3, 4, 5, 6, 7, 8]),
-            pot: 0,
+            pot: Pot(0),
             side_pots: vec![],
             status: TableStatus::Open,
             deal_stage: DealStage::Opening,
-            big_blind: 0,
-            small_blind: 0,
-            big_blind_user_principal: Principal::anonymous(),
-            small_blind_user_principal: Principal::anonymous(),
+            big_blind: BigBlind(0),
+            small_blind: SmallBlind(0),
+            big_blind_user_principal: WalletPrincipalId(Principal::anonymous()),
+            small_blind_user_principal: WalletPrincipalId(Principal::anonymous()),
             dealer_position: 0,
             current_player_index: 0,
             winners: None,
@@ -343,7 +343,7 @@ impl Default for StorableTable {
             highest_bet: 0,
             highest_bet_in_pot: 0,
             last_raise: 0,
-            last_raise_principal: Principal::anonymous(),
+            last_raise_principal: WalletPrincipalId(Principal::anonymous()),
             is_side_pot_active: false,
             round_ticker: 0,
             last_timer_started_timestamp: 0,
@@ -428,7 +428,7 @@ impl From<Table> for StorableTable {
 }
 
 impl PublicTable {
-    pub fn get_player_at_seat(&self, index: usize) -> Result<Principal, GameError> {
+    pub fn get_player_at_seat(&self, index: usize) -> Result<WalletPrincipalId, GameError> {
         match self.seats.get(index) {
             Some(SeatStatus::Occupied(principal)) => Ok(*principal),
             _ => Err(GameError::PlayerNotFound),

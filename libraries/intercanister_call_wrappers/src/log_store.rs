@@ -1,10 +1,10 @@
 use candid::Principal;
 use errors::log_store_error::LogStoreError;
-use table::poker::game::table_functions::action_log::ActionLog;
+use table::poker::game::table_functions::{action_log::ActionLog, table::TableId};
 
 pub async fn log_actions_wrapper(
     log_store_id: Principal,
-    table_id: Principal,
+    table_id: TableId,
     action_logs: Vec<ActionLog>,
 ) -> Result<(), LogStoreError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(log_store_id, "log_actions")

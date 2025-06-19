@@ -1,8 +1,9 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::{
     table_functions::{
-        table::Table,
+        table::{Table, TableId},
         tests::{create_user, get_table_config},
         types::{BetType, DealStage, SeatStatus},
     },
@@ -13,7 +14,7 @@ use crate::poker::game::{
 #[test]
 fn test_spread_limit_insufficient_funds_when_raising() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(4.0)),
             2,
@@ -45,7 +46,7 @@ fn test_spread_limit_insufficient_funds_when_raising() {
 #[test]
 fn test_correct_blinds_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             2,
@@ -89,7 +90,7 @@ fn test_correct_blinds_spread_limit() {
 #[test]
 fn test_invalid_opening_raise_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             2,
@@ -121,7 +122,7 @@ fn test_invalid_opening_raise_spread_limit() {
 #[test]
 fn test_opening_raise_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             2,
@@ -150,7 +151,7 @@ fn test_opening_raise_spread_limit() {
     );
 
     let user2 = table.users.get(&user2.principal_id).unwrap();
-    assert_eq!(user2.balance, convert_to_e8s(98.0));
+    assert_eq!(user2.balance.0, convert_to_e8s(98.0));
     assert_eq!(
         table
             .user_table_data
@@ -164,7 +165,7 @@ fn test_opening_raise_spread_limit() {
 #[test]
 fn test_opening_call_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             2,
@@ -190,13 +191,13 @@ fn test_opening_call_spread_limit() {
     assert_eq!(table.bet(user2.principal_id, BetType::Called), Ok(()));
 
     let user2 = table.users.get(&user2.principal_id).unwrap();
-    assert_eq!(user2.balance, convert_to_e8s(99.0));
+    assert_eq!(user2.balance.0, convert_to_e8s(99.0));
 }
 
 #[test]
 fn test_raise_amount_validation_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             2,
@@ -249,7 +250,7 @@ fn test_raise_amount_validation_spread_limit() {
 #[test]
 fn test_mutliple_raise_amount_validation_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             2,
@@ -303,7 +304,7 @@ fn test_mutliple_raise_amount_validation_spread_limit() {
 #[test]
 fn test_check_action_when_no_raises_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             3,
@@ -332,7 +333,7 @@ fn test_check_action_when_no_raises_spread_limit() {
         .is_ok());
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -350,7 +351,7 @@ fn test_check_action_when_no_raises_spread_limit() {
 #[test]
 fn test_correct_pot_calculation_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             3,
@@ -380,7 +381,7 @@ fn test_correct_pot_calculation_spread_limit() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -401,13 +402,13 @@ fn test_correct_pot_calculation_spread_limit() {
 
     // The pot should now be 0.5 (small blind) + 1.0 (big blind) + 0.5 (small blind calls) +
     // 2.0 (other user raise) + 1.0 (big blind calls) + 1.0 (small blind calls the raise)
-    assert_eq!(table.pot, convert_to_e8s(6.0));
+    assert_eq!(table.pot.0, convert_to_e8s(6.0));
 }
 
 #[test]
 fn test_pot_calculation_with_folds_spread_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             3,
@@ -437,7 +438,7 @@ fn test_pot_calculation_with_folds_spread_limit() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -460,13 +461,13 @@ fn test_pot_calculation_with_folds_spread_limit() {
 
     // The pot should now be 0.5 (small blind) + 1.0 (big blind) + 0.5 (small blind calls) + 2.0 (other user raise) + 1.0 (small blind calls the raise)
     // Big blind's bet is not added since it folded
-    assert_eq!(table.pot, convert_to_e8s(5.0));
+    assert_eq!(table.pot.0, convert_to_e8s(5.0));
 }
 
 #[test]
 fn test_spread_limit_user_below_minimum() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(
             GameType::SpreadLimit(convert_to_e8s(1.0), convert_to_e8s(5.0)),
             2,

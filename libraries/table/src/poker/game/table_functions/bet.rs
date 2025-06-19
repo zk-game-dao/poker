@@ -1,5 +1,5 @@
-use candid::Principal;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::types::GameType;
 
@@ -21,14 +21,14 @@ impl Table {
     /// - [`GameError::ActionNotAllowed`]: If the amount raised is less than the big blind
     pub fn bet(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         bet_type: BetType,
     ) -> Result<(), TracedError<GameError>> {
         #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
         {
             ic_cdk::println!(
                 "Clearing turn timer for user {:?} in bet function with bet type: {:?}",
-                user_principal.to_text(),
+                user_principal.0.to_text(),
                 bet_type
             );
             self.clear_turn_timer();
@@ -52,14 +52,14 @@ impl Table {
                 self.users
                     .get_mut(&user_principal)
                     .ok_or_else(|| trace_err!(TracedError::new(GameError::PlayerNotFound)))?
-                    .balance -= amount;
-                self.pot += amount;
+                    .balance.0 -= amount;
+                self.add_to_pot(amount);
                 Ok(())
             }
             BetType::Raised(amount) => {
-                if amount < self.big_blind {
+                if amount < self.big_blind.0 {
                     return Err(trace_err!(TracedError::new(GameError::ActionNotAllowed {
-                        reason: format!("Bet must be at least {}", self.big_blind as f64 / 1e8),
+                        reason: format!("Bet must be at least {}", self.big_blind.0 as f64 / 1e8),
                     })));
                 }
                 if let GameType::PotLimit(_) = self.config.game_type {
@@ -135,7 +135,7 @@ impl Table {
     /// - [`GameError::ActionNotAllowed`]: If the bet is not a valid increment
     fn handle_fixed_limit(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         normal_amount: u64,
         small: u64,
         big: u64,
@@ -185,7 +185,7 @@ impl Table {
     /// - [`GameError::ActionNotAllowed`]: If the bet is not within `min` and `max`
     fn handle_spread_limit(
         &mut self,
-        user_principal: Principal,
+        user_principal: WalletPrincipalId,
         normal_amount: u64,
         min: u64,
         max: u64,

@@ -5,9 +5,12 @@ edition = "2021"
 
 [dependencies]
 candid = { workspace = true }
-errors = { path = "../errors" }
 ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
 serde.workspace = true
-table = { path = "../table" }
 thiserror = "1.0.63"
+
+errors = { path = "../errors" }
+macros = { path = "../macros" }
+table = { path = "../table" }
+user = { path = "../user" }

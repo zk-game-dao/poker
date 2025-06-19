@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use candid::Principal;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
+use user::user::WalletPrincipalId;
 
 use crate::poker::{
     core::{Card, Hand, Rank, Rankable},
-    game::types::UserCards,
+    game::{table_functions::table::Pot, types::UserCards},
 };
 
 use super::{
@@ -15,7 +15,7 @@ use super::{
     types::{CurrencyType, PlayerAction, SeatStatus},
 };
 
-type RankedHand = (Principal, Hand, Rank, Vec<Card>);
+type RankedHand = (WalletPrincipalId, Hand, Rank, Vec<Card>);
 
 impl Table {
     /// Compares the hands of the players to determine the winner
@@ -29,7 +29,7 @@ impl Table {
             .get_ranked_hands()
             .map_err(|e| trace_err!(e, "Failed to get ranked hands in showdown."))?;
 
-        let mut winners_total_amount: HashMap<Principal, u64> = HashMap::new();
+        let mut winners_total_amount: HashMap<WalletPrincipalId, u64> = HashMap::new();
         self.log_action(
             None,
             ActionType::Stage {
@@ -56,7 +56,7 @@ impl Table {
                 .filter(|(user_principal, _, _, _)| pot.user_principals.contains(user_principal))
                 .collect::<Vec<_>>();
 
-            let mut individual_shares: HashMap<Principal, u64> = HashMap::new();
+            let mut individual_shares: HashMap<WalletPrincipalId, u64> = HashMap::new();
 
             if let Some(enable_rake) = self.config.enable_rake {
                 if enable_rake {
@@ -84,7 +84,7 @@ impl Table {
             let inner_rank_hands_clone = inner_ranked_hands.clone();
 
             if let Some((_, _, first_rank, _)) = inner_ranked_hands.first() {
-                let tied_users: Vec<Principal> = inner_ranked_hands
+                let tied_users: Vec<WalletPrincipalId> = inner_ranked_hands
                     .iter()
                     .filter(|(_, _, rank, _)| rank == first_rank)
                     .map(|(user_principal, _, _, _)| *user_principal)
@@ -129,7 +129,7 @@ impl Table {
             );
         }
 
-        let mut individual_shares: HashMap<Principal, u64> = HashMap::new();
+        let mut individual_shares: HashMap<WalletPrincipalId, u64> = HashMap::new();
 
         if let Some(enable_rake) = self.config.enable_rake {
             if enable_rake {
@@ -146,8 +146,8 @@ impl Table {
                                         )
                                     })?,
                             )
-                            .calculate_rake(self.pot, self.number_of_players() as u8);
-                    self.pot = self.pot.saturating_sub(rake);
+                            .calculate_rake(self.pot.0, self.number_of_players() as u8);
+                    self.pot = Pot(self.pot.0.saturating_sub(rake));
                     let rake_total = self.rake_total.unwrap_or(0);
                     self.rake_total = Some(rake_total + rake);
                 }
@@ -156,7 +156,7 @@ impl Table {
 
         // Distribute the main pot
         if let Some((_, _, first_rank, _)) = ranked_hands.first() {
-            let tied_users: Vec<Principal> = ranked_hands
+            let tied_users: Vec<WalletPrincipalId> = ranked_hands
                 .iter()
                 .filter(|(_, _, rank, _)| rank == first_rank)
                 .map(|(user_principal, _, _, _)| *user_principal)
@@ -164,7 +164,7 @@ impl Table {
 
             if !tied_users.is_empty() {
                 let mut winners = Vec::new();
-                let individual_share = self.pot / tied_users.len() as u64;
+                let individual_share = self.pot.0 / tied_users.len() as u64;
 
                 for user in &tied_users {
                     let user = {
@@ -184,7 +184,7 @@ impl Table {
                 self.winners = Some(winners.clone());
                 self.set_sorted_users(winners_total_amount)
                     .map_err(|e| trace_err!(e, "Failed to set sorted users."))?;
-                self.pot = 0;
+                self.pot = Pot(0);
                 self.side_pots.clear();
 
                 #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
@@ -219,7 +219,7 @@ impl Table {
 
         self.set_sorted_users(winners_total_amount)
             .map_err(|e| trace_err!(e, "Failed to set sorted users."))?;
-        self.pot = 0;
+        self.pot = Pot(0);
         self.side_pots.clear();
 
         #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
@@ -248,7 +248,7 @@ impl Table {
     /// - [`GameError::PlayerNotFound`] if retrieving a player fails
     fn set_sorted_users(
         &mut self,
-        winners_total_amount: HashMap<Principal, u64>,
+        winners_total_amount: HashMap<WalletPrincipalId, u64>,
     ) -> Result<(), TracedError<GameError>> {
         let ranked_hands = self
             .get_ranked_hands()
@@ -272,7 +272,7 @@ impl Table {
     /// - [`GameError::Other`] if the user table data cannot be retrieved
     /// - [`GameError::PlayerNotFound`] if retrieving a player fails
     fn get_ranked_hands(&mut self) -> Result<Vec<RankedHand>, TracedError<GameError>> {
-        let mut ranked_hands: Vec<(Principal, Hand, Rank, Vec<Card>)> = Vec::new();
+        let mut ranked_hands: Vec<RankedHand> = Vec::new();
 
         for user_principal in self.seats.iter() {
             if let SeatStatus::Occupied(user_principal) = user_principal {

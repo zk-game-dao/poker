@@ -90,14 +90,14 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
         let users_canister = match users_index_state.get_users_canister_principal(user) {
             Some(canister) => canister,
             None => {
-                ic_cdk::println!("User {} not found in users canisters", user.to_text());
+                ic_cdk::println!("User {} not found in users canisters", user.0.to_text());
                 continue;
             }
         };
         let user_obj = match get_user_wrapper(*users_canister, user).await {
             Ok(user) => user,
             Err(e) => {
-                ic_cdk::println!("Failed to get user {}: {:?}", user.to_text(), e);
+                ic_cdk::println!("Failed to get user {}: {:?}", user.0.to_text(), e);
                 continue;
             }
         };
@@ -109,10 +109,10 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
                 "Transferring {} ICP to user {} with principal {}",
                 amount,
                 user_obj.user_name,
-                user.to_text()
+                user.0.to_text()
             );
             match currency_manager
-                .withdraw(&currency::Currency::ICP, user, amount)
+                .withdraw(&currency::Currency::ICP, user.0, amount)
                 .await
             {
                 Ok(_) => (),
@@ -134,7 +134,7 @@ async fn reset_all_experience_points() -> Result<(), UserError> {
         if let Err(e) = clear_experience_points_wrapper(user_canister).await {
             ic_cdk::println!(
                 "Failed to clear experience points for user canister {}: {:?}",
-                user_canister.to_text(),
+                user_canister.0.to_text(),
                 e
             );
             continue;
@@ -176,14 +176,14 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
         let users_canister = match users_index_state.get_users_canister_principal(user) {
             Some(canister) => canister,
             None => {
-                ic_cdk::println!("User {} not found in users canisters", user.to_text());
+                ic_cdk::println!("User {} not found in users canisters", user.0.to_text());
                 continue;
             }
         };
         let user_obj = match get_user_wrapper(*users_canister, user).await {
             Ok(user) => user,
             Err(e) => {
-                ic_cdk::println!("Failed to get user {}: {:?}", user.to_text(), e);
+                ic_cdk::println!("Failed to get user {}: {:?}", user.0.to_text(), e);
                 continue;
             }
         };
@@ -195,10 +195,10 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
                 "Transferring {} BTC to user {} with principal {}",
                 amount,
                 user_obj.user_name,
-                user.to_text()
+                user.0.to_text()
             );
             match currency_manager
-                .withdraw(&currency::Currency::BTC, user, amount)
+                .withdraw(&currency::Currency::BTC, user.0, amount)
                 .await
             {
                 Ok(_) => (),
@@ -220,7 +220,7 @@ async fn reset_all_pure_poker_experience_points() -> Result<(), UserError> {
         if let Err(e) = clear_pure_poker_experience_points_wrapper(user_canister).await {
             ic_cdk::println!(
                 "Failed to clear pure poker experience points for user canister {}: {:?}",
-                user_canister.to_text(),
+                user_canister.0.to_text(),
                 e
             );
             continue;

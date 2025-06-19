@@ -4,6 +4,7 @@ use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     Cell, Storable,
 };
+use user::user::WalletPrincipalId;
 use std::cell::RefCell;
 use std::sync::atomic::Ordering;
 use tournaments::tournaments::types::TournamentData;
@@ -107,7 +108,7 @@ fn pre_upgrade() {
                 let mut cell = cell.borrow_mut();
                 let mut bytes = Vec::new();
                 for p in leaderboard.iter() {
-                    let p_bytes = p.to_bytes().into_owned();
+                    let p_bytes = p.0.to_bytes().into_owned();
                     bytes.extend_from_slice(&(p_bytes.len() as u32).to_le_bytes()); // 4-byte length prefix
                     bytes.extend_from_slice(&p_bytes);
                 }
@@ -194,7 +195,7 @@ fn post_upgrade() {
                         let len = u32::from_le_bytes(len_bytes) as usize;
                         offset += 4;
                         if offset + len <= bytes.len() {
-                            let principal = Principal::from_slice(&bytes[offset..offset + len]);
+                            let principal = WalletPrincipalId(Principal::from_slice(&bytes[offset..offset + len]));
                             leaderboard_vec.push(principal);
 
                             offset += len;

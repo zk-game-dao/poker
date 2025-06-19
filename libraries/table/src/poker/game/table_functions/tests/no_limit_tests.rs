@@ -1,8 +1,9 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::poker::game::{
     table_functions::{
-        table::Table,
+        table::{Table, TableId},
         tests::{create_user, get_table_config},
         types::{BetType, DealStage, PlayerAction, SeatStatus},
     },
@@ -13,7 +14,7 @@ use crate::poker::game::{
 #[test]
 fn test_correct_blinds_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -54,7 +55,7 @@ fn test_correct_blinds_no_limit() {
 #[test]
 fn test_opening_raise_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -80,7 +81,7 @@ fn test_opening_raise_no_limit() {
     );
 
     let user2 = table.users.get(&user2.principal_id).unwrap();
-    assert_eq!(user2.balance, convert_to_e8s(95.0));
+    assert_eq!(user2.balance.0, convert_to_e8s(95.0));
     assert_eq!(
         table
             .user_table_data
@@ -94,7 +95,7 @@ fn test_opening_raise_no_limit() {
 #[test]
 fn test_opening_call_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -117,13 +118,13 @@ fn test_opening_call_no_limit() {
     assert_eq!(table.bet(user2.principal_id, BetType::Called), Ok(()));
 
     let user2 = table.users.get(&user2.principal_id).unwrap();
-    assert_eq!(user2.balance, convert_to_e8s(98.0));
+    assert_eq!(user2.balance.0, convert_to_e8s(98.0));
 }
 
 #[test]
 fn test_pot_calculation_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -150,7 +151,7 @@ fn test_pot_calculation_no_limit() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -171,13 +172,13 @@ fn test_pot_calculation_no_limit() {
 
     // The pot should now be 1.0 (small blind) + 2.0 (big blind) + 9.0 (small blind calls the raise) +
     // 10.0 (other user raise) + 10.0 (big blind calls)
-    assert_eq!(table.pot, convert_to_e8s(30.0));
+    assert_eq!(table.pot.0, convert_to_e8s(30.0));
 }
 
 #[test]
 fn test_pot_calculation_with_folds_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -204,7 +205,7 @@ fn test_pot_calculation_with_folds_no_limit() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -227,13 +228,13 @@ fn test_pot_calculation_with_folds_no_limit() {
 
     // The pot should now be 1.0 (small blind) + 2.0 (big blind) + 9.0 (small blind calls the raise) + 10.0 (other user raise)
     // Big blind's bet is not added since it folded
-    assert_eq!(table.pot, convert_to_e8s(22.0));
+    assert_eq!(table.pot.0, convert_to_e8s(22.0));
 }
 
 #[test]
 fn test_no_limit_insufficient_funds_when_raising() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 2),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -253,7 +254,6 @@ fn test_no_limit_insufficient_funds_when_raising() {
         .start_betting_round(vec![0, 1, 2, 3, 4, 5, 6, 7, 8])
         .is_ok());
 
-    println!("User1 id: {}", user1.principal_id);
     // User1 attempts to raise with insufficient funds
     assert!(table
         .bet(user1.principal_id, BetType::Raised(convert_to_e8s(5.0)))
@@ -263,7 +263,7 @@ fn test_no_limit_insufficient_funds_when_raising() {
 #[test]
 fn test_multiple_raises_in_opening_round_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -290,7 +290,7 @@ fn test_multiple_raises_in_opening_round_no_limit() {
 
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -298,43 +298,6 @@ fn test_multiple_raises_in_opening_round_no_limit() {
             }
         }
     }
-
-    println!("Big Blind: {}", big_blind_uid);
-    println!("Small Blind: {}", small_blind_uid);
-    println!("Other: {}", other_uid);
-    println!("User1 id: {}", user1.principal_id);
-    println!("User2 id: {}", user2.principal_id);
-    println!("User3 id: {}", user3.principal_id);
-
-    println!(
-        "User1 amount: {} {:?}",
-        user1.balance,
-        table
-            .user_table_data
-            .get(&user1.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!(
-        "User2 amount: {} {:?}",
-        user2.balance,
-        table
-            .user_table_data
-            .get(&user2.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!(
-        "User3 amount: {} {:?}",
-        user3.balance,
-        table
-            .user_table_data
-            .get(&user3.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!("Pot: {}", table.pot);
-    println!("Deal stage: {:?}", table.deal_stage);
 
     // Other user raises
     assert_eq!(
@@ -378,78 +341,17 @@ fn test_multiple_raises_in_opening_round_no_limit() {
         convert_to_e8s(10.0)
     );
 
-    println!(
-        "User1 amount: {} {:?}",
-        user1.balance,
-        table
-            .user_table_data
-            .get(&user1.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!(
-        "User2 amount: {} {:?}",
-        user2.balance,
-        table
-            .user_table_data
-            .get(&user2.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!(
-        "User3 amount: {} {:?}",
-        user3.balance,
-        table
-            .user_table_data
-            .get(&user3.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!("Pot: {}", table.pot);
-    println!("Deal stage: {:?}", table.deal_stage);
-
     // Other user calls the re-raise
     assert_eq!(table.bet(other_uid, BetType::Called), Ok(()));
 
-    println!(
-        "User1 amount: {} {:?}",
-        user1.balance,
-        table
-            .user_table_data
-            .get(&user1.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!(
-        "User2 amount: {} {:?}",
-        user2.balance,
-        table
-            .user_table_data
-            .get(&user2.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!(
-        "User3 amount: {} {:?}",
-        user3.balance,
-        table
-            .user_table_data
-            .get(&user3.principal_id)
-            .unwrap()
-            .player_action
-    );
-    println!("Pot: {}", table.pot);
-    println!("Deal stage: {:?}", table.deal_stage);
-    println!("Side pots: {:?}", table.side_pots);
-
     // The pot should be correctly calculated
-    assert_eq!(table.pot, convert_to_e8s(30.0));
+    assert_eq!(table.pot.0, convert_to_e8s(30.0));
 }
 
 #[test]
 fn test_check_action_when_no_raises_opening_stage_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -475,7 +377,7 @@ fn test_check_action_when_no_raises_opening_stage_no_limit() {
         .is_ok());
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -492,7 +394,7 @@ fn test_check_action_when_no_raises_opening_stage_no_limit() {
 #[test]
 fn test_check_action_when_no_raises_flop_stage_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -518,7 +420,7 @@ fn test_check_action_when_no_raises_flop_stage_no_limit() {
         .is_ok());
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -565,7 +467,7 @@ fn test_check_action_when_no_raises_flop_stage_no_limit() {
 #[test]
 fn test_check_action_when_no_raises_turn_stage_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -591,7 +493,7 @@ fn test_check_action_when_no_raises_turn_stage_no_limit() {
         .is_ok());
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {
@@ -635,7 +537,7 @@ fn test_check_action_when_no_raises_turn_stage_no_limit() {
 #[test]
 fn test_check_action_when_no_raises_river_stage_no_limit() {
     let mut table = Table::new(
-        Principal::anonymous(),
+        TableId(Principal::anonymous()),
         get_table_config(GameType::NoLimit(convert_to_e8s(1.0)), 3),
         vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     );
@@ -661,7 +563,7 @@ fn test_check_action_when_no_raises_river_stage_no_limit() {
         .is_ok());
     let big_blind_uid = table.get_big_blind_user_principal().unwrap();
     let small_blind_uid = table.get_small_blind_user_principal().unwrap();
-    let mut other_uid = Principal::anonymous();
+    let mut other_uid = WalletPrincipalId(Principal::anonymous());
     for uid in table.seats.iter() {
         if let SeatStatus::Occupied(uid) = uid {
             if uid != &big_blind_uid && uid != &small_blind_uid {

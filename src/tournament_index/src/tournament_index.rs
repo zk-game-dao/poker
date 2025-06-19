@@ -1,7 +1,7 @@
 // Add these definitions to tournament_index.rs
 use std::collections::HashMap;
 
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use currency::Currency;
 use errors::tournament_index_error::TournamentIndexError;
 use intercanister_call_wrappers::tournament_canister::{
@@ -12,19 +12,20 @@ use table::poker::game::table_functions::{table::TableConfig, types::CurrencyTyp
 use tournaments::tournaments::{
     spin_and_go::SpinGoMultiplier,
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentData},
+    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentData, TournamentId},
 };
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use crate::{create_tournament_canister, CURRENCY_MANAGER, STATE};
 
 #[derive(Debug, CandidType, Serialize, Deserialize, Clone)]
 pub struct TournamentIndex {
-    pub tournaments: HashMap<Principal, TournamentData>,
-    pub active_tournaments: Vec<Principal>,
-    pub completed_tournaments: Vec<Principal>,
+    pub tournaments: HashMap<TournamentId, TournamentData>,
+    pub active_tournaments: Vec<TournamentId>,
+    pub completed_tournaments: Vec<TournamentId>,
 
     // Add fields for Spin and Go pools
-    pub spin_go_pools: HashMap<u64, Vec<(Principal, Principal)>>, // Map buy-in amount to a queue of ready tournaments
+    pub spin_go_pools: HashMap<u64, Vec<(UsersCanisterId, WalletPrincipalId)>>, // Map buy-in amount to a queue of ready tournaments
     pub spin_go_templates: HashMap<u64, SpinGoTemplate>, // Store templates for different buy-in amounts
 }
 
@@ -87,7 +88,7 @@ impl TournamentIndex {
         let one_week_ago = current_time.saturating_sub(7 * 24 * 60 * 60 * 1_000_000_000);
 
         // Collect tournaments that are older than a week and are completed
-        let tournaments_to_delete: Vec<Principal> = self
+        let tournaments_to_delete: Vec<TournamentId> = self
             .completed_tournaments
             .iter()
             .filter_map(|id| {
@@ -115,25 +116,25 @@ impl TournamentIndex {
                     Ok(_) => {
                         ic_cdk::println!(
                             "Successfully returned cycles from tournament {}",
-                            tournament_id
+                            tournament_id.0.to_text()
                         );
                     }
                     Err(e) => {
                         // Log error but continue with deletion
                         ic_cdk::println!(
                             "Error returning cycles from tournament {}: {:?}",
-                            tournament_id,
+                            tournament_id.0.to_text(),
                             e
                         );
                     }
                 }
 
                 // Now try to stop and delete the canister
-                match canister_functions::stop_and_delete_canister(tournament_id).await {
+                match canister_functions::stop_and_delete_canister(tournament_id.0).await {
                     Ok(_) => {
                         ic_cdk::println!(
                             "Successfully deleted tournament canister {}",
-                            tournament_id
+                            tournament_id.0.to_text()
                         );
 
                         // Remove from state
@@ -146,14 +147,14 @@ impl TournamentIndex {
                         } else {
                             ic_cdk::println!(
                                 "Failed to acquire STATE lock when removing tournament {}",
-                                tournament_id
+                                tournament_id.0.to_text()
                             );
                         }
                     }
                     Err(e) => {
                         ic_cdk::println!(
                             "Error deleting tournament canister {}: {:?}",
-                            tournament_id,
+                            tournament_id.0.to_text(),
                             e
                         );
                     }
@@ -164,7 +165,7 @@ impl TournamentIndex {
 }
 
 // Create a new Spin and Go tournament and add it to the pool
-pub async fn create_spin_go_tournament(buy_in: u64) -> Result<Principal, TournamentIndexError> {
+pub async fn create_spin_go_tournament(buy_in: u64) -> Result<TournamentId, TournamentIndexError> {
     let template = {
         let state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
         state.spin_go_templates.get(&buy_in).cloned().ok_or(
@@ -176,7 +177,7 @@ pub async fn create_spin_go_tournament(buy_in: u64) -> Result<Principal, Tournam
     };
 
     // Create a new Spin and Go tournament based on the template
-    let tournament_canister = create_tournament_canister().await?;
+    let tournament_canister = TournamentId(create_tournament_canister().await?);
 
     let new_tournament = NewTournament {
         name: format!("Spin & Go: {}", template.buy_in),
@@ -208,7 +209,7 @@ pub async fn create_spin_go_tournament(buy_in: u64) -> Result<Principal, Tournam
         require_proof_of_humanity: false,
     };
 
-    let table_config = TableConfig::default_spin_and_go(100, tournament_canister);
+    let table_config = TableConfig::default_spin_and_go(100, tournament_canister.0);
 
     // Create tournament info
     let (tournament, prize_pool) =
@@ -236,7 +237,7 @@ pub async fn create_spin_go_tournament(buy_in: u64) -> Result<Principal, Tournam
                 currency_manager
                     .withdraw(
                         &currency,
-                        tournament_canister,
+                        tournament_canister.0,
                         prize_pool - 3 * tournament.buy_in,
                     )
                     .await

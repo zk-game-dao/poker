@@ -114,9 +114,9 @@ fn test_table_index_upgrade_persistence() {
 
         // Verify table was created successfully
         assert!(
-            verify_table_exists(&test_env, table.id),
+            verify_table_exists(&test_env, table.id.0),
             "Table {} should exist after creation",
-            table.id
+            table.id.0.to_text()
         );
     }
 

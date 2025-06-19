@@ -1,4 +1,5 @@
 use candid::Principal;
+use user::user::WalletPrincipalId;
 
 use crate::tournaments::{
     table_balancing::calculate_players_per_table,
@@ -11,7 +12,7 @@ fn test_calculate_players_per_table() {
     tournament.table_config.seats = 8;
     for i in 0..8 {
         tournament.current_players.insert(
-            Principal::self_authenticating(format!("user{}", i)),
+            WalletPrincipalId(Principal::self_authenticating(format!("user{}", i))),
             UserTournamentData::default(),
         );
     }
@@ -26,7 +27,7 @@ fn test_calculate_players_per_table_multi_table_tournament_even_split() {
     tournament.table_config.seats = 8;
     for i in 0..16 {
         tournament.current_players.insert(
-            Principal::self_authenticating(format!("user{}", i)),
+            WalletPrincipalId(Principal::self_authenticating(format!("user{}", i))),
             UserTournamentData::default(),
         );
     }
@@ -41,7 +42,7 @@ fn test_calculate_players_per_table_multi_table_tournament_even_split_2() {
     tournament.table_config.seats = 8;
     for i in 0..18 {
         tournament.current_players.insert(
-            Principal::self_authenticating(format!("user{}", i)),
+            WalletPrincipalId(Principal::self_authenticating(format!("user{}", i))),
             UserTournamentData::default(),
         );
     }
@@ -56,7 +57,7 @@ fn test_calculate_players_per_table_multi_table_tournament_uneven_split() {
     tournament.table_config.seats = 8;
     for i in 0..15 {
         tournament.current_players.insert(
-            Principal::self_authenticating(format!("user{}", i)),
+            WalletPrincipalId(Principal::self_authenticating(format!("user{}", i))),
             UserTournamentData::default(),
         );
     }
@@ -71,7 +72,7 @@ fn test_calculate_players_per_table_multi_table_tournament_uneven_split_2() {
     tournament.table_config.seats = 8;
     for i in 0..23 {
         tournament.current_players.insert(
-            Principal::self_authenticating(format!("user{}", i)),
+            WalletPrincipalId(Principal::self_authenticating(format!("user{}", i))),
             UserTournamentData::default(),
         );
     }
@@ -86,7 +87,7 @@ fn test_calculate_players_per_table_multi_table_tournament_descending() {
     tournament.table_config.seats = 8;
     for i in 0..26 {
         tournament.current_players.insert(
-            Principal::self_authenticating(format!("user{}", i)),
+            WalletPrincipalId(Principal::self_authenticating(format!("user{}", i))),
             UserTournamentData::default(),
         );
     }

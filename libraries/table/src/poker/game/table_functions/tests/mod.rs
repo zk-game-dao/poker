@@ -1,5 +1,5 @@
 use candid::Principal;
-use user::user::User;
+use user::user::{User, UserBalance, UsersCanisterId};
 
 use crate::poker::game::types::GameType;
 
@@ -33,10 +33,10 @@ pub mod turn_tests;
 
 pub fn create_user(canister_id: Principal, balance: u64) -> User {
     User::new(
-        canister_id,
-        Principal::anonymous(),
+        user::user::WalletPrincipalId(canister_id),
+        UsersCanisterId(Principal::anonymous()),
         format!("User{}", canister_id),
-        balance,
+        UserBalance(balance),
         None,
         None,
         None,

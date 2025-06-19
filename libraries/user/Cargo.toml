@@ -9,3 +9,5 @@ ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
 serde.workspace = true
 thiserror = "1.0.63"
+
+macros = { path = "../macros" }

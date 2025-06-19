@@ -18,6 +18,7 @@ ic-stable-structures = { workspace = true }
 ic-ledger-types = "0.15.0"
 
 errors = { path = "../errors" }
+macros = { path = "../macros" }
 user = { path = "../../libraries/user" }
 currency = { git = "https://github.com/zk-game-dao/currency.git", branch = "main" }
 

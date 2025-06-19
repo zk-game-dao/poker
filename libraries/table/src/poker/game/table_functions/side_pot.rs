@@ -1,6 +1,7 @@
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use errors::{game_error::GameError, trace_err, traced_error::TracedError};
 use serde::{Deserialize, Serialize};
+use user::user::WalletPrincipalId;
 
 /// a SidePot is created when one or more players
 /// go all-in and can no longer contribute to the main pot.
@@ -10,7 +11,7 @@ pub struct SidePot {
     pub pot: u64,
     pub confirmed_pot: u64,
     /// The players who have contributed to the side pot.
-    pub user_principals: Vec<Principal>,
+    pub user_principals: Vec<WalletPrincipalId>,
     pub highest_bet: u64,
 }
 
@@ -37,7 +38,7 @@ impl SidePot {
     ///
     /// - `amount` - The amount to add to the side pot.
     /// - `user_principal` - The principal of the user to add to the side pot.
-    pub fn add_to_side_pot(&mut self, amount: u64, user_principal: Principal) {
+    pub fn add_to_side_pot(&mut self, amount: u64, user_principal: WalletPrincipalId) {
         self.pot += amount;
         if !self.user_principals.contains(&user_principal) {
             self.user_principals.push(user_principal);
