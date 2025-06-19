@@ -11,8 +11,9 @@ use table::poker::game::{
 };
 use tournaments::tournaments::{
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage},
+    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentId},
 };
+use user::user::WalletPrincipalId;
 
 use crate::TestEnv;
 
@@ -22,7 +23,7 @@ impl TestEnv {
         &self,
         speed_type: NewTournamentSpeedType,
         starting_chips: u64,
-    ) -> (Principal, NewTournament) {
+    ) -> (TournamentId, NewTournament) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -86,19 +87,19 @@ impl TestEnv {
         (id, tournament_config)
     }
 
-    fn register_min_players(&self, tournament_id: Principal) -> Vec<Principal> {
+    fn register_min_players(&self, tournament_id: TournamentId) -> Vec<WalletPrincipalId> {
         let mut players = Vec::new();
 
         for i in 0..5 {
             let user = self
                 .create_user(
                     format!("User {}", i),
-                    Principal::self_authenticating(format!("user{}blindtest", i)),
+                    WalletPrincipalId(Principal::self_authenticating(format!("user{}blindtest", i))),
                 )
                 .expect("Failed to create user");
 
             self.transfer_approve_tokens_for_testing(
-                tournament_id,
+                tournament_id.0,
                 user.principal_id,
                 1000.0,
                 true,

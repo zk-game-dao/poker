@@ -33,7 +33,7 @@ fn test_cycles_return_on_tournament_completion() {
     );
 
     // Get cycle balance of tournament canister
-    let tournament_cycles = test_env.pocket_ic.cycle_balance(tournament_id);
+    let tournament_cycles = test_env.pocket_ic.cycle_balance(tournament_id.0);
     println!("Tournament canister cycles: {}", tournament_cycles);
     assert!(
         tournament_cycles > 0,
@@ -58,7 +58,7 @@ fn test_cycles_return_on_tournament_completion() {
     );
 
     // Get the tournament canister's remaining cycles
-    let remaining_tournament_cycles = test_env.pocket_ic.cycle_balance(tournament_id);
+    let remaining_tournament_cycles = test_env.pocket_ic.cycle_balance(tournament_id.0);
     println!(
         "Remaining tournament canister cycles: {}",
         remaining_tournament_cycles

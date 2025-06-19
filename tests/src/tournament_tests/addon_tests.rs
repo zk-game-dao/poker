@@ -14,8 +14,9 @@ use tournaments::tournaments::{
         AddonOptions, BuyInOptions, RebuyOptions, ReentryOptions, TournamentSizeType,
         TournamentType,
     },
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage},
+    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentId},
 };
+use user::user::WalletPrincipalId;
 
 use crate::TestEnv;
 
@@ -28,7 +29,7 @@ impl TestEnv {
         addon_chips: u64,
         addon_price: u64,
         max_addons: u32,
-    ) -> Principal {
+    ) -> TournamentId {
         // Get current time for setting start time
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -141,10 +142,10 @@ fn test_addon_for_tournament() {
     let user_1 = test_env
         .create_user(
             "User 1".to_string(),
-            Principal::self_authenticating("user1addontest"),
+            WalletPrincipalId(Principal::self_authenticating("user1addontest")),
         )
         .expect("Failed to create user");
-    test_env.transfer_approve_tokens_for_testing(id, user_1.principal_id, 1000.0, true);
+    test_env.transfer_approve_tokens_for_testing(id.0, user_1.principal_id, 1000.0, true);
 
     test_env
         .join_tournament(id, user_1.users_canister_id, user_1.principal_id)
@@ -155,10 +156,10 @@ fn test_addon_for_tournament() {
     let user_2 = test_env
         .create_user(
             "User 2".to_string(),
-            Principal::self_authenticating("user2invalidbuyinaddon"),
+            WalletPrincipalId(Principal::self_authenticating("user2invalidbuyinaddon")),
         )
         .expect("Failed to create user");
-    test_env.transfer_approve_tokens_for_testing(id, user_2.principal_id, 15.0, true);
+    test_env.transfer_approve_tokens_for_testing(id.0, user_2.principal_id, 15.0, true);
 
     test_env
         .join_tournament(id, user_2.users_canister_id, user_2.principal_id)
@@ -226,10 +227,10 @@ fn test_invalid_buyin_addon_for_tournament() {
     let user_1 = test_env
         .create_user(
             "User 1".to_string(),
-            Principal::self_authenticating("user1invalidbuyinaddon"),
+            WalletPrincipalId(Principal::self_authenticating("user1invalidbuyinaddon")),
         )
         .expect("Failed to create user");
-    test_env.transfer_approve_tokens_for_testing(id, user_1.principal_id, 15.0, true);
+    test_env.transfer_approve_tokens_for_testing(id.0, user_1.principal_id, 15.0, true);
 
     test_env
         .join_tournament(id, user_1.users_canister_id, user_1.principal_id)
@@ -240,10 +241,10 @@ fn test_invalid_buyin_addon_for_tournament() {
     let user_2 = test_env
         .create_user(
             "User 2".to_string(),
-            Principal::self_authenticating("user2invalidbuyinaddon"),
+            WalletPrincipalId(Principal::self_authenticating("user2invalidbuyinaddon")),
         )
         .expect("Failed to create user");
-    test_env.transfer_approve_tokens_for_testing(id, user_2.principal_id, 15.0, true);
+    test_env.transfer_approve_tokens_for_testing(id.0, user_2.principal_id, 15.0, true);
 
     test_env
         .join_tournament(id, user_2.users_canister_id, user_2.principal_id)
@@ -297,10 +298,10 @@ fn test_addon_time_passed_for_tournament() {
     let user_1 = test_env
         .create_user(
             "User 1".to_string(),
-            Principal::self_authenticating("user1invalidbuyinaddontimehasntended"),
+            WalletPrincipalId(Principal::self_authenticating("user1invalidbuyinaddontimehasntended")),
         )
         .expect("Failed to create user");
-    test_env.transfer_approve_tokens_for_testing(id, user_1.principal_id, 1000.0, true);
+    test_env.transfer_approve_tokens_for_testing(id.0, user_1.principal_id, 1000.0, true);
 
     test_env
         .join_tournament(id, user_1.users_canister_id, user_1.principal_id)
@@ -311,10 +312,10 @@ fn test_addon_time_passed_for_tournament() {
     let user_2 = test_env
         .create_user(
             "User 2".to_string(),
-            Principal::self_authenticating("user2invalidbuyinaddon"),
+            WalletPrincipalId(Principal::self_authenticating("user2invalidbuyinaddon")),
         )
         .expect("Failed to create user");
-    test_env.transfer_approve_tokens_for_testing(id, user_2.principal_id, 15.0, true);
+    test_env.transfer_approve_tokens_for_testing(id.0, user_2.principal_id, 15.0, true);
 
     test_env
         .join_tournament(id, user_2.users_canister_id, user_2.principal_id)
@@ -369,10 +370,10 @@ fn test_addon_time_hasnt_started_for_tournament() {
     let user_1 = test_env
         .create_user(
             "User 1".to_string(),
-            Principal::self_authenticating("user1invalidbuyinaddontimehasntstarted"),
+            WalletPrincipalId(Principal::self_authenticating("user1invalidbuyinaddontimehasntstarted")),
         )
         .expect("Failed to create user");
-    test_env.transfer_approve_tokens_for_testing(id, user_1.principal_id, 1000.0, true);
+    test_env.transfer_approve_tokens_for_testing(id.0, user_1.principal_id, 1000.0, true);
 
     test_env
         .join_tournament(id, user_1.users_canister_id, user_1.principal_id)
@@ -383,10 +384,10 @@ fn test_addon_time_hasnt_started_for_tournament() {
     let user_2 = test_env
         .create_user(
             "User 2".to_string(),
-            Principal::self_authenticating("user2invalidbuyinaddon"),
+            WalletPrincipalId(Principal::self_authenticating("user2invalidbuyinaddon")),
         )
         .expect("Failed to create user");
-    test_env.transfer_approve_tokens_for_testing(id, user_2.principal_id, 15.0, true);
+    test_env.transfer_approve_tokens_for_testing(id.0, user_2.principal_id, 15.0, true);
 
     test_env
         .join_tournament(id, user_2.users_canister_id, user_2.principal_id)

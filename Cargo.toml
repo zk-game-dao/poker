@@ -6,6 +6,7 @@ members = [
     "libraries/clan",
     "libraries/errors",
     "libraries/intercanister_call_wrappers",
+    "libraries/macros",
     "libraries/table",
     "libraries/table_index_types",
     "libraries/tournaments",
@@ -21,7 +22,7 @@ members = [
     "src/users_canister",
     "src/users_index",
     "tests",
-    "webserver", "libraries/macros",
+    "webserver",
 ]
 resolver = "2"
 

@@ -141,7 +141,7 @@ impl TestEnv {
     pub fn handle_user_losing(
         &self,
         tournament_id: TournamentId,
-        user_principal: UsersCanisterId,
+        user_principal: WalletPrincipalId,
         table_id: TableId,
     ) -> Result<(), TournamentError> {
         let result = self.pocket_ic.update_call(

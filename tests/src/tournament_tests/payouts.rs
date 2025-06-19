@@ -11,9 +11,10 @@ use table::poker::game::{
 };
 use tournaments::tournaments::{
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentState},
+    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentId, TournamentState},
     utils::calculate_rake,
 };
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use crate::TestEnv;
 
@@ -22,7 +23,7 @@ impl TestEnv {
     pub fn setup_payout_tournament(
         &self,
         payout_structure: Vec<PayoutPercentage>,
-    ) -> (Principal, NewTournament) {
+    ) -> (TournamentId, NewTournament) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -85,15 +86,15 @@ impl TestEnv {
 
     pub fn simulate_tournament_until_completion(
         &self,
-        tournament_id: Principal,
+        tournament_id: TournamentId,
         num_players: u8,
-    ) -> Vec<(Principal, Principal)> {
+    ) -> Vec<(UsersCanisterId, WalletPrincipalId)> {
         let mut eliminated_players = Vec::new();
         let mut active_players = Vec::new();
 
         // Register players
         for i in 0..num_players {
-            let user_id = self.pocket_ic.create_canister();
+            let user_id = WalletPrincipalId(self.pocket_ic.create_canister());
             let user = self
                 .create_user(format!("User {}", i), user_id)
                 .expect("Failed to create user");
@@ -102,10 +103,10 @@ impl TestEnv {
             println!(
                 "User {}: {} - Amount: {}",
                 i,
-                user.users_canister_id.to_text(),
+                user.users_canister_id.0.to_text(),
                 amount
             );
-            self.transfer_approve_tokens_for_testing(tournament_id, user_id, amount, true);
+            self.transfer_approve_tokens_for_testing(tournament_id.0, user_id, amount, true);
 
             self.join_tournament(tournament_id, user.users_canister_id, user_id)
                 .unwrap();
@@ -139,12 +140,12 @@ impl TestEnv {
                     .users
                     .get(&current_player)
                     .map(|user| user.balance)
-                    .unwrap_or(0);
+                    .unwrap_or_default();
 
                 if user_balance > 0 {
                     if !first_action_made {
                         // First player goes all-in
-                        self.player_bet(table_id, current_player, BetType::Raised(user_balance))
+                        self.player_bet(table_id, current_player, BetType::Raised(user_balance.0))
                             .unwrap();
                         first_action_made = true;
                     } else {
@@ -167,7 +168,7 @@ impl TestEnv {
                     .users
                     .get(&player.1)
                     .map(|user| user.balance)
-                    .unwrap_or(0);
+                    .unwrap_or_default();
                 if balance == 0 {
                     eliminated_players.push(*player);
                     false
@@ -193,15 +194,15 @@ impl TestEnv {
 
     fn verify_payouts(
         &self,
-        tournament_id: Principal,
-        players: &[(Principal, Principal)],
+        tournament_id: TournamentId,
+        players: &[(UsersCanisterId, WalletPrincipalId)],
         expected_payouts: &[(usize, u64)],
     ) {
         // Get all players' balances
         let mut player_balances: Vec<_> = players
             .iter()
             .map(|player| {
-                let balance = self.get_wallet_balance(player.1).unwrap();
+                let balance = self.get_wallet_balance(player.1.0).unwrap();
                 (balance.e8s(), *player)
             })
             .collect();
@@ -213,7 +214,7 @@ impl TestEnv {
             "Player balances: {:?}",
             player_balances
                 .iter()
-                .map(|b| (b.0 / 1e8 as u64, (b.1 .0.to_text(), b.1 .1.to_text())))
+                .map(|b| (b.0 / 1e8 as u64, (b.1.0.0.to_text(), b.1.1.0.to_text())))
                 .collect::<Vec<_>>()
         );
 

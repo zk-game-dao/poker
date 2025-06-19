@@ -4,21 +4,22 @@ use candid::Principal;
 use currency::Currency;
 use table::poker::game::{
     table_functions::{
-        table::{TableConfig, TableType},
+        table::{TableConfig, TableId, TableType},
         types::{BetType, CurrencyType, DealStage, SeatStatus},
     },
     utils::convert_to_e8s,
 };
 use tournaments::tournaments::{
     tournament_type::{BuyInOptions, NewTournamentOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentState},
+    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentId, TournamentState},
 };
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use crate::TestEnv;
 
 // Test utilities
 impl TestEnv {
-    fn setup_reentry_tournament(&self) -> (Principal, NewTournament) {
+    fn setup_reentry_tournament(&self) -> (TournamentId, NewTournament) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -104,22 +105,22 @@ impl TestEnv {
 
     fn register_players(
         &self,
-        tournament_id: Principal,
+        tournament_id: TournamentId,
         count: u8,
         name_suffix: &str,
-    ) -> Vec<(Principal, Principal)> {
+    ) -> Vec<(WalletPrincipalId, UsersCanisterId)> {
         let mut players = Vec::new();
 
         for i in 0..count {
             let user = self
                 .create_user(
                     format!("User {}", i),
-                    Principal::self_authenticating(format!("user{}{}", i, name_suffix)),
+                    WalletPrincipalId(Principal::self_authenticating(format!("user{}{}", i, name_suffix))),
                 )
                 .expect("Failed to create user");
 
             self.transfer_approve_tokens_for_testing(
-                tournament_id,
+                tournament_id.0,
                 user.principal_id,
                 1000.0,
                 true,
@@ -134,7 +135,7 @@ impl TestEnv {
     }
 
     // Simulate a hand where target_player loses all chips
-    fn all_but_one_players_all_in(&self, table_id: Principal) {
+    fn all_but_one_players_all_in(&self, table_id: TableId) {
         let table = self.get_table(table_id).unwrap();
         for _ in table.users.users.keys() {
             let table = self.get_table(table_id).unwrap();
@@ -142,7 +143,7 @@ impl TestEnv {
                 if let SeatStatus::Occupied(principal) = table.seats[table.current_player_index] {
                     principal
                 } else {
-                    Principal::anonymous()
+                    WalletPrincipalId::default()
                 };
             let player_balance = table.users.get(&player).unwrap().balance;
             let player_current_total_bet = table
@@ -152,7 +153,7 @@ impl TestEnv {
                 .current_total_bet;
 
             // Calculate raise amount (all remaining chips)
-            let raise_amount = player_balance - player_current_total_bet;
+            let raise_amount = player_balance.0 - player_current_total_bet;
 
             // Have target player raise all their chips
             if self
@@ -164,7 +165,7 @@ impl TestEnv {
         }
     }
 
-    fn all_players_called(&self, table_id: Principal) {
+    fn all_players_called(&self, table_id: TableId) {
         let table = self.get_table(table_id).unwrap();
         let player_count = table.users.users.len();
         for _ in 0..player_count - 2 {
@@ -173,7 +174,7 @@ impl TestEnv {
                 if let SeatStatus::Occupied(principal) = table.seats[table.current_player_index] {
                     principal
                 } else {
-                    Principal::anonymous()
+                    WalletPrincipalId::default()
                 };
             // Have target player call
             self.player_bet(table_id, player, BetType::Called).unwrap();
@@ -183,7 +184,7 @@ impl TestEnv {
             if let SeatStatus::Occupied(principal) = table.seats[table.current_player_index] {
                 principal
             } else {
-                Principal::anonymous()
+                WalletPrincipalId::default()
             };
         self.player_fold(table_id, player).unwrap();
 
@@ -192,7 +193,7 @@ impl TestEnv {
             if let SeatStatus::Occupied(principal) = table.seats[table.current_player_index] {
                 principal
             } else {
-                Principal::anonymous()
+                WalletPrincipalId::default()
             };
         self.player_check(table_id, player).unwrap();
     }
@@ -257,7 +258,7 @@ fn test_reentry_into_tournament() {
         .iter()
         .find(|&player| !table.users.users.contains_key(&player.0))
         .expect("No player was kicked");
-    test_env.transfer_approve_tokens_for_testing(table_id, reentry_player.0, 10.0, true);
+    test_env.transfer_approve_tokens_for_testing(table_id.0, reentry_player.0, 10.0, true);
 
     let tournament = test_env.get_tournament(tournament_id).unwrap();
     assert_eq!(

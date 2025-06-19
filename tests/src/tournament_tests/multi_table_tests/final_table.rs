@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use candid::Principal;
 use table::poker::game::table_functions::table::TableType;
+use user::user::WalletPrincipalId;
 
 use crate::TestEnv;
 
@@ -16,12 +17,12 @@ fn test_final_table_formation() {
         let user = test_env
             .create_user(
                 format!("User {}", i),
-                Principal::self_authenticating(format!("user{}final", i)),
+                WalletPrincipalId(Principal::self_authenticating(format!("user{}final", i))),
             )
             .unwrap();
 
         test_env.transfer_approve_tokens_for_testing(
-            tournament_id,
+            tournament_id.0,
             user.principal_id,
             1000.0,
             true,

@@ -1,5 +1,6 @@
 use candid::Principal;
 use currency::Currency;
+use user::user::WalletPrincipalId;
 use std::time::Duration;
 use table::poker::game::{
     table_functions::{
@@ -12,7 +13,7 @@ use tournaments::tournaments::{
     blind_level::SpeedType,
     table_balancing::TableBalancer,
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentState},
+    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentId, TournamentState},
 };
 
 use crate::TestEnv;
@@ -23,7 +24,7 @@ impl TestEnv {
         players_per_table: u8,
         min_players: u8,
         max_players: u8,
-    ) -> (Principal, NewTournament) {
+    ) -> (TournamentId, NewTournament) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -93,21 +94,21 @@ impl TestEnv {
 
     pub fn register_and_start_tournament(
         &self,
-        tournament_id: Principal,
+        tournament_id: TournamentId,
         player_count: u64,
-    ) -> Vec<Principal> {
+    ) -> Vec<WalletPrincipalId> {
         let mut players = Vec::new();
         // Register enough players for multiple tables
         for i in 0..player_count {
             let user = self
                 .create_user(
                     format!("User {}", i),
-                    Principal::self_authenticating(format!("user{}final", i)),
+                    WalletPrincipalId(Principal::self_authenticating(format!("user{}final", i))),
                 )
                 .unwrap();
 
             self.transfer_approve_tokens_for_testing(
-                tournament_id,
+                tournament_id.0,
                 user.principal_id,
                 1000.0,
                 true,

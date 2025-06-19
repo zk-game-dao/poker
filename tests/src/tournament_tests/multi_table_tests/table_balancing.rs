@@ -4,7 +4,7 @@ use candid::Principal;
 use currency::Currency;
 use table::poker::game::{
     table_functions::{
-        table::{TableConfig, TableType},
+        table::{TableConfig, TableId, TableType},
         types::{BetType, CurrencyType, DealStage},
     },
     utils::convert_to_e8s,
@@ -13,8 +13,9 @@ use tournaments::tournaments::{
     blind_level::SpeedType,
     table_balancing::TableBalancer,
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentState},
+    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentId, TournamentState},
 };
+use user::user::WalletPrincipalId;
 
 use crate::TestEnv;
 
@@ -24,7 +25,7 @@ impl TestEnv {
         players_per_table: u8,
         min_players: u8,
         max_players: u8,
-    ) -> (Principal, NewTournament) {
+    ) -> (TournamentId, NewTournament) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -92,7 +93,7 @@ impl TestEnv {
         (id, tournament_config)
     }
 
-    pub fn eliminate_players(&self, tournament_id: Principal, num_players: u8) -> Vec<Principal> {
+    pub fn eliminate_players(&self, tournament_id: TournamentId, num_players: u8) -> Vec<WalletPrincipalId> {
         println!("Eliminating players...");
         let tournament = self.get_tournament(tournament_id).unwrap();
 
@@ -101,7 +102,7 @@ impl TestEnv {
             tournament
                 .current_players
                 .iter()
-                .map(|p| p.0.to_text())
+                .map(|p| p.0.0.to_text())
                 .collect::<Vec<_>>()
         );
 
@@ -117,12 +118,12 @@ impl TestEnv {
                     {
                         println!(
                             "Error eliminating player {}: {:?}",
-                            user.principal_id.to_text(),
+                            user.principal_id.0.to_text(),
                             e
                         );
                         continue;
                     }
-                    println!("Eliminated player: {}", user.principal_id.to_text());
+                    println!("Eliminated player: {}", user.principal_id.0.to_text());
                     eliminated_players.push(user.principal_id);
                     if eliminated_players.len() == num_players as usize {
                         break 'outer;
@@ -142,7 +143,7 @@ impl TestEnv {
             eliminated_players.len(),
             eliminated_players
                 .iter()
-                .map(|p| p.to_text())
+                .map(|p| p.0.to_text())
                 .collect::<Vec<_>>()
         );
 
@@ -154,7 +155,7 @@ impl TestEnv {
         eliminated_players
     }
 
-    pub fn complete_table_round(&self, table_id: Principal) {
+    pub fn complete_table_round(&self, table_id: TableId) {
         let mut table = self.get_table(table_id).unwrap();
         let mut first_action_made = false;
 
@@ -170,12 +171,12 @@ impl TestEnv {
                 .users
                 .get(&current_player)
                 .map(|user| user.balance)
-                .unwrap_or(0);
+                .unwrap_or_default();
 
             if user_balance > 0 {
                 if !first_action_made {
                     // First player goes all-in
-                    self.player_bet(table_id, current_player, BetType::Raised(user_balance))
+                    self.player_bet(table_id, current_player, BetType::Raised(user_balance.0))
                         .unwrap();
                     first_action_made = true;
                 } else {
@@ -205,12 +206,12 @@ fn test_basic_multi_table() {
         let user = test_env
             .create_user(
                 format!("User {}", i),
-                Principal::self_authenticating(format!("user{}balance", i)),
+                WalletPrincipalId(Principal::self_authenticating(format!("user{}balance", i))),
             )
             .unwrap();
 
         test_env.transfer_approve_tokens_for_testing(
-            tournament_id,
+            tournament_id.0,
             user.principal_id,
             1000.0,
             true,
@@ -251,12 +252,12 @@ fn test_table_breaking() {
         let user = test_env
             .create_user(
                 format!("User {}", i),
-                Principal::self_authenticating(format!("user{}break", i)),
+                WalletPrincipalId(Principal::self_authenticating(format!("user{}break", i))),
             )
             .unwrap();
 
         test_env.transfer_approve_tokens_for_testing(
-            tournament_id,
+            tournament_id.0,
             user.principal_id,
             1000.0,
             true,
@@ -293,7 +294,7 @@ fn test_table_breaking() {
     let tournament = test_env.get_tournament(tournament_id).unwrap();
     println!(
         "Tournament tables: {:?}",
-        tournament.tables.keys().next().unwrap().to_text()
+        tournament.tables.keys().next().unwrap().0.to_text()
     );
     assert_eq!(tournament.tables.len(), 1, "Table should have been broken");
     let table_id = *tournament.tables.keys().next().unwrap();
@@ -315,12 +316,12 @@ fn test_table_balancing_with_player_overflow() {
         let user = test_env
             .create_user(
                 format!("User {}", i),
-                Principal::self_authenticating(format!("user{}balance", i)),
+                WalletPrincipalId(Principal::self_authenticating(format!("user{}balance", i))),
             )
             .unwrap();
 
         test_env.transfer_approve_tokens_for_testing(
-            tournament_id,
+            tournament_id.0,
             user.principal_id,
             1000.0,
             true,
@@ -357,7 +358,7 @@ fn test_table_balancing_with_player_overflow() {
         let table = test_env.get_table(*table_id).unwrap();
         println!(
             "Table {}: {} players in table_info, {} in actual table",
-            table_id.to_text().chars().take(5).collect::<String>(),
+            table_id.0.to_text().chars().take(5).collect::<String>(),
             table_info.players.len(),
             table.users.len()
         );
@@ -383,11 +384,11 @@ fn test_table_balancing_with_player_overflow() {
     for (table_id, table_info) in &tournament.tables {
         println!(
             "Table {}: Players: [{}]",
-            table_id.to_text().chars().take(5).collect::<String>(),
+            table_id.0.to_text().chars().take(5).collect::<String>(),
             table_info
                 .players
                 .iter()
-                .map(|p| p.to_text().chars().take(4).collect::<String>())
+                .map(|p| p.0.to_text().chars().take(4).collect::<String>())
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -449,7 +450,7 @@ fn test_table_balancing_with_player_overflow() {
     for table in table_infos {
         println!(
             "Table players: {:?}",
-            table.iter().map(|p| p.to_text()).collect::<Vec<_>>()
+            table.iter().map(|p| p.0.to_text()).collect::<Vec<_>>()
         );
     }
 
@@ -482,12 +483,12 @@ fn test_table_balancing_with_player_overflow_two() {
         let user = test_env
             .create_user(
                 format!("User {}", i),
-                Principal::self_authenticating(format!("user{}balance", i)),
+                WalletPrincipalId(Principal::self_authenticating(format!("user{}balance", i))),
             )
             .unwrap();
 
         test_env.transfer_approve_tokens_for_testing(
-            tournament_id,
+            tournament_id.0,
             user.principal_id,
             1000.0,
             true,
@@ -524,7 +525,7 @@ fn test_table_balancing_with_player_overflow_two() {
         let table = test_env.get_table(*table_id).unwrap();
         println!(
             "Table {}: {} players in table_info, {} in actual table",
-            table_id.to_text().chars().take(5).collect::<String>(),
+            table_id.0.to_text().chars().take(5).collect::<String>(),
             table_info.players.len(),
             table.users.len()
         );
@@ -550,11 +551,11 @@ fn test_table_balancing_with_player_overflow_two() {
     for (table_id, table_info) in &tournament.tables {
         println!(
             "Table {}: Players: [{}]",
-            table_id.to_text().chars().take(5).collect::<String>(),
+            table_id.0.to_text().chars().take(5).collect::<String>(),
             table_info
                 .players
                 .iter()
-                .map(|p| p.to_text().chars().take(4).collect::<String>())
+                .map(|p| p.0.to_text().chars().take(4).collect::<String>())
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -610,7 +611,7 @@ fn test_table_balancing_with_player_overflow_two() {
     for table in table_infos {
         println!(
             "Table players: {:?}",
-            table.iter().map(|p| p.to_text()).collect::<Vec<_>>()
+            table.iter().map(|p| p.0.to_text()).collect::<Vec<_>>()
         );
     }
 
@@ -643,12 +644,12 @@ fn test_table_balancing_with_player_overflow_three() {
         let user = test_env
             .create_user(
                 format!("User {}", i),
-                Principal::self_authenticating(format!("user{}balance", i)),
+                WalletPrincipalId(Principal::self_authenticating(format!("user{}balance", i))),
             )
             .unwrap();
 
         test_env.transfer_approve_tokens_for_testing(
-            tournament_id,
+            tournament_id.0,
             user.principal_id,
             1000.0,
             true,
@@ -684,7 +685,7 @@ fn test_table_balancing_with_player_overflow_three() {
         let table = test_env.get_table(*table_id).unwrap();
         println!(
             "Table {}: {} players in table_info, {} in actual table",
-            table_id.to_text().chars().take(5).collect::<String>(),
+            table_id.0.to_text().chars().take(5).collect::<String>(),
             table_info.players.len(),
             table.users.len()
         );
@@ -726,7 +727,7 @@ fn test_table_balancing_with_player_overflow_three() {
         let table = test_env.get_table(*table_id).unwrap();
         println!(
             "Table {}: {} players in table_info, {} in actual table",
-            table_id.to_text().chars().take(5).collect::<String>(),
+            table_id.0.to_text().chars().take(5).collect::<String>(),
             table_info.players.len(),
             table.users.len()
         );
@@ -763,7 +764,7 @@ fn test_table_balancing_with_player_overflow_three() {
         let table = test_env.get_table(*table_id).unwrap();
         println!(
             "Table {}: {} players in table_info, {} in actual table",
-            table_id.to_text().chars().take(5).collect::<String>(),
+            table_id.0.to_text().chars().take(5).collect::<String>(),
             table_info.players.len(),
             table.users.len()
         );
