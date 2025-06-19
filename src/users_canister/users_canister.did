@@ -99,6 +99,7 @@ service : () -> {
   get_verified_user_experience_points : () -> (Result_6) query;
   ping : () -> (text) query;
   remove_active_table : (principal, principal) -> (Result);
+  reset_users_xp : (text) -> (Result_1);
   update_user : (
       principal,
       opt text,
