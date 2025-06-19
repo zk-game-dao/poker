@@ -1,3 +1,6 @@
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 use candid::Principal;
 use canister_functions::cycle::check_and_top_up_canister;
 use errors::table_error::TableError;
@@ -225,4 +228,29 @@ pub async fn handle_last_user_leaving() -> Result<(), TableError> {
     }
 
     Ok(())
+}
+
+pub fn reshuffle_bytes_hash(bytes: &mut [u8], seed: u64) {
+    if bytes.len() <= 1 {
+        return;
+    }
+    
+    // Create indices to shuffle
+    let mut indices: Vec<usize> = (0..bytes.len()).collect();
+    
+    // Shuffle indices using hash-based approach
+    for i in (1..indices.len()).rev() {
+        let mut hasher = DefaultHasher::new();
+        seed.hash(&mut hasher);
+        i.hash(&mut hasher);
+        let hash = hasher.finish();
+        let j = (hash as usize) % (i + 1);
+        indices.swap(i, j);
+    }
+    
+    // Apply the shuffle to the original bytes
+    let original = bytes.to_vec();
+    for (new_pos, &old_pos) in indices.iter().enumerate() {
+        bytes[new_pos] = original[old_pos];
+    }
 }
