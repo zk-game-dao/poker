@@ -469,6 +469,20 @@ fn get_referrer(user_id: Principal) -> Result<Option<Principal>, UserError> {
 }
 
 #[ic_cdk::update]
+fn reset_users_xp(user_name: String) -> Result<(), UserError> {
+    handle_cycle_check();
+    validate_caller(CONTROLLER_PRINCIPALS.clone());
+    let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
+    for user in users.iter_mut() {
+        if user.1.user_name == user_name {
+            user.1.clear_experience_points();
+            user.1.clear_pure_poker_experience_points();
+        }
+    }
+    Ok(())
+}
+
+#[ic_cdk::update]
 async fn get_canister_status_formatted() -> Result<String, UserError> {
     // Validate caller is a controller
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
