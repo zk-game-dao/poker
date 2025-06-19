@@ -40,6 +40,8 @@ use utils::{
     handle_table_validity_check, update_player_count_tournament, update_table_player_count,
 };
 
+use crate::utils::reshuffle_bytes_hash;
+
 mod memory;
 pub mod utils;
 
@@ -1084,9 +1086,15 @@ async fn start_new_betting_round() -> Result<(), TableError> {
     handle_cycle_check();
 
     let raw_bytes = ic_cdk::management_canister::raw_rand().await;
-    let raw_bytes = raw_bytes.map_err(|e| {
+    let mut raw_bytes = raw_bytes.map_err(|e| {
         TableError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e))
     })?;
+
+    // Get current time in nanoseconds as seed
+    let time_seed = ic_cdk::api::time();
+    
+    // Reshuffle the bytes using time as seed
+    reshuffle_bytes_hash(&mut raw_bytes, time_seed);
 
     let (kicked_players, action_logs, table_id, total_users, seated_out_kicked_players, users) = {
         let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
