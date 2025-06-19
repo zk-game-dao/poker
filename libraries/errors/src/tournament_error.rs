@@ -73,6 +73,9 @@ pub enum TournamentError {
     #[error("User not verified")]
     UserNotVerified,
 
+    #[error("User banned")]
+    UserBanned,
+
     #[error("Error: {0}")]
     Other(String),
 }

@@ -95,4 +95,7 @@ pub enum TableError {
 
     #[error("User not verified")]
     UserNotVerified,
+
+    #[error("User banned")]
+    UserBanned
 }

@@ -168,6 +168,9 @@ async fn join_table(
 
     {
         let user = get_user_wrapper(users_canister_principal, user_id).await?;
+        if !user.can_play() {
+            return Err(TableError::UserBanned);
+        }
         if let Some(require_proof_of_humanity) = table.config.require_proof_of_humanity {
             if require_proof_of_humanity && !user.is_verified.unwrap_or(false) {
                 return Err(TableError::UserNotVerified);

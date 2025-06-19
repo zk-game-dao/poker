@@ -264,6 +264,13 @@ async fn user_join_tournament(
         }
     }
 
+    {
+        let user = get_user_wrapper(users_canister_principal, user_id).await?;
+        if !user.can_play() {
+            return Err(TournamentError::UserBanned);
+        }
+    }
+
     let tournament_state: TournamentData = {
         let mut tournament_state = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
         let tournament_state = tournament_state.as_mut();
