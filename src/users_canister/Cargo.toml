@@ -24,6 +24,7 @@ ic-canister-sig-creation = "1.2.0"
 
 authentication = { path = "../../libraries/authentication" }
 canister_functions = { path = "../../libraries/canister_functions" }
+intercanister_call_wrappers = { path = "../../libraries/intercanister_call_wrappers" }
 errors = { path = "../../libraries/errors" }
 user = { path = "../../libraries/user" }
 

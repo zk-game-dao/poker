@@ -5,10 +5,12 @@ use serde::{Deserialize, Serialize};
 use ic_stable_structures::{storable::Bound, Storable};
 use std::{borrow::Cow, collections::HashMap};
 
+use crate::admin::{AdminRole, BanType};
+
 const MAX_VALUE_SIZE: u32 = 200_000_000;
 pub const REFERRAL_PERIOD: u64 = 30 * 24 * 60 * 60 * 1_000_000_000;
 
-fn time() -> u64 {
+pub fn time() -> u64 {
     #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
     {
         ic_cdk::api::time()
@@ -86,6 +88,11 @@ pub struct User {
     pub referrer: Option<WalletPrincipalId>,
     pub referred_users: Option<HashMap<WalletPrincipalId, u64>>,
     pub referral_start_date: Option<u64>, // Timestamp when user was referred
+
+    /// Admin system
+    pub admin_role: Option<AdminRole>,
+    pub ban_status: Option<BanType>,
+    pub ban_history: Option<Vec<BanType>>,
 }
 
 impl User {
@@ -119,6 +126,9 @@ impl User {
             referrer,
             referred_users: Some(HashMap::new()),
             referral_start_date,
+            admin_role: None,
+            ban_status: None,
+            ban_history: None,
         }
     }
 
@@ -233,7 +243,9 @@ impl User {
     ///
     /// - `experience_points` - The experience points to add.
     pub fn add_experience_points(&mut self, experience_points: u64) {
-        self.experience_points = Some(self.experience_points.unwrap_or(0) + experience_points);
+        if self.can_gain_xp() {
+            self.experience_points = Some(self.experience_points.unwrap_or(0) + experience_points);
+        }
     }
 
     /// Add btc experience points to the user.
@@ -242,8 +254,10 @@ impl User {
     ///
     /// - `experience_points` - The experience points to add.
     pub fn add_pure_poker_experience_points(&mut self, experience_points: u64) {
-        self.experience_points_pure_poker =
-            Some(self.experience_points_pure_poker.unwrap_or(0) + experience_points);
+        if self.can_gain_xp() {
+            self.experience_points_pure_poker =
+                Some(self.experience_points_pure_poker.unwrap_or(0) + experience_points);
+        }
     }
 
     pub fn get_referral_tier(&self) -> u8 {
@@ -335,6 +349,9 @@ impl Storable for User {
                 referrer: None,
                 referred_users: Some(HashMap::new()),
                 referral_start_date: None,
+                admin_role: None,
+                ban_status: None,
+                ban_history: None,
             }
         })
     }

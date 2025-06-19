@@ -5421,6 +5421,7 @@ dependencies = [
  "ic-ledger-types",
  "ic-stable-structures",
  "ic-verifiable-credentials",
+ "intercanister_call_wrappers",
  "lazy_static",
  "serde",
  "serde_bytes",

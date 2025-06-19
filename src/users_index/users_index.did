@@ -1,3 +1,23 @@
+type AdminRole = variant { SuperAdmin; Admin; Moderator };
+type BanType = variant {
+  TemporarySuspension : record {
+    banned_at : nat64;
+    banned_by : principal;
+    expires_at : nat64;
+    reason : text;
+  };
+  PermanentBan : record {
+    banned_at : nat64;
+    banned_by : principal;
+    reason : text;
+  };
+  XpBan : record {
+    banned_at : nat64;
+    banned_by : principal;
+    expires_at : nat64;
+    reason : text;
+  };
+};
 type CanisterManagementError = variant {
   CreateCanisterError : text;
   InsufficientCycles;
@@ -38,8 +58,11 @@ type User = record {
   balance : nat64;
   referred_users : opt vec record { principal; nat64 };
   created_at : opt nat64;
+  ban_history : opt vec BanType;
+  ban_status : opt BanType;
   is_verified : opt bool;
   address : opt text;
+  admin_role : opt AdminRole;
   principal_id : principal;
   referral_start_date : opt nat64;
   active_tables : vec principal;
