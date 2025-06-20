@@ -5,29 +5,20 @@ use canister_functions::{
     cycle::{check_and_top_up_canister, monitor_and_top_up_canisters, top_up_canister},
     install_wasm_code, stop_and_delete_canister,
 };
-use currency::types::currency_manager::CurrencyManager;
+use clan::{subscriptions::SubscriptionTier, tags::ClanTag, Clan, CreateClanRequest};
+use currency::{types::currency_manager::CurrencyManager, Currency};
 use errors::{
-    canister_management_error::CanisterManagementError,
-    clans_index_error::ClanIndexError,
+    canister_management_error::CanisterManagementError, clan_index_error::ClanIndexError,
 };
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
-use intercanister_call_wrappers::clan_canister::{
-    create_clan_wrapper, get_clan_wrapper, 
-    join_clan_wrapper, leave_clan_wrapper,
-    upgrade_subscription_wrapper,
-};
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-use table::poker::game::table_functions::types::CurrencyType;
 
 pub mod clans_index;
 pub mod memory;
+pub mod tags;
 
 use clans_index::{ClanIndex, ClanSearchFilters};
-use clan_types::{
-    Clan, ClanRole, CreateClanRequest, SubscriptionTier, RewardDistributionType,
-    ClanPrivacy,
-};
 
 const MINIMUM_CYCLE_THRESHOLD: u128 = 2_000_000_000_000;
 const SINGLE_CLAN_CYCLE_START_AMOUNT: u128 = 3_000_000_000_000;
@@ -149,13 +140,13 @@ fn search_clans(
 }
 
 #[ic_cdk::query]
-fn get_clan_by_tag(tag: String) -> Result<Option<Clan>, ClanIndexError> {
+fn get_clans_by_tag(tag: ClanTag) -> Result<Vec<Clan>, ClanIndexError> {
     let state = STATE.lock().map_err(|_| ClanIndexError::LockError)?;
-    Ok(state.get_clan_by_tag(&tag.to_uppercase()))
+    Ok(state.get_clans_by_tag(&tag))
 }
 
 #[ic_cdk::query]
-fn get_clans_by_currency(currency: CurrencyType) -> Result<Vec<Clan>, ClanIndexError> {
+fn get_clans_by_currency(currency: Currency) -> Result<Vec<Clan>, ClanIndexError> {
     let state = STATE.lock().map_err(|_| ClanIndexError::LockError)?;
     Ok(state.get_clans_by_currency(&currency))
 }

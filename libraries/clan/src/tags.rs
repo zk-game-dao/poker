@@ -349,7 +349,7 @@ impl ClanTag {
 }
 
 /// Categories for organizing tags
-#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash)]
 pub enum TagCategory {
     SkillLevel,
     Stakes,

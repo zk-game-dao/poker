@@ -595,8 +595,62 @@ dependencies = [
  "errors",
  "ic-cdk",
  "ic-stable-structures",
+ "macros",
  "serde",
  "table",
+ "tournaments",
+ "user",
+]
+
+[[package]]
+name = "clans_canister"
+version = "0.1.0"
+dependencies = [
+ "authentication",
+ "candid",
+ "canister_functions",
+ "clan",
+ "currency",
+ "errors",
+ "futures",
+ "ic-cdk",
+ "ic-cdk-timers",
+ "ic-ledger-types",
+ "ic-stable-structures",
+ "intercanister_call_wrappers",
+ "lazy_static",
+ "serde",
+ "serde_bytes",
+ "sha2 0.10.9",
+ "table",
+ "thiserror 1.0.69",
+ "tournaments",
+ "user",
+]
+
+[[package]]
+name = "clans_index"
+version = "0.1.0"
+dependencies = [
+ "authentication",
+ "candid",
+ "canister_functions",
+ "clan",
+ "currency",
+ "errors",
+ "futures",
+ "ic-cdk",
+ "ic-cdk-timers",
+ "ic-ledger-types",
+ "ic-stable-structures",
+ "intercanister_call_wrappers",
+ "lazy_static",
+ "serde",
+ "serde_bytes",
+ "sha2 0.10.9",
+ "table",
+ "thiserror 1.0.69",
+ "tournaments",
  "user",
 ]
 

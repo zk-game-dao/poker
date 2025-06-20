@@ -508,7 +508,7 @@ type Value = variant {
 service : () -> {
   cancel_tournament : () -> (Result);
   create_tournament : (TournamentData, TableConfig, nat64) -> (Result_1);
-  deposit_prize_pool : (nat64, principal) -> (Result);
+  deposit_prize_pool : (nat64, principal, bool) -> (Result);
   distribute_winnings : (PublicTable) -> (Result);
   get_balance_time_interval : () -> (Result_2) query;
   get_canister_status_formatted : () -> (Result_3);

@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use candid::{CandidType, Principal};
 use currency::Currency;
 use serde::{Deserialize, Serialize};
-use table::poker::game::table_functions::types::Currency;
-use clan::{Clan, ClanPrivacy, ClanRole, SubscriptionTier};
+use clan::{subscriptions::{ClanRole, SubscriptionTierId}, tags::{ClanTag, TagCategory}, Clan, ClanPrivacy};
+use crate::tags::TagSearchFilters;
 use errors::clan_index_error::ClanIndexError;
 
 #[derive(Debug, Clone, PartialEq, CandidType, Serialize, Deserialize)]
@@ -11,8 +11,8 @@ pub struct ClanIndex {
     /// Map of clan ID to clan data
     pub clans: HashMap<Principal, Clan>,
     
-    /// Map of clan tags to clan IDs for fast lookup
-    pub tag_to_clan: HashMap<String, Principal>,
+    /// Map of individual clan tags to clan IDs for fast tag-based lookup
+    pub tag_to_clans: HashMap<ClanTag, HashSet<Principal>>,
     
     /// Map of user principals to clan IDs they're members of
     pub user_to_clans: HashMap<Principal, HashSet<Principal>>,
@@ -28,7 +28,6 @@ pub struct ClanIndex {
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
 pub struct ClanSearchFilters {
     pub name_contains: Option<String>,
-    pub tag_contains: Option<String>,
     pub currency: Option<Currency>,
     pub privacy: Option<ClanPrivacy>,
     pub min_members: Option<u32>,
@@ -36,6 +35,9 @@ pub struct ClanSearchFilters {
     pub has_joining_fee: Option<bool>,
     pub subscription_enabled: Option<bool>,
     pub require_proof_of_humanity: Option<bool>,
+    
+    // New tag-based filters
+    pub tag_filters: Option<TagSearchFilters>,
 }
 
 impl Default for ClanIndex {
@@ -48,7 +50,7 @@ impl ClanIndex {
     pub fn new() -> Self {
         Self {
             clans: HashMap::new(),
-            tag_to_clan: HashMap::new(),
+            tag_to_clans: HashMap::new(),
             user_to_clans: HashMap::new(),
             currency_to_clans: HashMap::new(),
             total_clans: 0,
@@ -59,17 +61,19 @@ impl ClanIndex {
     /// Add a new clan to the index
     pub fn add_clan(&mut self, clan: Clan) -> Result<(), ClanIndexError> {
         let clan_id = clan.id;
-        let tag = clan.tag.clone();
         let currency = clan.supported_currency.clone();
-
-        // Check if tag already exists
-        if self.tag_to_clan.contains_key(&tag) {
-            return Err(ClanIndexError::TagAlreadyExists);
-        }
+        let tags = clan.tags.clone();
 
         // Add to various indexes
         self.clans.insert(clan_id, clan.clone());
-        self.tag_to_clan.insert(tag, clan_id);
+        
+        // Add to tag indexes
+        for tag in &tags {
+            self.tag_to_clans
+                .entry(tag.clone())
+                .or_insert_with(HashSet::new)
+                .insert(clan_id);
+        }
         
         // Add to currency index
         self.currency_to_clans
@@ -97,8 +101,15 @@ impl ClanIndex {
         let clan = self.clans.remove(&clan_id)
             .ok_or(ClanIndexError::ClanNotFound)?;
 
-        // Remove from tag index
-        self.tag_to_clan.remove(&clan.tag);
+        // Remove from tag indexes
+        for tag in &clan.tags {
+            if let Some(clan_set) = self.tag_to_clans.get_mut(tag) {
+                clan_set.remove(&clan_id);
+                if clan_set.is_empty() {
+                    self.tag_to_clans.remove(tag);
+                }
+            }
+        }
 
         // Remove from currency index
         if let Some(clan_set) = self.currency_to_clans.get_mut(&clan.supported_currency) {
@@ -130,16 +141,30 @@ impl ClanIndex {
         let clan_id = clan.id;
         
         if let Some(old_clan) = self.clans.get(&clan_id) {
-            // Handle tag change
-            if old_clan.tag != clan.tag {
-                // Check if new tag is available
-                if self.tag_to_clan.contains_key(&clan.tag) {
-                    return Err(ClanIndexError::TagAlreadyExists);
+            // Handle tag changes
+            let old_tags = &old_clan.tags;
+            let new_tags = &clan.tags;
+            
+            // Remove old tags that are no longer present
+            for old_tag in old_tags {
+                if !new_tags.contains(old_tag) {
+                    if let Some(clan_set) = self.tag_to_clans.get_mut(old_tag) {
+                        clan_set.remove(&clan_id);
+                        if clan_set.is_empty() {
+                            self.tag_to_clans.remove(old_tag);
+                        }
+                    }
                 }
-                
-                // Update tag mapping
-                self.tag_to_clan.remove(&old_clan.tag);
-                self.tag_to_clan.insert(clan.tag.clone(), clan_id);
+            }
+            
+            // Add new tags
+            for new_tag in new_tags {
+                if !old_tags.contains(new_tag) {
+                    self.tag_to_clans
+                        .entry(new_tag.clone())
+                        .or_insert_with(HashSet::new)
+                        .insert(clan_id);
+                }
             }
 
             // Handle currency change
@@ -227,18 +252,6 @@ impl ClanIndex {
         }
     }
 
-    /// Check if a tag is already taken
-    pub fn is_tag_taken(&self, tag: &str) -> bool {
-        self.tag_to_clan.contains_key(tag)
-    }
-
-    /// Get clan by tag
-    pub fn get_clan_by_tag(&self, tag: &str) -> Option<Clan> {
-        self.tag_to_clan.get(tag)
-            .and_then(|clan_id| self.clans.get(clan_id))
-            .cloned()
-    }
-
     /// Get all clans
     pub fn get_all_clans(&self) -> Vec<Clan> {
         self.clans.values().cloned().collect()
@@ -272,21 +285,27 @@ impl ClanIndex {
 
     /// Search clans with filters
     pub fn search_clans(&self, filters: Option<ClanSearchFilters>, page: u64, page_size: u64) -> Vec<Clan> {
-        let mut clans: Vec<Clan> = self.clans.values().cloned().collect();
+        let mut clan_ids: Vec<Principal> = self.clans.keys().copied().collect();
 
-        // Apply filters
+        // Apply tag filters first if provided
+        if let Some(ref search_filters) = filters {
+            if let Some(ref tag_filters) = search_filters.tag_filters {
+                clan_ids = self.search_by_tags(tag_filters.clone());
+            }
+        }
+
+        // Get clans from IDs
+        let mut clans: Vec<Clan> = clan_ids.iter()
+            .filter_map(|clan_id| self.clans.get(clan_id))
+            .cloned()
+            .collect();
+
+        // Apply other filters
         if let Some(filters) = filters {
             clans = clans.into_iter().filter(|clan| {
                 // Name filter
                 if let Some(ref name_filter) = filters.name_contains {
                     if !clan.name.to_lowercase().contains(&name_filter.to_lowercase()) {
-                        return false;
-                    }
-                }
-
-                // Tag filter
-                if let Some(ref tag_filter) = filters.tag_contains {
-                    if !clan.tag.to_lowercase().contains(&tag_filter.to_lowercase()) {
                         return false;
                     }
                 }
@@ -418,7 +437,7 @@ impl ClanIndex {
     }
 
     /// Get clans by subscription tier
-    pub fn get_clans_with_subscription_tier(&self, tier: &SubscriptionTier) -> Vec<Clan> {
+    pub fn get_clans_with_subscription_tier(&self, tier: &SubscriptionTierId) -> Vec<Clan> {
         self.clans.values()
             .filter(|clan| clan.subscription_tiers.contains_key(tier))
             .cloned()
@@ -475,6 +494,8 @@ pub struct ClanStatistics {
     pub subscription_enabled_clans: usize,
     pub clans_with_joining_fee: usize,
     pub average_members_per_clan: f64,
+    pub currency_distribution: HashMap<Currency, usize>,
+    pub tag_statistics: HashMap<TagCategory, usize>,
 }
 
 impl Default for ClanStatistics {
@@ -488,6 +509,8 @@ impl Default for ClanStatistics {
             subscription_enabled_clans: 0,
             clans_with_joining_fee: 0,
             average_members_per_clan: 0.0,
+            currency_distribution: HashMap::new(),
+            tag_statistics: HashMap::new(),
         }
     }
 }

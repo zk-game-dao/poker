@@ -1,97 +1,151 @@
+use std::collections::HashMap;
+
 use authentication::validate_caller;
-use candid::{Nat, Principal};
-use canister_functions::{
-    create_canister_wrapper, cycle::check_and_top_up_canister, install_wasm_code,
+use candid::{CandidType, Nat, Principal};
+use clan::{
+    environment::ClanEnvironmentSettings, member::{ClanMember, MemberStatus}, subscriptions::{ClanRole, SubscriptionTier, SubscriptionTierId}, tags::ClanTag, treasury::ClanTreasury, Clan, ClanEvent, ClanId, ClanInvitation, ClanPrivacy, ClanStats, CreateClanRequest, JoinRequest
 };
 use currency::{
-    types::{
-        canister_wallets::icrc1_token_wallet::GenericICRC1TokenWallet,
-        currency::{CKTokenSymbol, Token},
-        currency_manager::CurrencyManager,
-    },
-    utils::get_canister_state,
+    state::TransactionState,
+    types::currency_manager::CurrencyManager,
     Currency,
 };
-use errors::{
-    canister_management_error::CanisterManagementError,
-    tournament_index_error::TournamentIndexError,
-};
-use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
-use intercanister_call_wrappers::tournament_canister::{
-    create_tournament_wrapper, ensure_principal_is_controller,
-    return_all_cycles_to_tournament_index_wrapper, user_join_tournament,
+use errors::clan_error::ClanError;
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, DepositCyclesArgs};
+use intercanister_call_wrappers::{
+    users_canister::get_user_wrapper,
 };
 use lazy_static::lazy_static;
-use memory::TABLE_CANISTER_POOL;
-use std::sync::Mutex;
-use table::poker::game::table_functions::{table::TableConfig, types::CurrencyType};
-use table::poker::game::types::GameType::NoLimit;
-use tournament_index::{create_spin_go_tournament, TournamentIndex};
-use tournaments::tournaments::{
-    blind_level::BlindLevel,
-    tournament_type::TournamentType,
-    types::{
-        get_blind_level_at_time, NewTournament, NewTournamentSpeedType, TournamentData,
-        TournamentState,
-    },
-};
+use serde::{Deserialize, Serialize};
+use user::user::{UsersCanisterId, WalletPrincipalId};
+use utils::handle_cycle_check;
 
-pub mod cycle;
-pub mod memory;
-pub mod tournament_index;
+mod memory;
+mod utils;
 
-const MINIMUM_CYCLE_THRESHOLD: u128 = 6_000_000_000_000;
-// const MULTI_TABLE_TOURNAMENT_CYCLE_START_AMOUNT: u128 = 5_000_000_000_000;
-const SINGLE_TABLE_TOURNAMENT_CYCLE_START_AMOUNT: u128 = 3_000_000_000_000;
-
-// TODO update principals here to the correct tournament index principals
-async fn handle_cycle_check() -> Result<(), TournamentIndexError> {
-    ic_cdk::println!("%%%%%%%%%%%% Checking and topping up canister");
-    let id = ic_cdk::api::canister_self();
-    let cycle_dispenser_canister_id =
-        if id == Principal::from_text("zocwf-5qaaa-aaaam-qdfaq-cai").unwrap() {
-            *CYCLE_DISPENSER_CANISTER_PROD
-        } else if id == Principal::from_text("u2qna-fiaaa-aaaag-at3ea-cai").unwrap() {
-            *CYCLE_DISPENSER_CANISTER_TEST
-        } else if id == Principal::from_text("t63gs-up777-77776-aaaba-cai").unwrap() {
-            *CYCLE_DISPENSER_CANISTER_DEV
-        } else {
-            return Ok(());
-        };
-
-    ic_cdk::println!(
-        "%%%%%%%%%%%% Checking and topping up canister from cycle dispenser: {}",
-        cycle_dispenser_canister_id
-    );
-    check_and_top_up_canister(id, cycle_dispenser_canister_id, MINIMUM_CYCLE_THRESHOLD).await?;
-    Ok(())
+#[derive(Debug, Clone, PartialEq, CandidType, Serialize, Deserialize)]
+pub struct ClanEvents {
+    pub events: Vec<ClanEvent>,
 }
 
-// Define a global instance of GameState wrapped in a Mutex for safe concurrent access.
+impl ClanEvents {
+    pub fn new() -> Self {
+        ClanEvents {
+            events: Vec::new(),
+        }
+    }
+
+    pub fn add_event(&mut self, event: ClanEvent) {
+        self.events.push(event);
+    }
+
+    pub fn get_events(&self, limit: Option<usize>) -> Vec<ClanEvent> {
+        let limit = limit.unwrap_or(100);
+        if self.events.len() <= limit {
+            self.events.clone()
+        } else {
+            self.events[self.events.len() - limit..].to_vec()
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.events.len()
+    }
+}
+
+// Define global instances wrapped in Mutex for safe concurrent access
 lazy_static! {
-    static ref STATE: Mutex<TournamentIndex> = Mutex::new(TournamentIndex::new());
-    static ref CURRENCY_MANAGER: Mutex<CurrencyManager> = Mutex::new(CurrencyManager::new());
-    static ref CYCLE_DISPENSER_CANISTER_PROD: Principal =
-        Principal::from_text("zuv6g-yaaaa-aaaam-qbeza-cai").unwrap();
-    static ref CYCLE_DISPENSER_CANISTER_TEST: Principal =
-        Principal::from_text("ev34d-5yaaa-aaaah-qdska-cai").unwrap();
-    static ref CYCLE_DISPENSER_CANISTER_DEV: Principal =
-        Principal::from_text("tz2ag-zx777-77776-aaabq-cai").unwrap();
+    static ref CLAN: Mutex<Option<Clan>> = Mutex::new(None);
+    static ref BACKEND_PRINCIPAL: Mutex<Option<Principal>> = Mutex::new(None);
+    static ref TRANSACTION_STATE: Mutex<TransactionState> = Mutex::new(TransactionState::new());
+    static ref CURRENCY_MANAGER: Mutex<Option<CurrencyManager>> = Mutex::new(None);
+    static ref CLAN_EVENTS: Mutex<ClanEvents> = Mutex::new(ClanEvents::new());
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
+        Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe")
+            .unwrap(),
         Principal::from_text("km7qz-4bai4-e5ptx-hgrck-z3web-ameqg-ksxcf-u7wbr-t5fna-i7bqp-hqe")
             .unwrap(),
         Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
             .unwrap(),
     ];
-    static ref TOURNAMENT_CANISTER_WASM: &'static [u8] =
-        include_bytes!("../../../target/wasm32-unknown-unknown/release/tournament_canister.wasm");
-    static ref ENABLE_RAKE: bool = false;
 }
+
+use std::sync::Mutex;
 
 #[ic_cdk::init]
 fn init() {
-    let id = ic_cdk::api::canister_self();
-    ic_cdk::println!("Tournament index canister {id} initialized");
+    let principal = ic_cdk::api::canister_self();
+    ic_cdk::println!("Clan canister {} initialized", principal);
+}
+
+#[ic_cdk::update]
+async fn create_clan(
+    request: CreateClanRequest,
+    creator: WalletPrincipalId,
+    creator_canister_id: UsersCanisterId,
+) -> Result<Clan, ClanError> {
+    let mut backend_principal = BACKEND_PRINCIPAL
+        .lock()
+        .map_err(|_| ClanError::LockError)?;
+
+    if let Some(backend_principal) = *backend_principal {
+        validate_caller(vec![backend_principal]);
+    }
+    *backend_principal = Some(ic_cdk::api::msg_caller());
+
+    let creator_user = get_user_wrapper(creator_canister_id, creator).await?;
+
+    if !creator_user.can_play() {
+        return Err(ClanError::UserBanned);
+    }
+
+    // Create the clan
+    let clan_id = ClanId(ic_cdk::api::canister_self());
+    let mut clan = Clan::new(
+        clan_id,
+        request.name,
+        request.description,
+        vec![], // Will be set below
+        creator,
+        request.privacy,
+        request.supported_currency,
+        request.joining_fee,
+    )?;
+
+    // Set optional fields
+    clan.avatar = request.avatar;
+    clan.website = request.website;
+    clan.discord = request.discord;
+    clan.twitter = request.twitter;
+    clan.require_proof_of_humanity = request.require_proof_of_humanity;
+    
+    if let Some(limit) = request.member_limit {
+        clan.member_limit = limit;
+    }
+
+    // Initialize currency manager for real currency
+    let currency_manager = match &clan.supported_currency {
+        Currency::ICP | Currency::BTC => {
+            let mut currency_manager = CurrencyManager::new();
+            currency_manager.add_currency(clan.supported_currency.clone()).await?;
+            Some(currency_manager)
+        }
+        _ => None, // For fake currencies or other types
+    };
+
+    *CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)? = currency_manager;
+
+    // Store the clan
+    *CLAN.lock().map_err(|_| ClanError::LockError)? = Some(clan.clone());
+
+    // Log creation event
+    let event = ClanEvent::SettingsUpdated {
+        by: creator,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+
+    Ok(clan)
 }
 
 #[ic_cdk::query]
@@ -100,657 +154,601 @@ fn ping() -> String {
 }
 
 #[ic_cdk::query]
-fn get_account_number() -> Result<Option<String>, TournamentIndexError> {
-    let canister_state = get_canister_state();
-    Ok(Some(canister_state.account_identifier.to_string()))
+fn get_clan() -> Result<Clan, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.clone())
+}
+
+#[ic_cdk::query]
+fn get_clan_member(member_id: WalletPrincipalId) -> Result<ClanMember, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    
+    clan.members.get(&member_id)
+        .cloned()
+        .ok_or(ClanError::MemberNotFound)
+}
+
+#[ic_cdk::query]
+fn get_clan_members() -> Result<Vec<ClanMember>, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.members.values().cloned().collect())
+}
+
+#[ic_cdk::query]
+fn get_clan_events(limit: Option<usize>) -> Result<Vec<ClanEvent>, ClanError> {
+    let events = CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?;
+    let limit = limit.unwrap_or(100);
+    
+    if events.len() <= limit {
+        Ok(events.events.clone())
+    } else {
+        Ok(events.events[events.len() - limit..].to_vec())
+    }
 }
 
 #[ic_cdk::update]
-async fn create_tournament(
-    new_tournament: NewTournament,
-    table_config: TableConfig,
-) -> Result<Principal, TournamentIndexError> {
-    let mut new_tournament = new_tournament;
-    let mut table_config = table_config;
-    let tournament_canister = {
-        handle_cycle_check().await?;
+async fn join_clan(
+    users_canister_principal: UsersCanisterId,
+    user_id: WalletPrincipalId,
+    joining_fee_paid: u64,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
 
-        // Create new tournament canister
-        if new_tournament.start_time <= ic_cdk::api::time()
-            && !matches!(new_tournament.tournament_type, TournamentType::SitAndGo(_))
-        {
-            return Err(TournamentIndexError::InvalidTournamentConfig(
-                "Start time must be in the future".to_string(),
-            ));
-        }
-        if let TournamentType::SitAndGo(_) | TournamentType::SpinAndGo(_, _) =
-            new_tournament.tournament_type
-        {
-            new_tournament.start_time = 0;
-        }
-        if let TournamentType::Freeroll(_) = &new_tournament.tournament_type {
-            if new_tournament.buy_in != 0 {
-                return Err(TournamentIndexError::InvalidTournamentConfig(
-                    "Freeroll tournaments must have a buy-in of 0".to_string(),
-                ));
-            }
-        }
-        let tournament_canister = create_tournament_canister().await?;
+    let clan = {
+        let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        clan.as_ref().ok_or(ClanError::ClanNotFound)?.clone()
+    };
 
-        // Create tournament info
-        let (tournament, prize_pool) =
-            if let TournamentType::SpinAndGo(_, _) = new_tournament.tournament_type {
-                TournamentData::new_spin_and_go(
-                    tournament_canister,
-                    new_tournament,
-                    table_config.clone(),
-                )
-                .await?
-            } else {
-                (
-                    TournamentData::new(tournament_canister, new_tournament, table_config.clone())?,
-                    0,
-                )
-            };
-        if matches!(tournament.tournament_type, TournamentType::SpinAndGo(_, _)) {
+    // Get user and validate
+    let user = get_user_wrapper(users_canister_principal, user_id).await?;
+    if !user.can_play() {
+        return Err(ClanError::UserBanned);
+    }
+
+    // Check if user meets requirements
+    clan.meets_joining_requirements(&user)?;
+
+    // Check if already a member
+    if clan.is_member(&user_id) {
+        return Err(ClanError::UserAlreadyMember);
+    }
+
+    // Validate joining fee for real currency
+    match clan.supported_currency {
+        Currency::ICP | Currency::BTC => {
             let currency_manager = {
-                CURRENCY_MANAGER
-                    .lock()
-                    .map_err(|_| TournamentIndexError::LockError)?
+                let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)?;
+                currency_manager
+                    .as_ref()
+                    .ok_or(ClanError::StateNotInitialized)?
                     .clone()
             };
-            match tournament.currency {
-                CurrencyType::Real(currency) => {
-                    let balance = currency_manager
-                        .get_balance(&currency, ic_cdk::api::canister_self())
-                        .await
-                        .map_err(|e| {
-                            TournamentIndexError::CanisterCallFailed(format!("{:?}", e))
-                        })?;
-                    if balance < prize_pool as u128 {
-                        return Err(TournamentIndexError::InsufficientLiquidity);
-                    } else if prize_pool > 3 * tournament.buy_in {
-                        currency_manager
-                            .withdraw(
-                                &currency,
-                                tournament_canister,
-                                prize_pool - 3 * tournament.buy_in,
-                            )
-                            .await
-                            .map_err(|e| {
-                                TournamentIndexError::CanisterCallFailed(format!("{:?}", e))
-                            })?;
-                    }
-                }
-                CurrencyType::Fake => {}
-            }
-        }
 
-        // Validate tournament configuration
-        tournament.validate()?;
-
-        table_config.game_type =
-            NoLimit(tournament.speed_type.get_params().blind_levels[0].small_blind);
-
-        let tournament =
-            create_tournament_wrapper(tournament_canister, tournament, table_config, prize_pool)
+            currency_manager
+                .validate_allowance(&clan.supported_currency, user_id.0, joining_fee_paid)
                 .await?;
 
-        // Store tournament info
-        let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-        state
-            .tournaments
-            .insert(tournament_canister, tournament.clone());
-        state.active_tournaments.push(tournament_canister);
-        state.delete_all_tournaments_older_than_a_week();
-        tournament_canister
-    };
+            // Process payment if required
+            if clan.joining_fee > 0 {
+                let mut transaction_state = TRANSACTION_STATE
+                    .lock()
+                    .map_err(|_| ClanError::LockError)?
+                    .clone();
 
-    Ok(tournament_canister)
-}
+                currency_manager
+                    .deposit(&mut transaction_state, &clan.supported_currency, user_id.0, joining_fee_paid)
+                    .await?;
 
-#[ic_cdk::update]
-async fn update_tournament_state(
-    tournament_id: Principal,
-    new_state: TournamentState,
-) -> Result<(), TournamentIndexError> {
-    handle_cycle_check().await?;
-    let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-    let valid_callers: Vec<Principal> = state.tournaments.values().map(|t| t.id).collect();
-    validate_caller(valid_callers);
-
-    let tournament = state
-        .tournaments
-        .get_mut(&tournament_id)
-        .ok_or(TournamentIndexError::TournamentNotFound)?;
-
-    tournament.state = new_state.clone();
-
-    // Handle state transitions
-    match new_state {
-        TournamentState::Completed | TournamentState::Cancelled => {
-            state.active_tournaments.retain(|&id| id != tournament_id);
-            state.completed_tournaments.push(tournament_id);
-        }
-        _ => {}
-    }
-
-    Ok(())
-}
-
-#[ic_cdk::update]
-async fn delete_tournament(tournament_id: Principal) -> Result<(), TournamentIndexError> {
-    handle_cycle_check().await?;
-    let valid_callers = CONTROLLER_PRINCIPALS.clone();
-    validate_caller(valid_callers);
-
-    if let Err(e) = return_all_cycles_to_tournament_index_wrapper(tournament_id)
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))
-    {
-        ic_cdk::println!("Error returning cycles to tournament index: {:?}", e);
-    }
-
-    let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-    state.tournaments.remove(&tournament_id);
-    state.active_tournaments.retain(|&id| id != tournament_id);
-    state
-        .completed_tournaments
-        .retain(|&id| id != tournament_id);
-    Ok(())
-}
-
-#[ic_cdk::query]
-fn get_player_tournaments(player: Principal) -> Vec<TournamentData> {
-    let state = STATE.lock().unwrap();
-    state
-        .tournaments
-        .values()
-        .filter(|t| t.current_players.contains_key(&player))
-        .cloned()
-        .collect()
-}
-
-#[ic_cdk::update]
-async fn join_spin_and_go_tournament(
-    buy_in: u64,
-    user_principal: Principal,
-    user_wallet_principal_id: Principal,
-) -> Result<(), TournamentIndexError> {
-    let pool = {
-        let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-        let user_pool = state
-            .spin_go_pools
-            .get_mut(&buy_in)
-            .ok_or(TournamentIndexError::PoolNotFound)?;
-        if user_pool.contains(&(user_principal, user_wallet_principal_id)) {
-            return Err(TournamentIndexError::FailedToAddToUserPool(
-                "User already in pool".to_string(),
-            ));
-        }
-        user_pool.push((user_principal, user_wallet_principal_id));
-        user_pool.clone()
-    };
-
-    if pool.len() == 3 {
-        let spin_and_go = create_spin_go_tournament(buy_in).await?;
-        for (user_principal, user_wallet_principal_id) in pool {
-            user_join_tournament(spin_and_go, user_principal, user_wallet_principal_id).await?;
-        }
-    }
-
-    Ok(())
-}
-
-#[ic_cdk::update]
-fn leave_spin_and_go_tournament(
-    buy_in: u64,
-    user_principal: Principal,
-    user_wallet_principal_id: Principal,
-) -> Result<(), TournamentIndexError> {
-    let mut state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-    let user_pool = state
-        .spin_go_pools
-        .get_mut(&buy_in)
-        .ok_or(TournamentIndexError::PoolNotFound)?;
-    user_pool.retain(|(p, w)| *p != user_principal || *w != user_wallet_principal_id);
-    Ok(())
-}
-
-#[ic_cdk::query]
-fn get_blind_level_at_timestamp(
-    speed_type: NewTournamentSpeedType,
-    timestamp: u64,
-    tournament_start: u64,
-    starting_chips: u64,
-) -> Option<BlindLevel> {
-    get_blind_level_at_time(speed_type, timestamp, tournament_start, starting_chips)
-}
-
-async fn create_tournament_canister() -> Result<Principal, TournamentIndexError> {
-    handle_cycle_check().await?;
-    let controllers = CONTROLLER_PRINCIPALS.clone();
-    let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
-    let cycle_amount = SINGLE_TABLE_TOURNAMENT_CYCLE_START_AMOUNT;
-    let table_canister_principal = create_canister_wrapper(controllers, Some(cycle_amount)).await?;
-    install_wasm_code(table_canister_principal, wasm_module).await?;
-
-    Ok(table_canister_principal)
-}
-
-#[ic_cdk::update]
-fn purge_table_pool() {
-    let valid_callers = CONTROLLER_PRINCIPALS.clone();
-    validate_caller(valid_callers);
-
-    TABLE_CANISTER_POOL.with(|pool| {
-        let pool = pool.borrow_mut();
-        loop {
-            if pool.pop().is_none() {
-                break;
+                *TRANSACTION_STATE.lock().map_err(|_| ClanError::LockError)? = transaction_state;
             }
         }
-    });
-}
-
-#[ic_cdk::update]
-fn add_to_pool(principal: Principal) -> Result<(), TournamentIndexError> {
-    ic_cdk::println!("Adding to pool: {:?}", principal);
-    {
-        let tournament_index = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-        let valid_callers: Vec<Principal> = tournament_index
-            .tournaments
-            .values()
-            .map(|t| t.id)
-            .collect();
-        validate_caller(valid_callers);
-    }
-    TABLE_CANISTER_POOL
-        .with(|pool| pool.borrow_mut().push(&principal))
-        .map_err(|e| TournamentIndexError::FailedToAddToTablePool(format!("{:?}", e)))
-}
-
-#[ic_cdk::update]
-async fn get_and_remove_from_pool() -> Result<Option<Principal>, TournamentIndexError> {
-    ic_cdk::println!("Getting and removing from pool");
-    {
-        let tournament_index = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-        let valid_callers: Vec<Principal> = tournament_index
-            .tournaments
-            .values()
-            .map(|t| t.id)
-            .collect();
-
-        validate_caller(valid_callers);
+        _ => {} // No payment validation for fake currencies
     }
 
-    let res = TABLE_CANISTER_POOL.with(|pool| {
-        let pool = pool.borrow_mut();
-        if !pool.is_empty() {
-            pool.pop()
+    // Add member to clan
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+        
+        if clan.joining_fee > 0 {
+            clan_state.join_with_fee(user_id, joining_fee_paid)?;
         } else {
-            None
+            clan_state.add_member(user_id, ClanRole::Member)?;
         }
-    });
-
-    // If we got a canister, set the caller as its controller
-    if let Some(canister_id) = res {
-        ensure_principal_is_controller(canister_id, ic_cdk::api::msg_caller())
-            .await
-            .map_err(|e| {
-                ic_cdk::println!("Error setting caller as controller: {:?}", e);
-                TournamentIndexError::CanisterCallFailed(format!("{:?}", e))
-            })?;
-        Ok(Some(canister_id))
-    } else {
-        Ok(None)
     }
-}
 
-#[ic_cdk::query]
-fn get_pool() -> Vec<Principal> {
-    TABLE_CANISTER_POOL.with(|pool| {
-        let pool = pool.borrow();
-        pool.iter().collect::<Vec<Principal>>()
-    })
-}
+    // Log event
+    let event = ClanEvent::MemberJoined {
+        member: user_id,
+        joining_fee_paid,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
 
-#[ic_cdk::update]
-async fn clear_pool() -> Result<(), TournamentIndexError> {
-    TABLE_CANISTER_POOL.with(|pool| {
-        let pool = pool.borrow_mut();
-        while pool.pop().is_some() {}
-    });
     Ok(())
 }
 
 #[ic_cdk::update]
-async fn get_icp_balance() -> Result<u64, TournamentIndexError> {
-    let currency_manager = {
-        CURRENCY_MANAGER
+async fn leave_clan(user_id: WalletPrincipalId) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    let removed_member = {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate caller
+        let backend_principal = BACKEND_PRINCIPAL
             .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
+            .map_err(|_| ClanError::LockError)?
+            .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+
+        validate_caller(vec![user_id.0, backend_principal]);
+
+        clan_state.remove_member(&user_id)?
     };
-    let balance = currency_manager
-        .get_balance(&Currency::ICP, ic_cdk::api::canister_self())
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
-    Ok(balance as u64)
-}
 
-#[ic_cdk::update]
-async fn withdraw_icp(principal: Principal, amount: u64) -> Result<(), TournamentIndexError> {
-    validate_caller(CONTROLLER_PRINCIPALS.to_vec());
-
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    currency_manager
-        .withdraw(&Currency::ICP, principal, amount)
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))
-}
-
-#[ic_cdk::update]
-async fn get_ckbtc_balance() -> Result<u64, TournamentIndexError> {
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    let balance = currency_manager
-        .get_balance(&Currency::BTC, ic_cdk::api::canister_self())
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
-    Ok(balance as u64)
-}
-
-#[ic_cdk::update]
-async fn withdraw_ckbtc(principal: Principal, amount: u64) -> Result<(), TournamentIndexError> {
-    validate_caller(CONTROLLER_PRINCIPALS.to_vec());
-
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    currency_manager
-        .withdraw(&Currency::BTC, principal, amount)
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))
-}
-
-#[ic_cdk::update]
-async fn get_ckusdc_balance() -> Result<u64, TournamentIndexError> {
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    let balance = currency_manager
-        .get_balance(
-            &Currency::CKETHToken(CKTokenSymbol::USDC),
-            ic_cdk::api::canister_self(),
-        )
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
-    Ok(balance as u64)
-}
-
-#[ic_cdk::update]
-async fn withdraw_ckusdc(principal: Principal, amount: u64) -> Result<(), TournamentIndexError> {
-    validate_caller(CONTROLLER_PRINCIPALS.to_vec());
-
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    currency_manager
-        .withdraw(
-            &Currency::CKETHToken(CKTokenSymbol::USDC),
-            principal,
-            amount,
-        )
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))
-}
-
-#[ic_cdk::update]
-async fn get_ckusdt_balance() -> Result<u64, TournamentIndexError> {
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    let balance = currency_manager
-        .get_balance(
-            &Currency::CKETHToken(CKTokenSymbol::USDT),
-            ic_cdk::api::canister_self(),
-        )
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
-    Ok(balance as u64)
-}
-
-#[ic_cdk::update]
-async fn withdraw_ckusdt(principal: Principal, amount: u64) -> Result<(), TournamentIndexError> {
-    validate_caller(CONTROLLER_PRINCIPALS.to_vec());
-
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    currency_manager
-        .withdraw(
-            &Currency::CKETHToken(CKTokenSymbol::USDT),
-            principal,
-            amount,
-        )
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))
-}
-
-#[ic_cdk::update]
-async fn get_cketh_balance() -> Result<u64, TournamentIndexError> {
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    let balance = currency_manager
-        .get_balance(
-            &Currency::CKETHToken(CKTokenSymbol::ETH),
-            ic_cdk::api::canister_self(),
-        )
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
-    Ok(balance as u64)
-}
-
-#[ic_cdk::update]
-async fn withdraw_cketh(principal: Principal, amount: u64) -> Result<(), TournamentIndexError> {
-    validate_caller(CONTROLLER_PRINCIPALS.to_vec());
-
-    let currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    currency_manager
-        .withdraw(&Currency::CKETHToken(CKTokenSymbol::ETH), principal, amount)
-        .await
-        .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))
-}
-
-#[ic_cdk::update]
-async fn register_token(ledger_id: Principal) -> Result<Currency, TournamentIndexError> {
-    // Verify the token implements ICRC-1
-    let wallet = GenericICRC1TokenWallet::new(ledger_id).await.map_err(|e| {
-        TournamentIndexError::CanisterCallFailed(format!("Failed to create token wallet: {:?}", e))
-    })?;
-
-    // Create Token struct
-    let token = Token::from_string(ledger_id, &wallet.metadata.symbol, wallet.metadata.decimals);
-    let currency = Currency::GenericICRC1(token);
-
-    // Add to CurrencyManager
-    let mut currency_manager = {
-        CURRENCY_MANAGER
-            .lock()
-            .map_err(|_| TournamentIndexError::LockError)?
-            .clone()
-    };
-    currency_manager.add_currency(currency).await.map_err(|e| {
-        TournamentIndexError::CanisterCallFailed(format!(
-            "Failed to add token to CurrencyManager: {:?}",
-            e
-        ))
-    })?;
-    *CURRENCY_MANAGER
-        .lock()
-        .map_err(|_| TournamentIndexError::LockError)? = currency_manager;
-
-    // Return as Currency
-    Ok(currency)
-}
-
-#[ic_cdk::query]
-fn get_all_tournaments() -> Vec<TournamentData> {
-    let state = STATE.lock().unwrap();
-    state.tournaments.values().cloned().collect()
-}
-
-#[ic_cdk::query]
-fn get_active_tournaments(filter_type: Option<u8>) -> Vec<TournamentData> {
-    let state = STATE.lock().unwrap();
-    state
-        .active_tournaments
-        .iter()
-        .filter_map(|id| state.tournaments.get(id))
-        .filter(|tournament| {
-            if let Some(filter) = filter_type {
-                tournament.tournament_type.get_type_id() == filter
-            } else {
-                true
-            }
-        })
-        .cloned()
-        .collect()
-}
-
-#[ic_cdk::query]
-fn get_completed_tournaments() -> Vec<TournamentData> {
-    let state = STATE.lock().unwrap();
-    state
-        .completed_tournaments
-        .iter()
-        .filter_map(|id| state.tournaments.get(id))
-        .cloned()
-        .collect()
-}
-
-#[ic_cdk::update]
-async fn upgrade_all_tournament_canisters(
-) -> Result<Vec<(Principal, CanisterManagementError)>, TournamentIndexError> {
-    // Validate caller permissions
-    let caller = ic_cdk::api::msg_caller();
-    if !CONTROLLER_PRINCIPALS.contains(&caller) {
-        return Err(TournamentIndexError::NotAuthorized);
+    // Refund any subscription balance if applicable
+    if removed_member.subscription_expires_at.is_some() && removed_member.is_subscription_active() {
+        // In a real implementation, calculate and refund unused subscription time
+        ic_cdk::println!("Member {} left with active subscription", user_id.0);
     }
 
-    handle_cycle_check().await?;
+    // Log event
+    let event = ClanEvent::MemberLeft {
+        member: user_id,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
 
-    const BATCH_SIZE: usize = 30; // Process 30 tournaments at a time
+    Ok(())
+}
 
-    let tournaments: Vec<Principal> = {
-        let state = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
-        state.tournaments.keys().copied().collect()
+#[ic_cdk::update]
+async fn kick_member(
+    user_id: WalletPrincipalId,
+    kicked_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    let removed_member = {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate caller permissions
+        let kicker = clan_state.members.get(&kicked_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !kicker.can_moderate() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Cannot kick owner or same/higher role
+        let target = clan_state.members.get(&user_id)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if target.role == ClanRole::Owner {
+            return Err(ClanError::CannotRemoveOwner);
+        }
+
+        clan_state.remove_member(&user_id)?
     };
 
-    let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
-    let mut failed_upgrades = Vec::new();
+    // Log event
+    let event = ClanEvent::MemberLeft {
+        member: user_id,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
 
-    // Process tournaments in batches
-    for chunk in tournaments.chunks(BATCH_SIZE) {
-        let futures: Vec<_> = chunk
-            .iter()
-            .map(|&tournament_canister| {
-                let wasm_clone = wasm_module.clone();
-                async move {
-                    match canister_functions::upgrade_wasm_code(tournament_canister, wasm_clone)
-                        .await
-                    {
-                        Ok(_) => {
-                            ic_cdk::println!(
-                                "Successfully upgraded tournament canister {}",
-                                tournament_canister
-                            );
-                            Ok(tournament_canister)
-                        }
-                        Err(e) => {
-                            ic_cdk::println!(
-                                "Failed to upgrade tournament canister {}: {:?}",
-                                tournament_canister,
-                                e
-                            );
-                            Err((tournament_canister, e))
-                        }
-                    }
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn update_member_role(
+    user_id: WalletPrincipalId,
+    new_role: ClanRole,
+    updated_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate caller
+        let backend_principal = BACKEND_PRINCIPAL
+            .lock()
+            .map_err(|_| ClanError::LockError)?
+            .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+
+        validate_caller(vec![updated_by.0, backend_principal]);
+
+        clan_state.update_member_role(&user_id, new_role.clone(), &updated_by)?;
+    }
+
+    // Log event
+    let event = ClanEvent::MemberPromoted {
+        member: user_id,
+        new_role,
+        by: updated_by,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn suspend_member(
+    user_id: WalletPrincipalId,
+    suspended_by: WalletPrincipalId,
+    until: Option<u64>,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate permissions
+        let suspender = clan_state.members.get(&suspended_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !suspender.can_moderate() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Update member status
+        if let Some(member) = clan_state.members.get_mut(&user_id) {
+            member.status = MemberStatus::Suspended { until };
+        } else {
+            return Err(ClanError::MemberNotFound);
+        }
+    }
+
+    // Log event
+    let event = ClanEvent::MemberSuspended {
+        member: user_id,
+        by: suspended_by,
+        until,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn upgrade_subscription(
+    user_id: WalletPrincipalId,
+    new_tier: SubscriptionTierId,
+    paid_amount: u64,
+    months: u32,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    let clan_currency = {
+        let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+        clan.supported_currency.clone()
+    };
+
+    // Process payment for real currencies
+    match clan_currency {
+        Currency::ICP | Currency::BTC => {
+            let currency_manager = {
+                let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)?;
+                currency_manager
+                    .as_ref()
+                    .ok_or(ClanError::StateNotInitialized)?
+                    .clone()
+            };
+
+            let mut transaction_state = TRANSACTION_STATE
+                .lock()
+                .map_err(|_| ClanError::LockError)?
+                .clone();
+
+            currency_manager
+                .deposit(&mut transaction_state, &clan_currency, user_id.0, paid_amount)
+                .await?;
+
+            *TRANSACTION_STATE.lock().map_err(|_| ClanError::LockError)? = transaction_state;
+        }
+        _ => {} // No payment processing for fake currencies
+    }
+
+    // Upgrade subscription
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        clan_state.upgrade_subscription(&user_id, &new_tier, paid_amount, months)?;
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn update_clan_settings(
+    settings: ClanUpdateRequest,
+    updated_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate permissions
+        let updater = clan_state.members.get(&updated_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !updater.is_admin_or_higher() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Update settings
+        if let Some(name) = settings.name {
+            if name.is_empty() || name.len() > 50 {
+                return Err(ClanError::InvalidClanName);
+            }
+            clan_state.name = name;
+        }
+
+        if let Some(description) = settings.description {
+            if description.len() > 500 {
+                return Err(ClanError::InvalidDescription);
+            }
+            clan_state.description = description;
+        }
+
+        if let Some(privacy) = settings.privacy {
+            clan_state.privacy = privacy;
+        }
+
+        if let Some(joining_fee) = settings.joining_fee {
+            clan_state.update_joining_fee(joining_fee, &updated_by)?;
+        }
+
+        if let Some(require_poh) = settings.require_proof_of_humanity {
+            clan_state.require_proof_of_humanity = require_poh;
+        }
+
+        if let Some(member_limit) = settings.member_limit {
+            clan_state.member_limit = member_limit;
+        }
+
+        if let Some(avatar) = settings.avatar {
+            clan_state.avatar = Some(avatar);
+        }
+
+        if let Some(website) = settings.website {
+            clan_state.website = Some(website);
+        }
+
+        if let Some(discord) = settings.discord {
+            clan_state.discord = Some(discord);
+        }
+
+        if let Some(twitter) = settings.twitter {
+            clan_state.twitter = Some(twitter);
+        }
+
+        if let Some(tags) = settings.tags {
+            clan_state.tags = tags.into_iter().collect();
+        }
+
+        if let Some(env_settings) = settings.environment_settings {
+            clan_state.environment_settings = env_settings;
+        }
+    }
+
+    // Log event
+    let event = ClanEvent::SettingsUpdated {
+        by: updated_by,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn create_subscription_tier(
+    tier: SubscriptionTier,
+    created_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        clan_state.update_subscription_tier(tier, &created_by)?;
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn remove_subscription_tier(
+    tier_id: SubscriptionTierId,
+    removed_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        clan_state.remove_subscription_tier(&tier_id, &removed_by)?;
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn distribute_rewards(
+    distribution: HashMap<WalletPrincipalId, u64>,
+    distributed_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    let clan_currency = {
+        let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+        clan.supported_currency.clone()
+    };
+
+    // Validate and distribute rewards
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate permissions
+        let distributor = clan_state.members.get(&distributed_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !distributor.is_admin_or_higher() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        clan_state.distribute_rewards(distribution.clone())?;
+    }
+
+    // Process actual withdrawals for real currencies
+    match clan_currency {
+        Currency::ICP | Currency::BTC => {
+            let currency_manager = {
+                let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)?;
+                currency_manager
+                    .as_ref()
+                    .ok_or(ClanError::StateNotInitialized)?
+                    .clone()
+            };
+
+            for (recipient, amount) in distribution {
+                if amount > 0 {
+                    currency_manager
+                        .withdraw(&clan_currency, recipient.0, amount)
+                        .await?;
+
+                    // Log individual reward
+                    let event = ClanEvent::RewardDistributed {
+                        amount,
+                        to: recipient,
+                        timestamp: ic_cdk::api::time(),
+                    };
+                    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
                 }
-            })
-            .collect();
-
-        // Execute batch of upgrades
-        let batch_results = futures::future::join_all(futures).await;
-        for result in batch_results {
-            if let Err((canister_id, error)) = result {
-                failed_upgrades.push((canister_id, error));
             }
         }
+        _ => {} // No actual withdrawal for fake currencies
     }
-
-    Ok(failed_upgrades)
-}
-
-#[ic_cdk::update]
-async fn upgrade_tournament_canister(
-    tournament_canister: Principal,
-) -> Result<(), TournamentIndexError> {
-    // Validate caller permissions
-    let caller = ic_cdk::api::msg_caller();
-    if !CONTROLLER_PRINCIPALS.contains(&caller) {
-        return Err(TournamentIndexError::NotAuthorized);
-    }
-
-    handle_cycle_check().await?;
-
-    let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
-    canister_functions::upgrade_wasm_code(tournament_canister, wasm_module).await?;
 
     Ok(())
 }
 
+#[ic_cdk::query]
+fn get_clan_treasury() -> Result<ClanTreasury, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.treasury.clone())
+}
+
+#[ic_cdk::query]
+fn get_clan_statistics() -> Result<ClanStats, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.stats.clone())
+}
+
+#[ic_cdk::query]
+fn get_subscription_tiers() -> Result<Vec<SubscriptionTier>, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.subscription_tiers.values().cloned().collect())
+}
+
+#[ic_cdk::query]
+fn get_leaderboard(leaderboard_type: LeaderboardType) -> Result<Vec<(WalletPrincipalId, u64)>, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+
+    let leaderboard = match leaderboard_type {
+        LeaderboardType::Contribution => clan.get_contribution_leaderboard(),
+        LeaderboardType::GamesPlayed => clan.get_games_leaderboard(),
+        LeaderboardType::Winnings => clan.get_winnings_leaderboard(),
+    };
+
+    Ok(leaderboard.into_iter().map(|(p, v)| (*p, v)).collect())
+}
+
 #[ic_cdk::update]
-async fn get_canister_status_formatted() -> Result<String, TournamentIndexError> {
+async fn request_cycles() -> Result<(), ClanError> {
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    let caller = ic_cdk::api::msg_caller();
+    
+    const CYCLES_TOP_UP_AMOUNT: u128 = 750_000_000_000;
+    
+    ic_cdk::println!(
+        "Clan canister: Requesting cycles: {} from caller: {}",
+        cycles,
+        caller.to_text()
+    );
+    
+    if cycles < CYCLES_TOP_UP_AMOUNT {
+        return Err(ClanError::ManagementCanisterError(
+            errors::canister_management_error::CanisterManagementError::InsufficientCycles,
+        ));
+    }
+
+    let backend_principal = BACKEND_PRINCIPAL
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+
+    if caller != backend_principal {
+        return Err(ClanError::ManagementCanisterError(
+            errors::canister_management_error::CanisterManagementError::Transfer(format!(
+                "Caller is not the clan index: {}",
+                caller
+            )),
+        ));
+    }
+
+    transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
+}
+
+async fn transfer_cycles(cycles_amount: u128, caller: Principal) -> Result<(), ClanError> {
+    let res = ic_cdk::management_canister::deposit_cycles(
+        &DepositCyclesArgs {
+            canister_id: caller,
+        },
+        cycles_amount,
+    )
+    .await;
+
+    match res {
+        Ok(_) => Ok(()),
+        Err(e) => Err(ClanError::CanisterCallError(format!(
+            "Failed to send cycles: {:?}",
+            e
+        ))),
+    }
+}
+
+#[ic_cdk::update]
+async fn get_canister_status_formatted() -> Result<String, ClanError> {
     // Validate caller is a controller
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
 
-    handle_cycle_check().await?;
+    handle_cycle_check();
 
     // Call the management canister to get status
     let canister_status_arg = CanisterStatusArgs {
@@ -758,12 +756,12 @@ async fn get_canister_status_formatted() -> Result<String, TournamentIndexError>
     };
 
     let status_response = canister_status(&canister_status_arg).await.map_err(|e| {
-        TournamentIndexError::CanisterCallError(format!("Failed to get canister status: {:?}", e))
+        ClanError::CanisterCallError(format!("Failed to get canister status: {:?}", e))
     })?;
 
     // Format the status into a readable string
     let formatted_status = format!(
-        "📊 Canister Status Report
+        "📊 Clan Canister Status Report
 ════════════════════════════════════════════════════════════════
 🆔 Canister ID: {}
 🔄 Status: {:?}
@@ -796,6 +794,402 @@ async fn get_canister_status_formatted() -> Result<String, TournamentIndexError>
 
     ic_cdk::println!("{}", formatted_status);
     Ok(formatted_status)
+}
+
+// Helper types and structs
+
+#[derive(Debug, Clone, candid::CandidType, serde::Deserialize)]
+pub struct ClanUpdateRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub privacy: Option<ClanPrivacy>,
+    pub joining_fee: Option<u64>,
+    pub require_proof_of_humanity: Option<bool>,
+    pub member_limit: Option<u32>,
+    pub avatar: Option<user::user::UserAvatar>,
+    pub website: Option<String>,
+    pub discord: Option<String>,
+    pub twitter: Option<String>,
+    pub tags: Option<Vec<ClanTag>>,
+    pub environment_settings: Option<ClanEnvironmentSettings>,
+}
+
+#[derive(Debug, Clone, candid::CandidType, serde::Deserialize)]
+pub enum LeaderboardType {
+    Contribution,
+    GamesPlayed,
+    Winnings,
+}
+
+// Additional clan management functions
+
+#[ic_cdk::update]
+async fn send_clan_invitation(
+    invitee: WalletPrincipalId,
+    invited_by: WalletPrincipalId,
+    message: Option<String>,
+    expires_in_hours: Option<u64>,
+) -> Result<ClanInvitation, ClanError> {
+    handle_cycle_check();
+
+    let (clan_id, clan_name) = {
+        let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate inviter permissions
+        let inviter = clan.members.get(&invited_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !clan.has_tier_access(&invited_by, "can_invite_members")? {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Check if already a member
+        if clan.is_member(&invitee) {
+            return Err(ClanError::UserAlreadyMember);
+        }
+
+        (clan.id, clan.name.clone())
+    };
+
+    let now = ic_cdk::api::time();
+    let expires_at = expires_in_hours.map(|hours| now + (hours * 60 * 60 * 1_000_000_000));
+
+    let invitation = ClanInvitation {
+        clan_id,
+        clan_name,
+        clan_tag: "CLAN".to_string(), // You might want to add a tag field to Clan
+        invited_by: invited_by,
+        invited_at: now,
+        expires_at,
+        message,
+    };
+
+    // Store invitation in clan
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+        clan_state.invited_users.insert(invitee, now);
+    }
+
+    Ok(invitation)
+}
+
+#[ic_cdk::update]
+async fn accept_clan_invitation(
+    user_id: WalletPrincipalId,
+    users_canister_principal: UsersCanisterId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    // Check if user was invited
+    let was_invited = {
+        let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+        clan.invited_users.contains_key(&user_id)
+    };
+
+    if !was_invited {
+        return Err(ClanError::InviteOnlyAccess);
+    }
+
+    // Join the clan (no fee for invited members)
+    join_clan(users_canister_principal, user_id, 0).await?;
+
+    // Remove from invited users
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+        clan_state.invited_users.remove(&user_id);
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn submit_join_request(
+    user_id: WalletPrincipalId,
+    users_canister_principal: UsersCanisterId,
+    message: Option<String>,
+    referred_by: Option<WalletPrincipalId>,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    let clan = {
+        let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        clan.as_ref().ok_or(ClanError::ClanNotFound)?.clone()
+    };
+
+    // Check if clan accepts applications
+    if clan.privacy != ClanPrivacy::Application {
+        return Err(ClanError::InvalidRequest("Clan does not accept applications".to_string()));
+    }
+
+    // Get user and validate
+    let user = get_user_wrapper(users_canister_principal, user_id).await?;
+    if !user.can_play() {
+        return Err(ClanError::UserBanned);
+    }
+
+    // Check if user meets requirements
+    clan.meets_joining_requirements(&user)?;
+
+    // Check if already a member or has pending request
+    if clan.is_member(&user_id) {
+        return Err(ClanError::UserAlreadyMember);
+    }
+
+    let has_pending_request = clan.pending_requests
+        .iter()
+        .any(|req| req.applicant == user_id);
+
+    if has_pending_request {
+        return Err(ClanError::InvalidRequest(
+            "You already have a pending join request".to_string(),
+        ));
+    }
+
+    // Create join request
+    let request = JoinRequest {
+        applicant: user_id,
+        message,
+        requested_at: ic_cdk::api::time(),
+        referred_by,
+    };
+
+    // Add to pending requests
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+        clan_state.pending_requests.push(request);
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn approve_join_request(
+    applicant: WalletPrincipalId,
+    approved_by: WalletPrincipalId,
+    users_canister_principal: UsersCanisterId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    // Find and remove the request
+    let request = {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate approver permissions
+        let approver = clan_state.members.get(&approved_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !approver.can_moderate() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Find and remove the request
+        let request_index = clan_state.pending_requests
+            .iter()
+            .position(|req| req.applicant == applicant)
+            .ok_or(ClanError::JoinRequestNotFound)?;
+
+        clan_state.pending_requests.remove(request_index)
+    };
+
+    // Add member to clan (no fee for approved applications)
+    join_clan(users_canister_principal, applicant, 0).await?;
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn reject_join_request(
+    applicant: Principal,
+    rejected_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate rejector permissions
+        let rejector = clan_state.members.get(&rejected_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !rejector.can_moderate() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Find and remove the request
+        let request_index = clan_state.pending_requests
+            .iter()
+            .position(|req| req.applicant == applicant)
+            .ok_or(ClanError::JoinRequestNotFound)?;
+
+        clan_state.pending_requests.remove(request_index);
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn get_pending_requests() -> Result<Vec<JoinRequest>, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.pending_requests.clone())
+}
+
+#[ic_cdk::query]
+fn get_invited_users() -> Result<HashMap<WalletPrincipalId, u64>, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.invited_users.clone())
+}
+
+#[ic_cdk::update]
+async fn update_member_stats(
+    member_id: WalletPrincipalId,
+    games_played_delta: u64,
+    tournaments_won_delta: u64,
+    winnings_delta: u64,
+    xp_delta: u64,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    // Validate caller is backend
+    let backend_principal = BACKEND_PRINCIPAL
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+
+    validate_caller(vec![backend_principal]);
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        if let Some(member) = clan_state.members.get_mut(&member_id) {
+            member.games_played += games_played_delta;
+            member.tournaments_won += tournaments_won_delta;
+            member.total_winnings += winnings_delta;
+            member.xp += xp_delta;
+            member.last_active = ic_cdk::api::time();
+
+            // Update contribution points based on activity
+            let contribution_points = games_played_delta * 10 + tournaments_won_delta * 100 + xp_delta / 10;
+            member.contribution_points += contribution_points;
+        }
+
+        // Update clan stats
+        clan_state.stats.total_games_played += games_played_delta;
+        clan_state.stats.last_activity = ic_cdk::api::time();
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn add_clan_revenue(
+    amount: u64,
+    source: RevenueSource,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    // Validate caller is backend
+    let backend_principal = BACKEND_PRINCIPAL
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+
+    validate_caller(vec![backend_principal]);
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Add to treasury (50% clan share for MVP)
+        let clan_share = amount / 2;
+        clan_state.treasury.balance += clan_share;
+        clan_state.treasury.total_revenue_generated += clan_share;
+
+        // Update stats
+        clan_state.stats.total_revenue_generated += clan_share;
+        clan_state.stats.last_activity = ic_cdk::api::time();
+
+        match source {
+            RevenueSource::Tournament => {
+                clan_state.stats.total_tournaments_hosted += 1;
+            }
+            RevenueSource::Table => {
+                // Table revenue tracking
+            }
+            RevenueSource::Subscription => {
+                clan_state.treasury.total_subscription_revenue += clan_share;
+            }
+        }
+    }
+
+    // Log event
+    let event = ClanEvent::RevenueGenerated {
+        amount,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn process_subscription_renewals() -> Result<Vec<(WalletPrincipalId, String)>, ClanError> {
+    handle_cycle_check();
+
+    // Validate caller is backend
+    let backend_principal = BACKEND_PRINCIPAL
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+
+    validate_caller(vec![backend_principal]);
+
+    let renewal_results = {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        clan_state.process_subscription_renewals()
+    };
+
+    Ok(renewal_results)
+}
+
+#[ic_cdk::query]
+fn has_tier_access(
+    member_id: WalletPrincipalId,
+    required_benefit: String,
+) -> Result<bool, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+
+    clan.has_tier_access(&member_id, &required_benefit)
+}
+
+#[ic_cdk::query]
+fn can_access_table_stakes(
+    member_id: WalletPrincipalId,
+    table_stakes: u64,
+) -> Result<bool, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+
+    clan.can_access_table_stakes(&member_id, table_stakes)
+}
+
+#[derive(Debug, Clone, candid::CandidType, serde::Deserialize)]
+pub enum RevenueSource {
+    Tournament,
+    Table,
+    Subscription,
 }
 
 ic_cdk::export_candid!();

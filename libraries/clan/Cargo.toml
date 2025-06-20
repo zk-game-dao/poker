@@ -11,5 +11,8 @@ serde.workspace = true
 
 currency = { git = "https://github.com/zk-game-dao/currency.git", branch = "main" }
 errors = { path = "../errors" }
+macros = { path = "../macros" }
 user = { path = "../user" }
 table = { path = "../table" }
+tournaments = { path = "../tournaments" }
+

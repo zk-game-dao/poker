@@ -1,7 +1,10 @@
 use candid::{CandidType, Deserialize};
+use currency::currency_error::CurrencyError;
 use thiserror::Error;
 
-#[derive(CandidType, Deserialize, Debug, Clone, Error)]
+use crate::{canister_management_error::CanisterManagementError, user_error::UserError};
+
+#[derive(CandidType, Deserialize, Debug, Error)]
 pub enum ClanError {
     // General errors
     #[error("Failed to acquire lock")]
@@ -40,6 +43,9 @@ pub enum ClanError {
     
     #[error("Clan is at maximum capacity ({0} members)")]
     ClanFull(u32),
+
+    #[error("Clan is not initialized")]
+    StateNotInitialized,
     
     // Member management errors
     #[error("User is not a member of this clan")]
@@ -239,6 +245,18 @@ pub enum ClanError {
     
     #[error("Internal system error: {0}")]
     InternalError(String),
+
+    #[error("User is banned")]
+    UserBanned,
+
+    #[error("User error: {0}")]
+    UserError(#[from] UserError),
+
+    #[error("Currency error: {0}")]
+    CurrencyError(#[from] CurrencyError),
+
+    #[error("Canister management error: {0}")]
+    ManagementCanisterError(#[from] CanisterManagementError),
 }
 
 impl ClanError {

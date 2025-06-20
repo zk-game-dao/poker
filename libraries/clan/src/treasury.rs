@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use errors::clan_error::ClanError;
 use serde::{Deserialize, Serialize};
+use user::user::WalletPrincipalId;
 
 use crate::Clan;
 
@@ -47,7 +48,7 @@ impl Default for ClanTreasury {
 
 impl Clan {
     /// Update reward distribution method (admin+ only)
-    pub fn update_reward_distribution(&mut self, new_distribution: RewardDistributionType, updater: &Principal) -> Result<(), ClanError> {
+    pub fn update_reward_distribution(&mut self, new_distribution: RewardDistributionType, updater: &WalletPrincipalId) -> Result<(), ClanError> {
         let updater_member = self.members.get(updater)
             .ok_or(ClanError::MemberNotFound)?;
 
@@ -73,7 +74,7 @@ impl Clan {
     }
 
     /// Distribute rewards to members from treasury
-    pub fn distribute_rewards(&mut self, distribution: HashMap<Principal, u64>) -> Result<(), ClanError> {
+    pub fn distribute_rewards(&mut self, distribution: HashMap<WalletPrincipalId, u64>) -> Result<(), ClanError> {
         let distribution_total: u64 = distribution.values().sum();
         let available_amount = self.calculate_available_reward_amount();
         

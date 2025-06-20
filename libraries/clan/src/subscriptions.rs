@@ -1,7 +1,7 @@
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use errors::clan_error::ClanError;
 use serde::{Deserialize, Serialize};
-use user::user::User;
+use user::user::{User, WalletPrincipalId};
 
 use crate::{member::ClanMember, Clan};
 
@@ -264,7 +264,7 @@ impl Clan {
     /// Upgrade member subscription tier
     pub fn upgrade_subscription(
         &mut self,
-        member_principal: &Principal,
+        member_principal: &WalletPrincipalId,
         new_tier_id: &SubscriptionTierId,
         paid_amount: u64,
         months: u32,
@@ -317,7 +317,7 @@ impl Clan {
     }
 
     /// Check if member has access to specific functionality based on tier
-    pub fn has_tier_access(&self, member_principal: &Principal, required_benefit: &str) -> Result<bool, ClanError> {
+    pub fn has_tier_access(&self, member_principal: &WalletPrincipalId, required_benefit: &str) -> Result<bool, ClanError> {
         let member = self.members.get(member_principal)
             .ok_or(ClanError::MemberNotFound)?;
 
@@ -345,7 +345,7 @@ impl Clan {
     }
 
     /// Check if member can access table with specific stakes
-    pub fn can_access_table_stakes(&self, member_principal: &Principal, table_stakes: u64) -> Result<bool, ClanError> {
+    pub fn can_access_table_stakes(&self, member_principal: &WalletPrincipalId, table_stakes: u64) -> Result<bool, ClanError> {
         let member = self.members.get(member_principal)
             .ok_or(ClanError::MemberNotFound)?;
 
@@ -366,7 +366,7 @@ impl Clan {
     pub fn update_subscription_tier(
         &mut self,
         tier: SubscriptionTier,
-        updater: &Principal,
+        updater: &WalletPrincipalId,
     ) -> Result<(), ClanError> {
         let updater_member = self.members.get(updater)
             .ok_or(ClanError::MemberNotFound)?;
@@ -392,7 +392,7 @@ impl Clan {
     pub fn remove_subscription_tier(
         &mut self,
         tier_id: &SubscriptionTierId,
-        updater: &Principal,
+        updater: &WalletPrincipalId,
     ) -> Result<(), ClanError> {
         let updater_member = self.members.get(updater)
             .ok_or(ClanError::MemberNotFound)?;
@@ -441,10 +441,10 @@ impl Clan {
     }
 
     /// Process subscription renewals for members with auto-renew enabled
-    pub fn process_subscription_renewals(&mut self) -> Vec<(Principal, String)> {
+    pub fn process_subscription_renewals(&mut self) -> Vec<(WalletPrincipalId, String)> {
         let mut renewal_results = Vec::new();
         let now = ic_cdk::api::time();
-        let members_to_process: Vec<Principal> = self.members.keys().cloned().collect();
+        let members_to_process: Vec<WalletPrincipalId> = self.members.keys().cloned().collect();
 
         for member_principal in members_to_process {
             if let Some(member) = self.members.get_mut(&member_principal) {

@@ -1,10 +1,11 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, collections::{HashMap, HashSet}};
 
-use candid::{Decode, Encode, Principal};
+use candid::{Decode, Encode};
 use currency::Currency;
 use ic_stable_structures::{storable::Bound, Storable};
+use user::user::WalletPrincipalId;
 
-use crate::{environment::ClanEnvironmentSettings, treasury::ClanTreasury, Clan, ClanPrivacy, ClanStats};
+use crate::{environment::ClanEnvironmentSettings, treasury::ClanTreasury, Clan, ClanId, ClanPrivacy, ClanStats};
 
 const MAX_CLAN_SIZE: u32 = 50_000_000; // 50MB max size for clan data
 
@@ -22,10 +23,10 @@ impl Storable for Clan {
             ic_cdk::println!("Clan deserialization error: {:?}", e);
             // Return a default clan that should not be used
             Clan {
-                id: Principal::anonymous(),
+                id: ClanId::default(),
                 name: "ERROR".to_string(),
                 description: "".to_string(),
-                tag: "ERR".to_string(),
+                tags: HashSet::new(),
                 avatar: None,
                 supported_currency: Currency::ICP,
                 members: HashMap::new(),
@@ -43,7 +44,7 @@ impl Storable for Clan {
                 active_tables: Vec::new(),
                 hosted_tournaments: Vec::new(),
                 created_at: 0,
-                created_by: Principal::anonymous(),
+                created_by: WalletPrincipalId::default(),
                 website: None,
                 discord: None,
                 twitter: None,

@@ -1,5 +1,6 @@
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use serde::{Deserialize, Serialize};
+use user::user::WalletPrincipalId;
 
 use crate::subscriptions::{ClanRole, SubscriptionTierId};
 
@@ -15,7 +16,7 @@ pub enum MemberStatus {
 /// Individual clan member data
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub struct ClanMember {
-    pub principal_id: Principal,
+    pub principal_id: WalletPrincipalId,
     pub role: ClanRole,
     pub status: MemberStatus,
     pub subscription_tier: SubscriptionTierId,
@@ -32,7 +33,7 @@ pub struct ClanMember {
 }
 
 impl ClanMember {
-    pub fn new(principal_id: Principal, role: ClanRole) -> Self {
+    pub fn new(principal_id: WalletPrincipalId, role: ClanRole) -> Self {
         let now = ic_cdk::api::time();
         Self {
             principal_id,
