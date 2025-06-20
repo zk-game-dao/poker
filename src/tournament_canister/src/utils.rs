@@ -394,7 +394,7 @@ pub async fn handle_reentry(
                 TournamentError::CanisterCallError(format!("{:?}", e))
             })?;
 
-            add_to_tournament_prize_pool(buy_in_options.reentry.reentry_price)?;
+            add_to_tournament_prize_pool(buy_in_options.reentry.reentry_price, false)?;
 
             Ok(buy_in_options.reentry.reentry_price)
         }
@@ -458,7 +458,7 @@ pub async fn handle_rebuy(
                 TournamentError::CanisterCallError(format!("{:?}", e))
             })?;
 
-            add_to_tournament_prize_pool(buy_in_options.reentry.reentry_price)?;
+            add_to_tournament_prize_pool(buy_in_options.reentry.reentry_price, false)?;
 
             Ok(buy_in_options.reentry.reentry_price)
         }
@@ -519,7 +519,7 @@ pub async fn handle_addon(
                 TournamentError::CanisterCallError(format!("{:?}", e))
             })?;
 
-            add_to_tournament_prize_pool(buy_in_options.addon.addon_price)?;
+            add_to_tournament_prize_pool(buy_in_options.addon.addon_price, false)?;
 
             Ok(buy_in_options.addon.addon_price)
         }
@@ -772,10 +772,14 @@ pub async fn update_tournament_state_wrapper(
     Ok(())
 }
 
-pub fn add_to_tournament_prize_pool(amount: u64) -> Result<(), TournamentError> {
-    let (prize_pool, rake_amount) = calculate_rake(amount)?;
-    PRIZE_POOL.fetch_add(prize_pool, Ordering::SeqCst);
-    RAKE_AMOUNT.fetch_add(rake_amount, Ordering::SeqCst);
+pub fn add_to_tournament_prize_pool(amount: u64, is_admin: bool) -> Result<(), TournamentError> {
+    if !is_admin {
+        let (prize_pool, rake_amount) = calculate_rake(amount)?;
+        PRIZE_POOL.fetch_add(prize_pool, Ordering::SeqCst);
+        RAKE_AMOUNT.fetch_add(rake_amount, Ordering::SeqCst);
+    } else {
+        PRIZE_POOL.fetch_add(amount, Ordering::SeqCst);
+    }
     Ok(())
 }
 

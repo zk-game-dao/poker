@@ -366,7 +366,7 @@ async fn user_join_tournament(
         tournament_state.tournament_type,
         TournamentType::Freeroll(_)
     ) {
-        add_to_tournament_prize_pool(tournament_state.buy_in)?;
+        add_to_tournament_prize_pool(tournament_state.buy_in, false)?;
     }
 
     Ok(())
@@ -1012,6 +1012,7 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
 async fn deposit_prize_pool(
     amount: u64,
     wallet_principal_id: WalletPrincipalId,
+    is_admin: bool,
 ) -> Result<(), TournamentError> {
     handle_cycle_check();
     let tournament = {
@@ -1029,7 +1030,7 @@ async fn deposit_prize_pool(
         return Err(TournamentError::CanisterCallError(format!("{:?}", e)));
     }
 
-    add_to_tournament_prize_pool(amount)?;
+    add_to_tournament_prize_pool(amount, is_admin)?;
 
     DEPOSITORS
         .lock()
