@@ -1,3 +1,4 @@
+pub mod clan_canister;
 pub mod log_store;
 pub mod table_index;
 pub mod tournament_canister;

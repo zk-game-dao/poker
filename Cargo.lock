@@ -2556,6 +2556,7 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "canister_functions",
+ "clan",
  "errors",
  "ic-cdk",
  "table",

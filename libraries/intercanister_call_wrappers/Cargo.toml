@@ -8,6 +8,7 @@ candid = { workspace = true }
 ic-cdk = { workspace = true }
 
 canister_functions = { path = "../canister_functions" }
+clan = { path = "../clan" }
 errors = { path = "../errors" }
 table = { path = "../table" }
 tournaments = { path = "../tournaments" }

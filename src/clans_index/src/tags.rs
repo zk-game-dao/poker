@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use candid::{CandidType, Principal};
-use clan::{tags::{ClanTag, TagCategory}, Clan};
+use candid::CandidType;
+use clan::{tags::{ClanTag, TagCategory}, Clan, ClanId};
 use serde::{Deserialize, Serialize};
 
 use crate::clans_index::ClanIndex;
@@ -25,7 +25,7 @@ pub struct TagSearchFilters {
 /// Updated clan index with tag support
 impl ClanIndex {
     /// Add tag-to-clans mapping for efficient tag-based searches
-    pub fn add_tag_index(&mut self, clan_id: Principal, tags: &HashSet<ClanTag>) {        
+    pub fn add_tag_index(&mut self, clan_id: ClanId, tags: &HashSet<ClanTag>) {        
         for tag in tags {
             self.tag_to_clans
                 .entry(tag.clone())
@@ -35,7 +35,7 @@ impl ClanIndex {
     }
     
     /// Remove tag index for a clan
-    pub fn remove_tag_index(&mut self, clan_id: Principal, tags: &HashSet<ClanTag>) {
+    pub fn remove_tag_index(&mut self, clan_id: ClanId, tags: &HashSet<ClanTag>) {
         for tag in tags {
             if let Some(clan_set) = self.tag_to_clans.get_mut(tag) {
                 clan_set.remove(&clan_id);
@@ -47,8 +47,8 @@ impl ClanIndex {
     }
     
     /// Search clans by tags
-    pub fn search_by_tags(&self, filters: TagSearchFilters) -> Vec<Principal> {
-        let all_clan_ids: HashSet<Principal> = self.clans.keys().copied().collect();
+    pub fn search_by_tags(&self, filters: TagSearchFilters) -> Vec<ClanId> {
+        let all_clan_ids: HashSet<ClanId> = self.clans.keys().copied().collect();
         let mut result_ids = all_clan_ids;
         
         // Apply required tags (AND logic)
@@ -85,7 +85,7 @@ impl ClanIndex {
         
         // Filter by categories if specified
         if let Some(categories) = filters.categories {
-            let category_clan_ids: HashSet<Principal> = self.clans
+            let category_clan_ids: HashSet<ClanId> = self.clans
                 .iter()
                 .filter(|(_, clan)| {
                     clan.tags.iter().any(|tag| categories.contains(&tag.category()))

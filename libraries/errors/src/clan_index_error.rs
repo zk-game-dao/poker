@@ -1,5 +1,5 @@
 use candid::{CandidType, Deserialize};
-use crate::canister_management_error::CanisterManagementError;
+use crate::{canister_management_error::CanisterManagementError, clan_error::ClanError};
 use thiserror::Error;
 
 #[derive(CandidType, Deserialize, Debug, Error)]
@@ -57,4 +57,7 @@ pub enum ClanIndexError {
     // Management errors
     #[error("Management canister error: {0}")]
     ManagementCanisterError(#[from] CanisterManagementError),
+
+    #[error("Clan error: {0}")]
+    ClanError(#[from] ClanError),
 }

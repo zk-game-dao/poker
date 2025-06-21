@@ -2,23 +2,24 @@ use std::collections::{HashMap, HashSet};
 use candid::{CandidType, Principal};
 use currency::Currency;
 use serde::{Deserialize, Serialize};
-use clan::{subscriptions::{ClanRole, SubscriptionTierId}, tags::{ClanTag, TagCategory}, Clan, ClanPrivacy};
+use clan::{subscriptions::{ClanRole, SubscriptionTierId}, tags::{ClanTag, TagCategory}, Clan, ClanId, ClanPrivacy};
+use user::user::WalletPrincipalId;
 use crate::tags::TagSearchFilters;
 use errors::clan_index_error::ClanIndexError;
 
 #[derive(Debug, Clone, PartialEq, CandidType, Serialize, Deserialize)]
 pub struct ClanIndex {
     /// Map of clan ID to clan data
-    pub clans: HashMap<Principal, Clan>,
+    pub clans: HashMap<ClanId, Clan>,
     
     /// Map of individual clan tags to clan IDs for fast tag-based lookup
-    pub tag_to_clans: HashMap<ClanTag, HashSet<Principal>>,
+    pub tag_to_clans: HashMap<ClanTag, HashSet<ClanId>>,
     
     /// Map of user principals to clan IDs they're members of
-    pub user_to_clans: HashMap<Principal, HashSet<Principal>>,
+    pub user_to_clans: HashMap<WalletPrincipalId, HashSet<ClanId>>,
     
     /// Map of currency types to clan IDs using that currency
-    pub currency_to_clans: HashMap<Currency, HashSet<Principal>>,
+    pub currency_to_clans: HashMap<Currency, HashSet<ClanId>>,
     
     /// Statistics
     pub total_clans: usize,
@@ -97,7 +98,7 @@ impl ClanIndex {
     }
 
     /// Remove a clan from the index
-    pub fn remove_clan(&mut self, clan_id: Principal) -> Result<(), ClanIndexError> {
+    pub fn remove_clan(&mut self, clan_id: ClanId) -> Result<(), ClanIndexError> {
         let clan = self.clans.remove(&clan_id)
             .ok_or(ClanIndexError::ClanNotFound)?;
 
@@ -222,7 +223,7 @@ impl ClanIndex {
     }
 
     /// Add a member to a clan
-    pub fn add_member_to_clan(&mut self, clan_id: Principal, user_principal: Principal) -> Result<(), ClanIndexError> {
+    pub fn add_member_to_clan(&mut self, clan_id: ClanId, user_principal: WalletPrincipalId) -> Result<(), ClanIndexError> {
         if self.clans.contains_key(&clan_id) {
             self.user_to_clans
                 .entry(user_principal)
@@ -236,7 +237,7 @@ impl ClanIndex {
     }
 
     /// Remove a member from a clan
-    pub fn remove_member_from_clan(&mut self, clan_id: Principal, user_principal: Principal) -> Result<(), ClanIndexError> {
+    pub fn remove_member_from_clan(&mut self, clan_id: ClanId, user_principal: WalletPrincipalId) -> Result<(), ClanIndexError> {
         if self.clans.contains_key(&clan_id) {
             if let Some(user_clans) = self.user_to_clans.get_mut(&user_principal) {
                 if user_clans.remove(&clan_id) {
@@ -271,7 +272,7 @@ impl ClanIndex {
     }
 
     /// Get clans a user is a member of
-    pub fn get_user_clans(&self, user_principal: &Principal) -> Vec<Clan> {
+    pub fn get_user_clans(&self, user_principal: &WalletPrincipalId) -> Vec<Clan> {
         self.user_to_clans
             .get(user_principal)
             .map(|clan_ids| {
@@ -285,7 +286,7 @@ impl ClanIndex {
 
     /// Search clans with filters
     pub fn search_clans(&self, filters: Option<ClanSearchFilters>, page: u64, page_size: u64) -> Vec<Clan> {
-        let mut clan_ids: Vec<Principal> = self.clans.keys().copied().collect();
+        let mut clan_ids: Vec<ClanId> = self.clans.keys().copied().collect();
 
         // Apply tag filters first if provided
         if let Some(ref search_filters) = filters {
@@ -408,12 +409,12 @@ impl ClanIndex {
     }
 
     /// Get all clan IDs
-    pub fn get_all_clan_ids(&self) -> Vec<Principal> {
+    pub fn get_all_clan_ids(&self) -> Vec<ClanId> {
         self.clans.keys().copied().collect()
     }
 
     /// Check if a principal is a valid clan canister
-    pub fn is_valid_clan_canister(&self, principal: &Principal) -> bool {
+    pub fn is_valid_clan_canister(&self, principal: &ClanId) -> bool {
         self.clans.contains_key(principal)
     }
 
@@ -426,7 +427,7 @@ impl ClanIndex {
     }
 
     /// Get clans where user has a specific role
-    pub fn get_clans_by_user_role(&self, user_principal: &Principal, role: &ClanRole) -> Vec<Clan> {
+    pub fn get_clans_by_user_role(&self, user_principal: &WalletPrincipalId, role: &ClanRole) -> Vec<Clan> {
         self.clans.values()
             .filter(|clan| {
                 clan.members.get(user_principal)
