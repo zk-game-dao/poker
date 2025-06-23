@@ -668,7 +668,7 @@ pub async fn handle_user_kick(
     }
 
     let remaining_players = tournament.current_players.len();
-    let paying_positions = tournament.payout_structure.len();
+    let paying_positions = tournament.payout_structure.payouts.len();
 
     if remaining_players <= paying_positions {
         match check_tournament_end(remaining_players).await {

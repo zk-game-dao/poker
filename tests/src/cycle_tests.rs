@@ -9,8 +9,7 @@ use table::poker::game::{
     utils::convert_to_e8s,
 };
 use tournaments::tournaments::{
-    tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage},
+    tournament_type::{BuyInOptions, TournamentSizeType, TournamentType}, types::{NewTournament, NewTournamentSpeedType}
 };
 use user::user::WalletPrincipalId;
 
@@ -105,15 +104,12 @@ fn test_cycles_create_tournament() {
         hero_picture: "".to_string(),
         currency: CurrencyType::Real(Currency::ICP),
         buy_in: convert_to_e8s(10.0),
+        guaranteed_prize_pool: None,
         starting_chips: 1000,
         speed_type: NewTournamentSpeedType::Regular(20),
         min_players: 5,
         max_players: 8,
         late_registration_duration_ns: 10,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
             BuyInOptions::new_freezout(),
         )),

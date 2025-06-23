@@ -12,7 +12,7 @@ use table::poker::game::{
 };
 use tournaments::tournaments::{
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentState},
+    types::{NewTournament, NewTournamentSpeedType, TournamentState},
 };
 use user::user::WalletPrincipalId;
 
@@ -63,10 +63,7 @@ fn create_tournament() {
         min_players: 5,
         max_players: 8,
         late_registration_duration_ns: 10,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
+        guaranteed_prize_pool: None,
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
             BuyInOptions::new_freezout(),
         )),
@@ -121,10 +118,7 @@ fn join_tournament() {
         min_players: 5,
         max_players: 8,
         late_registration_duration_ns: 10,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
+        guaranteed_prize_pool: None,
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
             BuyInOptions::new_freezout(),
         )),
@@ -191,10 +185,7 @@ fn duplicate_join_tournament() {
         min_players: 5,
         max_players: 8,
         late_registration_duration_ns: 10,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
+        guaranteed_prize_pool: None,
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
             BuyInOptions::new_freezout(),
         )),
@@ -266,10 +257,7 @@ fn invalid_join_tournament() {
         min_players: 5,
         max_players: 8,
         late_registration_duration_ns: 10,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
+        guaranteed_prize_pool: None,
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
             BuyInOptions::new_freezout(),
         )),
@@ -335,10 +323,7 @@ fn leave_tournament() {
         min_players: 5,
         max_players: 8,
         late_registration_duration_ns: 10,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
+        guaranteed_prize_pool: None,
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
             BuyInOptions::new_freezout(),
         )),
@@ -420,10 +405,7 @@ fn start_tournament() {
         min_players: 5,
         max_players: 8,
         late_registration_duration_ns: 10,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
+        guaranteed_prize_pool: None,
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
             BuyInOptions::new_freezout(),
         )),

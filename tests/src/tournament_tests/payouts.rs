@@ -10,9 +10,7 @@ use table::poker::game::{
     utils::convert_to_e8s,
 };
 use tournaments::tournaments::{
-    tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentId, TournamentState},
-    utils::calculate_rake,
+    blind_level::SpeedType, table_balancing::TableBalancer, tournament_type::{BuyInOptions, TournamentSizeType, TournamentType}, types::{NewTournament, NewTournamentSpeedType, TournamentId, TournamentState}, utils::calculate_rake
 };
 use user::user::{UsersCanisterId, WalletPrincipalId};
 
@@ -22,7 +20,8 @@ use crate::TestEnv;
 impl TestEnv {
     pub fn setup_payout_tournament(
         &self,
-        payout_structure: Vec<PayoutPercentage>,
+        min_players: u8,
+        players_per_table: u8,
     ) -> (TournamentId, NewTournament) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -38,14 +37,19 @@ impl TestEnv {
             hero_picture: "".to_string(),
             currency: CurrencyType::Real(Currency::ICP),
             buy_in: convert_to_e8s(10.0),
+            guaranteed_prize_pool: None,
             starting_chips: 1000,
             speed_type: NewTournamentSpeedType::Regular(20),
             min_players: 5,
             max_players: 8,
             late_registration_duration_ns: 10,
-            payout_structure,
-            tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
+            tournament_type: TournamentType::BuyIn(TournamentSizeType::MultiTable(
                 BuyInOptions::new_freezout(),
+                TableBalancer::new(
+                    min_players,
+                    players_per_table,
+                    &SpeedType::new_regular(1000, 110),
+                ),
             )),
             start_time: current_time + 1_000_000_000, // 1 second in future
             require_proof_of_humanity: false,
@@ -243,16 +247,10 @@ impl TestEnv {
 fn test_winner_takes_all_payout() {
     let test_env = TestEnv::new(None);
 
-    // Setup tournament with winner-takes-all payout structure
-    let payout_structure = vec![PayoutPercentage {
-        position: 1,
-        percentage: 100,
-    }];
-
-    let (tournament_id, config) = test_env.setup_payout_tournament(payout_structure);
+    let (tournament_id, config) = test_env.setup_payout_tournament(2, 8);
 
     // Simulate tournament
-    let players = test_env.simulate_tournament_until_completion(tournament_id, 5);
+    let players = test_env.simulate_tournament_until_completion(tournament_id, 3);
     let tournament = test_env.get_tournament(tournament_id).unwrap();
     assert_eq!(tournament.state, TournamentState::Completed);
 
@@ -267,26 +265,10 @@ fn test_winner_takes_all_payout() {
 fn test_multi_player_payout() {
     let test_env = TestEnv::new(None);
 
-    // Setup tournament with top 3 payout structure
-    let payout_structure = vec![
-        PayoutPercentage {
-            position: 1,
-            percentage: 50,
-        },
-        PayoutPercentage {
-            position: 2,
-            percentage: 30,
-        },
-        PayoutPercentage {
-            position: 3,
-            percentage: 20,
-        },
-    ];
-
-    let (tournament_id, config) = test_env.setup_payout_tournament(payout_structure);
+    let (tournament_id, config) = test_env.setup_payout_tournament(2, 8);
 
     // Simulate tournament
-    let players = test_env.simulate_tournament_until_completion(tournament_id, 6);
+    let players = test_env.simulate_tournament_until_completion(tournament_id, 8);
 
     // Calculate expected payouts
     let total_prize_pool = config.buy_in * 6;
@@ -295,38 +277,6 @@ fn test_multi_player_payout() {
         (0, total_prize_pool * 50 / 100),
         (1, total_prize_pool * 30 / 100),
         (2, total_prize_pool * 20 / 100),
-    ];
-
-    test_env.verify_payouts(tournament_id, &players, &expected_payouts);
-}
-
-#[test]
-fn test_payout_with_minimum_players() {
-    let test_env = TestEnv::new(None);
-
-    // Setup tournament with minimal payout structure
-    let payout_structure = vec![
-        PayoutPercentage {
-            position: 1,
-            percentage: 60,
-        },
-        PayoutPercentage {
-            position: 2,
-            percentage: 40,
-        },
-    ];
-
-    let (tournament_id, config) = test_env.setup_payout_tournament(payout_structure);
-
-    // Simulate tournament with minimum number of players
-    let players = test_env.simulate_tournament_until_completion(tournament_id, 5);
-
-    // Calculate expected payouts
-    let total_prize_pool = config.buy_in * 5;
-    let (total_prize_pool, _rake) = calculate_rake(total_prize_pool).unwrap();
-    let expected_payouts = vec![
-        (0, total_prize_pool * 60 / 100),
-        (1, total_prize_pool * 40 / 100),
     ];
 
     test_env.verify_payouts(tournament_id, &players, &expected_payouts);

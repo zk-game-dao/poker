@@ -11,7 +11,7 @@ use table::poker::game::{
 };
 use tournaments::tournaments::{
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentState},
+    types::{NewTournament, NewTournamentSpeedType, TournamentState},
 };
 use user::user::WalletPrincipalId;
 
@@ -41,10 +41,7 @@ fn test_late_registration() {
         min_players: 5,
         max_players: 8,
         late_registration_duration_ns: 600_000_000_000, // 10 minutes late registration
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
+        guaranteed_prize_pool: None,
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
             BuyInOptions::new_freezout(),
         )),

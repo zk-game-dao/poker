@@ -114,6 +114,7 @@ type GameType = variant {
   FixedLimit : record { nat64; nat64 };
 };
 type NewTournament = record {
+  guaranteed_prize_pool : opt nat64;
   min_players : nat8;
   name : text;
   hero_picture : text;
@@ -126,7 +127,6 @@ type NewTournament = record {
   currency : CurrencyType;
   speed_type : NewTournamentSpeedType;
   buy_in : nat64;
-  payout_structure : vec PayoutPercentage;
   tournament_type : TournamentType;
 };
 type NewTournamentSpeedType = variant {
@@ -136,6 +136,7 @@ type NewTournamentSpeedType = variant {
   Turbo : nat8;
 };
 type PayoutPercentage = record { position : nat16; percentage : nat8 };
+type PayoutStructure = record { payouts : vec PayoutPercentage };
 type RebuyOptions = record {
   max_rebuys : nat32;
   rebuy_chips : nat64;
@@ -254,6 +255,7 @@ type TournamentData = record {
   id : principal;
   table_config : TableConfig;
   sorted_users : opt vec principal;
+  guaranteed_prize_pool : opt nat64;
   min_players : nat8;
   name : text;
   hero_picture : text;
@@ -270,7 +272,7 @@ type TournamentData = record {
   all_players : vec record { principal; UserTournamentData };
   current_players : vec record { principal; UserTournamentData };
   buy_in : nat64;
-  payout_structure : vec PayoutPercentage;
+  payout_structure : PayoutStructure;
   tournament_type : TournamentType;
 };
 type TournamentError = variant {
@@ -367,6 +369,7 @@ type UserTournamentData = record {
 };
 service : () -> {
   add_to_pool : (principal) -> (Result);
+  check_tournament_liquidity : () -> (Result);
   clear_pool : () -> (Result);
   create_tournament : (NewTournament, TableConfig) -> (Result_1);
   delete_tournament : (principal) -> (Result);
@@ -395,6 +398,7 @@ service : () -> {
   purge_table_pool : () -> ();
   register_token : (principal) -> (Result_6);
   request_cycles : () -> (Result);
+  request_withdrawal : (Currency, nat64) -> (Result);
   update_tournament_state : (principal, TournamentState) -> (Result);
   upgrade_all_tournament_canisters : () -> (Result_7);
   upgrade_tournament_canister : (principal) -> (Result);

@@ -169,6 +169,7 @@ type GameType = variant {
   FixedLimit : record { nat64; nat64 };
 };
 type PayoutPercentage = record { position : nat16; percentage : nat8 };
+type PayoutStructure = record { payouts : vec PayoutPercentage };
 type PlayerAction = variant {
   Joining;
   Folded;
@@ -353,6 +354,7 @@ type TournamentData = record {
   id : principal;
   table_config : TableConfig;
   sorted_users : opt vec principal;
+  guaranteed_prize_pool : opt nat64;
   min_players : nat8;
   name : text;
   hero_picture : text;
@@ -369,7 +371,7 @@ type TournamentData = record {
   all_players : vec record { principal; UserTournamentData };
   current_players : vec record { principal; UserTournamentData };
   buy_in : nat64;
-  payout_structure : vec PayoutPercentage;
+  payout_structure : PayoutStructure;
   tournament_type : TournamentType;
 };
 type TournamentError = variant {

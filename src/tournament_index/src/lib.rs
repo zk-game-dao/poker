@@ -4,13 +4,11 @@ use canister_functions::{
     create_canister_wrapper, cycle::check_and_top_up_canister, install_wasm_code,
 };
 use currency::{
-    types::{
+    rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL, types::{
         canister_wallets::icrc1_token_wallet::GenericICRC1TokenWallet,
         currency::{CKTokenSymbol, Token},
         currency_manager::CurrencyManager,
-    },
-    utils::get_canister_state,
-    Currency,
+    }, utils::get_canister_state, Currency
 };
 use errors::{
     canister_management_error::CanisterManagementError,
@@ -24,7 +22,7 @@ use intercanister_call_wrappers::tournament_canister::{
 use lazy_static::lazy_static;
 use memory::TABLE_CANISTER_POOL;
 use user::user::{UsersCanisterId, WalletPrincipalId};
-use std::sync::Mutex;
+use std::{collections::HashMap, sync::Mutex};
 use table::poker::game::table_functions::{table::{TableConfig, TableId}, types::CurrencyType};
 use table::poker::game::types::GameType::NoLimit;
 use tournament_index::{create_spin_go_tournament, TournamentIndex};
@@ -85,6 +83,27 @@ lazy_static! {
     ];
     static ref TOURNAMENT_CANISTER_WASM: &'static [u8] =
         include_bytes!("../../../target/wasm32-unknown-unknown/release/tournament_canister.wasm");
+
+    static ref MIN_TOURNAMENT_LIQUIDITY: Mutex<HashMap<Currency, u128>> = {
+        let mut min_tournament_liquidity = HashMap::new();
+        min_tournament_liquidity.insert(
+            Currency::ICP,
+            100 * 1e8 as u128, // Minimum liquidity for ICP tournaments
+        );
+        min_tournament_liquidity.insert(
+            Currency::CKETHToken(currency::types::currency::CKTokenSymbol::ETH),
+            1 * 1e18 as u128, // Minimum liquidity for ETH tournaments
+        );
+        min_tournament_liquidity.insert(
+            Currency::CKETHToken(currency::types::currency::CKTokenSymbol::USDC),
+            1000 * 1e6 as u128, // Minimum liquidity for USDC tournaments
+        );
+        min_tournament_liquidity.insert(
+            Currency::CKETHToken(currency::types::currency::CKTokenSymbol::USDT),
+            1000 * 1e6 as u128, // Minimum liquidity for USDT tournaments
+        );
+        Mutex::new(min_tournament_liquidity)
+    };
     static ref ENABLE_RAKE: bool = false;
 }
 
@@ -614,7 +633,10 @@ async fn request_withdrawal(
             .map_err(|_| TournamentIndexError::LockError)?
             .clone()
     };
-    currency_manager.withdraw(&currency, ic_cdk::api::msg_caller(), amount + currency_manager.get_fee(&currency)).await.map_err(|e| {
+    let fee = currency_manager.get_fee(&currency).await.map_err(|e| {
+        TournamentIndexError::CanisterCallFailed(format!("Failed to get fee: {:?}", e))
+    })?;
+    currency_manager.withdraw(&currency, ic_cdk::api::msg_caller(), amount + fee as u64).await.map_err(|e| {
         TournamentIndexError::CanisterCallFailed(format!("Failed to withdraw: {:?}", e))
     })
 }
@@ -763,6 +785,34 @@ async fn upgrade_tournament_canister(
 
     let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
     canister_functions::upgrade_wasm_code(tournament_canister, wasm_module).await?;
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn check_tournament_liquidity() -> Result<(), TournamentIndexError> {
+    handle_cycle_check().await?;
+    validate_caller(CONTROLLER_PRINCIPALS.clone());
+
+    let (min_tournament_liquidity, currency_manager) = {
+        let min_tournament_liquidity = MIN_TOURNAMENT_LIQUIDITY.lock().map_err(|_| TournamentIndexError::LockError)?;
+        let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| TournamentIndexError::LockError)?;
+        (min_tournament_liquidity.clone(), currency_manager.clone())
+    };
+
+    for (currency, min_liquidity) in min_tournament_liquidity.iter() {
+        let balance = currency_manager
+            .get_balance(currency, ic_cdk::api::canister_self())
+            .await
+            .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
+        
+        if balance > *min_liquidity {
+            currency_manager
+                .withdraw(currency, Principal::from_text(RAKE_WALLET_ADDRESS_PRINCIPAL).unwrap(), (balance - min_liquidity) as u64)
+                .await
+                .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
+        }
+    }
 
     Ok(())
 }

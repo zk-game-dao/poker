@@ -13,7 +13,7 @@ use tournaments::tournaments::{
     blind_level::SpeedType,
     table_balancing::TableBalancer,
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentId, TournamentState},
+    types::{NewTournament, NewTournamentSpeedType, TournamentId, TournamentState},
 };
 
 use crate::TestEnv;
@@ -45,10 +45,7 @@ impl TestEnv {
             max_players: max_players as u32,
             late_registration_duration_ns: 0,
             require_proof_of_humanity: false,
-            payout_structure: vec![PayoutPercentage {
-                position: 1,
-                percentage: 100,
-            }],
+            guaranteed_prize_pool: None,
             tournament_type: TournamentType::BuyIn(TournamentSizeType::MultiTable(
                 BuyInOptions::new_freezout(),
                 TableBalancer::new(

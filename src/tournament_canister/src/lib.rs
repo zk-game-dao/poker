@@ -839,7 +839,7 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
         };
 
         // Distribute according to payout structure
-        for (position, payout) in tournament.payout_structure.iter().enumerate() {
+        for (position, payout) in tournament.payout_structure.payouts.iter().enumerate() {
             if position < positions.len() {
                 let user_id = positions[position];
 
@@ -953,7 +953,7 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
                     .lock()
                     .map_err(|_| TournamentError::LockError)?
                     .clone()
-                    .ok_or(TournamentError::TournamentIndexNotFound)?
+                    .ok_or(TournamentError::InvalidState("Tournament index not found".to_string()))?
             };
             if prize_pool < guaranteed_prize_pool && tournament.currency != CurrencyType::Fake {
                 let currency = match tournament.currency {

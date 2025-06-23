@@ -9,7 +9,7 @@ use tournaments::tournaments::{
         TournamentType,
     },
     types::{
-        NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentData, TournamentId, TournamentState
+        NewTournament, NewTournamentSpeedType, TournamentData, TournamentId, TournamentState
     },
 };
 
@@ -45,13 +45,10 @@ fn create_test_tournament_config() -> NewTournament {
         name: "Test Tournament".to_string(),
         description: "Test Tournament Description".to_string(),
         buy_in: 1e8 as u64, // 0.01 ICP
+        guaranteed_prize_pool: None,
         hero_picture: "".to_string(),
         max_players: 8,
         late_registration_duration_ns: 0,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
         start_time: get_current_time_ns() + 3600000000000, // 1 hour in the future
         starting_chips: 1000,
         speed_type: NewTournamentSpeedType::Regular(200),
