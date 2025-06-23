@@ -608,7 +608,7 @@ pub async fn handle_user_kick(
             .all_players
             .get(&user_principal)
             .ok_or(TournamentError::Other(
-                "User tournament data not found?????????".to_string(),
+                "User tournament data not found".to_string(),
             ))?;
 
     match LEADERBOARD.lock() {
@@ -624,9 +624,8 @@ pub async fn handle_user_kick(
     }
 
     let remaining_players = tournament.current_players.len();
-    let paying_positions = tournament.payout_structure.payouts.len();
 
-    if remaining_players <= paying_positions {
+    if remaining_players <= 1 {
         match check_tournament_end(remaining_players).await {
             Ok(_) => {}
             Err(e) => {

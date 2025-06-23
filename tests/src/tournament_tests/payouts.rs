@@ -40,7 +40,7 @@ impl TestEnv {
             guaranteed_prize_pool: None,
             starting_chips: 1000,
             speed_type: NewTournamentSpeedType::Regular(20),
-            min_players: 5,
+            min_players: 2,
             max_players: 8,
             late_registration_duration_ns: 10,
             tournament_type: TournamentType::BuyIn(TournamentSizeType::MultiTable(
@@ -58,7 +58,7 @@ impl TestEnv {
         let table_config = TableConfig {
             name: "Test Table".to_string(),
             game_type: table::poker::game::types::GameType::NoLimit(0),
-            seats: 6,
+            seats: 8,
             timer_duration: 30,
             card_color: 0,
             color: 0,
@@ -118,11 +118,14 @@ impl TestEnv {
         }
 
         // Start tournament
-        self.pocket_ic
-            .advance_time(Duration::from_nanos(120_000_000_000));
         for _ in 0..30 {
+            self.pocket_ic
+                .advance_time(Duration::from_nanos(30_000_000_000));
             self.pocket_ic.tick();
         }
+
+        println!("--------- Tournament started with players: {} and {} tables", active_players.len(),
+            self.get_tournament(tournament_id).unwrap().tables.len());
 
         let tournament = self.get_tournament(tournament_id).unwrap();
         let table_id = *tournament.tables.keys().next().unwrap();
@@ -162,7 +165,7 @@ impl TestEnv {
                 // Update table state
                 table = self.get_table(table_id).unwrap();
             }
-            for _ in 0..6 {
+            for _ in 0..16 {
                 self.pocket_ic.tick();
             }
 
@@ -252,10 +255,17 @@ fn test_winner_takes_all_payout() {
     // Simulate tournament
     let players = test_env.simulate_tournament_until_completion(tournament_id, 3);
     let tournament = test_env.get_tournament(tournament_id).unwrap();
+    for _ in 0..6 {
+        test_env.pocket_ic.advance_time(Duration::from_secs(60)); // 2 seconds
+        for _ in 0..6 {
+            test_env.pocket_ic.tick();
+        }
+        test_env.pocket_ic.tick();
+    }
     assert_eq!(tournament.state, TournamentState::Completed);
 
     // Verify payouts
-    let total_prize_pool = config.buy_in * 5;
+    let total_prize_pool = config.buy_in * 3;
     let (total_prize_pool, _rake) = calculate_rake(total_prize_pool).unwrap();
     let expected_payouts = vec![(0, total_prize_pool)];
     test_env.verify_payouts(tournament_id, &players, &expected_payouts);
@@ -270,8 +280,16 @@ fn test_multi_player_payout() {
     // Simulate tournament
     let players = test_env.simulate_tournament_until_completion(tournament_id, 8);
 
+    for _ in 0..30 {
+        test_env.pocket_ic.advance_time(Duration::from_secs(60)); // 2 seconds
+        for _ in 0..35 {
+            test_env.pocket_ic.tick();
+        }
+        test_env.pocket_ic.tick();
+    }
+
     // Calculate expected payouts
-    let total_prize_pool = config.buy_in * 6;
+    let total_prize_pool = config.buy_in * 8;
     let (total_prize_pool, _rake) = calculate_rake(total_prize_pool).unwrap();
     let expected_payouts = vec![
         (0, total_prize_pool * 50 / 100),

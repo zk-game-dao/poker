@@ -788,6 +788,11 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
     update_tournament_state(TournamentState::Completed).await?;
 
     let total_prize = PRIZE_POOL.load(Ordering::SeqCst);
+    ic_cdk::println!(
+        "Distributing winnings for tournament {} with total prize: {}",
+        tournament.id.0.to_text(),
+        total_prize
+    );
     let positions: Vec<WalletPrincipalId> = {
         let mut leaderboard = LEADERBOARD.lock().map_err(|_| TournamentError::LockError)?;
 
@@ -840,6 +845,11 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
 
         // Distribute according to payout structure
         for (position, payout) in tournament.payout_structure.payouts.iter().enumerate() {
+            ic_cdk::println!(
+                "Distributing {}% to position {}",
+                payout.percentage,
+                position + 1
+            );
             if position < positions.len() {
                 let user_id = positions[position];
 
@@ -1106,6 +1116,11 @@ async fn handle_user_losing(
     user_principal: WalletPrincipalId,
     table_id: TableId,
 ) -> Result<(), TournamentError> {
+    ic_cdk::println!(
+        "Handling user losing: {:?} on table: {:?}",
+        user_principal.0.to_text(),
+        table_id.0.to_text()
+    );
     handle_cycle_check_async().await;
 
     let tournament = {

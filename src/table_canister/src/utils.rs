@@ -43,38 +43,36 @@ pub fn get_canister_state() -> CanisterState {
     }
 }
 
-pub fn handle_cycle_check() {
+pub async fn handle_cycle_check() {
     let cycles = ic_cdk::api::canister_cycle_balance();
     if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
 
-    ic_cdk::futures::spawn(async {
-        let table_index_result = BACKEND_PRINCIPAL.lock();
-        let table_index = match table_index_result {
-            Ok(lock) => match *lock {
-                Some(index) => index,
-                None => {
-                    ic_cdk::println!("User not found");
-                    return; // or perform some error handling
-                }
-            },
-            Err(_) => {
-                ic_cdk::println!("Lock error occurred");
-                return; // or handle the lock error
+    let table_index_result = BACKEND_PRINCIPAL.lock();
+    let table_index = match table_index_result {
+        Ok(lock) => match *lock {
+            Some(index) => index,
+            None => {
+                ic_cdk::println!("User not found");
+                return; // or perform some error handling
             }
-        };
-
-        if let Err(e) = check_and_top_up_canister(
-            ic_cdk::api::canister_self(),
-            table_index,
-            MINIMUM_CYCLE_THRESHOLD,
-        )
-        .await
-        {
-            ic_cdk::println!("Failed to top up canister: {:?}", e);
+        },
+        Err(_) => {
+            ic_cdk::println!("Lock error occurred");
+            return; // or handle the lock error
         }
-    });
+    };
+
+    if let Err(e) = check_and_top_up_canister(
+        ic_cdk::api::canister_self(),
+        table_index,
+        MINIMUM_CYCLE_THRESHOLD,
+    )
+    .await
+    {
+        ic_cdk::println!("Failed to top up canister: {:?}", e);
+    }
 }
 
 pub fn update_player_count_tournament(user_action: UserTournamentAction) -> Result<(), TableError> {

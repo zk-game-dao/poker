@@ -28,7 +28,7 @@ async fn transfer_cycles(
 ) -> Result<(), CanisterManagementError> {
     {
         let tournament_index_state = STATE.lock().map_err(|_| CanisterManagementError::LockError)?;
-        if !tournament_index_state.active_tournaments.contains(&caller) {
+        if !tournament_index_state.tournaments.contains_key(&caller) {
             return Err(CanisterManagementError::Transfer(format!(
                     "Caller is not a valid destination: {}",
                     caller.0.to_text()

@@ -145,7 +145,7 @@ async fn join_table(
     deposit_amount: u64,
     player_sitting_out: bool,
 ) -> Result<PublicTable, TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     if deposit_amount == 0 {
         return Err(TableError::InvalidRequest(
             "Deposit amount cannot be 0".to_string(),
@@ -302,7 +302,7 @@ async fn kick_player(
     user_id: WalletPrincipalId,
     balance: u64,
 ) -> Result<PublicTable, TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     let mut table = {
         let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
@@ -406,7 +406,7 @@ async fn leave_table(
     users_canister_id: UsersCanisterId,
     user_id: WalletPrincipalId,
 ) -> Result<PublicTable, TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     let (mut table, balance) = {
         let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
@@ -520,7 +520,7 @@ async fn leave_table_for_table_balancing(
     user_id: WalletPrincipalId,
     table_to_move_to_id: TableId,
 ) -> Result<PublicTable, TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     let mut table = {
         let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
@@ -582,7 +582,7 @@ async fn leave_table_for_table_balancing(
 
 #[ic_cdk::update]
 async fn withdraw_from_table(user_id: WalletPrincipalId, amount: u64) -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     handle_table_validity_check()?;
     if amount == 0 {
         return Err(TableError::InvalidRequest(
@@ -653,7 +653,7 @@ async fn deposit_to_table(
     amount: u64,
     is_queued: bool,
 ) -> Result<ReturnResult, TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     if amount == 0 {
         return Err(TableError::InvalidRequest(
             "Deposit amount cannot be 0".to_string(),
@@ -757,11 +757,11 @@ async fn deposit_to_table(
 }
 
 #[ic_cdk::update]
-fn set_player_action(
+async fn set_player_action(
     user_principal: WalletPrincipalId,
     player_action: PlayerAction,
 ) -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
     let user = table_state
@@ -784,7 +784,7 @@ fn set_player_action(
 
 // #[ic_cdk::update]
 // fn set_auto_check_fold(user_principal: WalletPrincipalId, enabled: bool) -> Result<(), TableError> {
-//     handle_cycle_check();
+//     handle_cycle_check().await;
 //     let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
 //     let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
 //     let user = table_state
@@ -829,8 +829,8 @@ fn set_player_action(
 // }
 
 #[ic_cdk::update]
-fn player_sitting_out(user_principal: WalletPrincipalId) -> Result<(), TableError> {
-    handle_cycle_check();
+async fn player_sitting_out(user_principal: WalletPrincipalId) -> Result<(), TableError> {
+    handle_cycle_check().await;
     let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
     let user = table_state
@@ -865,7 +865,7 @@ async fn player_sitting_in(
     user_id: WalletPrincipalId,
     auto_start: bool,
 ) -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     let mut table_state = {
         let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
         let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
@@ -951,8 +951,8 @@ async fn player_sitting_in(
 }
 
 #[ic_cdk::update]
-fn place_bet(user_principal: WalletPrincipalId, bet_type: BetType) -> Result<(), TableError> {
-    handle_cycle_check();
+async fn place_bet(user_principal: WalletPrincipalId, bet_type: BetType) -> Result<(), TableError> {
+    handle_cycle_check().await;
 
     let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
@@ -986,8 +986,8 @@ fn place_bet(user_principal: WalletPrincipalId, bet_type: BetType) -> Result<(),
 }
 
 #[ic_cdk::update]
-fn fold(user_principal: WalletPrincipalId, is_pre_fold: bool) -> Result<(), TableError> {
-    handle_cycle_check();
+async fn fold(user_principal: WalletPrincipalId, is_pre_fold: bool) -> Result<(), TableError> {
+    handle_cycle_check().await;
 
     let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
@@ -1017,8 +1017,8 @@ fn fold(user_principal: WalletPrincipalId, is_pre_fold: bool) -> Result<(), Tabl
 }
 
 #[ic_cdk::update]
-fn check(user_principal: WalletPrincipalId) -> Result<(), TableError> {
-    handle_cycle_check();
+async fn check(user_principal: WalletPrincipalId) -> Result<(), TableError> {
+    handle_cycle_check().await;
 
     let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
@@ -1062,8 +1062,8 @@ fn check(user_principal: WalletPrincipalId) -> Result<(), TableError> {
 }
 
 #[ic_cdk::update]
-fn handle_timer_expiration(user_id: WalletPrincipalId) -> Result<(), TableError> {
-    handle_cycle_check();
+async fn handle_timer_expiration(user_id: WalletPrincipalId) -> Result<(), TableError> {
+    handle_cycle_check().await;
     let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
     let backend_principal = BACKEND_PRINCIPAL
@@ -1092,7 +1092,7 @@ fn handle_timer_expiration(user_id: WalletPrincipalId) -> Result<(), TableError>
 
 #[ic_cdk::update]
 async fn start_new_betting_round() -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     let raw_bytes = ic_cdk::management_canister::raw_rand().await;
     let mut raw_bytes = raw_bytes.map_err(|e| {
@@ -1248,7 +1248,7 @@ async fn start_new_betting_round() -> Result<(), TableError> {
 
 #[ic_cdk::update]
 async fn withdraw_rake(rake_amount: u64) -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     handle_table_validity_check()?;
 
     let table = {
@@ -1475,7 +1475,7 @@ async fn transfer_cycles_to_table_index(cycles_amount: u128) -> Result<(), Table
 
 #[ic_cdk::update]
 async fn update_blinds(small_blind: SmallBlind, big_blind: BigBlind, ante: AnteType) -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table = table.as_mut().ok_or(TableError::TableNotFound)?;
@@ -1510,7 +1510,7 @@ async fn update_blinds(small_blind: SmallBlind, big_blind: BigBlind, ante: AnteT
 
 #[ic_cdk::query]
 async fn get_free_seat_index() -> Result<Option<u8>, TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     let table = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table = table.as_ref().ok_or(TableError::TableNotFound)?;
@@ -1520,7 +1520,7 @@ async fn get_free_seat_index() -> Result<Option<u8>, TableError> {
 
 #[ic_cdk::update]
 async fn clear_table() -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     {
         let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
         let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
@@ -1586,8 +1586,8 @@ fn get_seat_index(user: WalletPrincipalId) -> Result<Option<u8>, TableError> {
 }
 
 #[ic_cdk::update]
-fn pause_table() -> Result<(), TableError> {
-    handle_cycle_check();
+async fn pause_table() -> Result<(), TableError> {
+    handle_cycle_check().await;
 
     let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table = table.as_mut().ok_or(TableError::TableNotFound)?;
@@ -1605,8 +1605,8 @@ fn pause_table() -> Result<(), TableError> {
 }
 
 #[ic_cdk::update]
-fn pause_table_for_addon(duration: u64) -> Result<(), TableError> {
-    handle_cycle_check();
+async fn pause_table_for_addon(duration: u64) -> Result<(), TableError> {
+    handle_cycle_check().await;
 
     let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table = table.as_mut().ok_or(TableError::TableNotFound)?;
@@ -1638,7 +1638,7 @@ fn pause_table_for_addon(duration: u64) -> Result<(), TableError> {
 
 #[ic_cdk::update]
 async fn resume_table() -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     ic_cdk::println!("Resuming table");
     let is_paused = {
         let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
@@ -1670,7 +1670,7 @@ async fn resume_table() -> Result<(), TableError> {
 
 #[ic_cdk::update]
 async fn set_as_final_table() -> Result<(), TableError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
     let table = table.as_mut().ok_or(TableError::TableNotFound)?;
     let backend_principal = BACKEND_PRINCIPAL
@@ -1742,13 +1742,13 @@ async fn get_players_on_table() -> Result<Vec<WalletPrincipalId>, TableError> {
 // Chat functions
 
 #[ic_cdk::update]
-fn send_chat_message(
+async fn send_chat_message(
     user_principal: WalletPrincipalId,
     content: String,
     message_type: ChatMessageType,
     recipient: Option<Principal>,
 ) -> Result<u64, ChatError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     // Validate the user is in the table
     let table_state = TABLE
@@ -1800,12 +1800,12 @@ fn send_chat_message(
 }
 
 #[ic_cdk::update]
-fn edit_chat_message(
+async fn edit_chat_message(
     user_principal: WalletPrincipalId,
     message_id: u64,
     new_content: String,
 ) -> Result<(), ChatError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     // Validate the user is in the table
     let table_state = TABLE
@@ -1867,8 +1867,8 @@ fn get_chat_messages_for_user(user_principal: WalletPrincipalId) -> Result<Vec<C
 }
 
 #[ic_cdk::update]
-fn clear_chat_history() -> Result<(), ChatError> {
-    handle_cycle_check();
+async fn clear_chat_history() -> Result<(), ChatError> {
+    handle_cycle_check().await;
 
     // Only allow the backend to clear chat history
     let backend_principal = BACKEND_PRINCIPAL
@@ -1894,7 +1894,7 @@ async fn get_canister_status_formatted() -> Result<String, TableError> {
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
 
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     // Call the management canister to get status
     let canister_status_arg = CanisterStatusArgs {
