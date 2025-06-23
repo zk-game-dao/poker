@@ -10,9 +10,7 @@ use intercanister_call_wrappers::tournament_canister::{
 use serde::{Deserialize, Serialize};
 use table::poker::game::table_functions::{table::TableConfig, types::CurrencyType};
 use tournaments::tournaments::{
-    spin_and_go::SpinGoMultiplier,
-    tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentData, TournamentId},
+    payouts::PayoutStructure, spin_and_go::SpinGoMultiplier, tournament_type::{BuyInOptions, TournamentSizeType, TournamentType}, types::{NewTournament, NewTournamentSpeedType, PayoutPercentage, TournamentData, TournamentId}
 };
 use user::user::{UsersCanisterId, WalletPrincipalId};
 
@@ -196,16 +194,13 @@ pub async fn create_spin_go_tournament(buy_in: u64) -> Result<TournamentId, Tour
         ),
         start_time: 0, // Will start when full
         buy_in: template.buy_in,
+        guaranteed_prize_pool: None,
         currency: CurrencyType::Real(template.currency),
         speed_type: NewTournamentSpeedType::HyperTurbo(20),
         max_players: 3,
         min_players: 3,
         starting_chips: template.starting_chips,
         late_registration_duration_ns: 0,
-        payout_structure: vec![PayoutPercentage {
-            position: 1,
-            percentage: 100,
-        }],
         require_proof_of_humanity: false,
     };
 

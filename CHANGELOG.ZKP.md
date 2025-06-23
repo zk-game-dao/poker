@@ -7,6 +7,7 @@
 - Add an admin system.
 - Add flagging and banning of users by admins.
 - Add dynamic calculation for tournament payouts.
+- Add dynamic calculations and request calls for guaranteed tournament prize pools.
 
 ## [2.3.2] - 2025-06-10
 

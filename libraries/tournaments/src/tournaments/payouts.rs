@@ -8,6 +8,12 @@ pub struct PayoutStructure {
     pub payouts: Vec<PayoutPercentage>,
 }
 
+impl Default for PayoutStructure {
+    fn default() -> Self {
+        Self { payouts: Vec::new() }
+    }
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct PayoutPercentage {
     pub position: u16,

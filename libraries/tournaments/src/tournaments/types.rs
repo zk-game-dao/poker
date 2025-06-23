@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use table::poker::game::table_functions::{table::{TableConfig, TableId}, types::CurrencyType};
 use user::user::{UsersCanisterId, WalletPrincipalId};
 
-use crate::tournaments::payouts::PayoutPercentage;
+use crate::tournaments::payouts::{calculate_dynamic_payout_structure, PayoutStructure};
 
 use super::{
     blind_level::{BlindLevel, SpeedType},
@@ -36,6 +36,7 @@ pub struct TournamentData {
 
     pub currency: CurrencyType,
     pub buy_in: u64,
+    pub guaranteed_prize_pool: Option<u64>, // For guaranteed tournaments
     pub starting_chips: u64,
     pub speed_type: SpeedType,
 
@@ -43,7 +44,7 @@ pub struct TournamentData {
     pub max_players: u32,
 
     pub late_registration_duration_ns: u64,
-    pub payout_structure: Vec<PayoutPercentage>,
+    pub payout_structure: PayoutStructure,
     pub tournament_type: TournamentType,
 
     pub current_players: HashMap<WalletPrincipalId, UserTournamentData>,
@@ -88,12 +89,13 @@ impl Default for TournamentData {
             hero_picture: "".to_string(),
             currency: CurrencyType::Fake,
             buy_in: 0,
+            guaranteed_prize_pool: None,
             starting_chips: 0,
             speed_type: SpeedType::new_default(0, 0),
             min_players: 0,
             max_players: 0,
             late_registration_duration_ns: 0,
-            payout_structure: vec![],
+            payout_structure: PayoutStructure::default(),
             tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
                 BuyInOptions::new_freezout(),
             )),
@@ -180,12 +182,12 @@ pub struct NewTournament {
     pub hero_picture: String,
     pub currency: CurrencyType,
     pub buy_in: u64,
+    pub guaranteed_prize_pool: Option<u64>, // For guaranteed tournaments
     pub starting_chips: u64,
     pub speed_type: NewTournamentSpeedType,
     pub min_players: u8,
     pub max_players: u32,
     pub late_registration_duration_ns: u64,
-    pub payout_structure: Vec<PayoutPercentage>,
     pub tournament_type: TournamentType,
     pub start_time: u64,
     pub require_proof_of_humanity: bool,
@@ -302,12 +304,13 @@ impl TournamentData {
             hero_picture: new_tournament_data.hero_picture,
             currency: new_tournament_data.currency,
             buy_in: new_tournament_data.buy_in,
+            guaranteed_prize_pool: new_tournament_data.guaranteed_prize_pool,
             starting_chips: new_tournament_data.starting_chips,
             speed_type,
             min_players: new_tournament_data.min_players,
             max_players: new_tournament_data.max_players,
             late_registration_duration_ns: new_tournament_data.late_registration_duration_ns,
-            payout_structure: new_tournament_data.payout_structure,
+            payout_structure: PayoutStructure::default(),
             tournament_type,
             current_players: HashMap::new(),
             all_players: HashMap::new(),
@@ -355,7 +358,7 @@ impl TournamentData {
         );
 
         // Set payout structure from the selected multiplier
-        tournament.payout_structure = selected_multiplier.payout_structure;
+        tournament.payout_structure = PayoutStructure { payouts: selected_multiplier.payout_structure };
 
         // No late registration for Spin and Go
         tournament.late_registration_duration_ns = 0;
@@ -420,15 +423,6 @@ impl TournamentData {
             ));
         };
 
-        // Validate payout structure
-        let total_percentage: u8 = self.payout_structure.iter().map(|p| p.percentage).sum();
-
-        if total_percentage != 100 {
-            return Err(TournamentError::InvalidConfiguration(
-                "Payout percentages must sum to 100".to_string(),
-            ));
-        }
-
         match &self.tournament_type {
             TournamentType::BuyIn(TournamentSizeType::SingleTable(option))
             | TournamentType::BuyIn(TournamentSizeType::MultiTable(option, _))
@@ -488,6 +482,18 @@ impl TournamentData {
                     "Could not get user tournament data".to_string(),
                 )),
         }
+    }
+
+    pub fn calculate_payouts(&mut self) -> Result<(), TournamentError> {
+        let total_players = self.all_players.len() as u32;
+        let payout_structure = calculate_dynamic_payout_structure(
+            total_players,
+            &self.tournament_type,
+        );
+
+        self.payout_structure = payout_structure;
+
+        Ok(())
     }
 }
 

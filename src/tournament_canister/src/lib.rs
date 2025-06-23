@@ -11,8 +11,7 @@ use intercanister_call_wrappers::{
         add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller,
         handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper,
         user_leave_tournament_wrapper,
-    },
-    users_canister::get_user_wrapper,
+    }, tournament_index::request_withdrawal_wrapper, users_canister::get_user_wrapper
 };
 use lazy_static::lazy_static;
 use user::user::{UsersCanisterId, WalletPrincipalId};
@@ -936,6 +935,8 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
             .as_mut()
             .ok_or(TournamentError::TournamentNotFound)?;
 
+        tournament.calculate_payouts()?;
+
         ic_cdk::println!("---------------- Tournament end all players contains:");
         for (player, data) in &tournament.all_players {
             ic_cdk::println!("Player: {:?}, data: {:?}", player.0.to_text(), data);
@@ -944,6 +945,29 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
         ic_cdk::println!("---------------- Tournament end current players contains:");
         for (player, data) in &tournament.current_players {
             ic_cdk::println!("Player: {:?}, data: {:?}", player.0.to_text(), data);
+        }
+        if let Some(guaranteed_prize_pool) = tournament.guaranteed_prize_pool {
+            let prize_pool = PRIZE_POOL.load(Ordering::SeqCst);
+            let tournament_index = {
+                TOURNAMENT_INDEX
+                    .lock()
+                    .map_err(|_| TournamentError::LockError)?
+                    .clone()
+                    .ok_or(TournamentError::TournamentIndexNotFound)?
+            };
+            if prize_pool < guaranteed_prize_pool && tournament.currency != CurrencyType::Fake {
+                let currency = match tournament.currency {
+                    CurrencyType::Real(currency) => currency,
+                    CurrencyType::Fake => {
+                        return Err(TournamentError::InvalidConfiguration(
+                            "Fake currency cannot have guaranteed prize pool".to_string(),
+                        ))
+                    }
+                };
+                request_withdrawal_wrapper(tournament_index, currency, prize_pool - guaranteed_prize_pool)
+                    .await
+                    .map_err(|e| TournamentError::CanisterCallError(format!("{:?}", e)))?;
+            }
         }
         valid_callers.push(tournament.id.0);
     }

@@ -597,6 +597,29 @@ async fn withdraw_cketh(principal: Principal, amount: u64) -> Result<(), Tournam
 }
 
 #[ic_cdk::update]
+async fn request_withdrawal(
+    currency: Currency,
+    amount: u64,
+) -> Result<(), TournamentIndexError> {
+    let active_tournaments = {STATE.lock().map_err(|_| TournamentIndexError::LockError)?.active_tournaments.clone()};
+    let valid_callers = active_tournaments
+        .iter()
+        .map(|t| t.0)
+        .collect::<Vec<Principal>>();
+    validate_caller(valid_callers);
+
+    let currency_manager = {
+        CURRENCY_MANAGER
+            .lock()
+            .map_err(|_| TournamentIndexError::LockError)?
+            .clone()
+    };
+    currency_manager.withdraw(&currency, ic_cdk::api::msg_caller(), amount + currency_manager.get_fee(&currency)).await.map_err(|e| {
+        TournamentIndexError::CanisterCallFailed(format!("Failed to withdraw: {:?}", e))
+    })
+}
+
+#[ic_cdk::update]
 async fn register_token(ledger_id: Principal) -> Result<Currency, TournamentIndexError> {
     // Verify the token implements ICRC-1
     let wallet = GenericICRC1TokenWallet::new(ledger_id).await.map_err(|e| {

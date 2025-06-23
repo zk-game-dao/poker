@@ -2557,6 +2557,7 @@ dependencies = [
  "candid",
  "canister_functions",
  "clan",
+ "currency",
  "errors",
  "ic-cdk",
  "table",
