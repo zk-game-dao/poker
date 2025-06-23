@@ -25,12 +25,19 @@ const MIN_HEARTBEAT_INTERVAL: u64 = 60_000_000_000; // 1 minute in nanoseconds
 
 #[ic_cdk::heartbeat]
 async fn heartbeat() {
-    let start_time = TOURNAMENT_START_TIME.load(Ordering::Relaxed);
-
     let current_time = ic_cdk::api::time();
     let last_beat = LAST_HEARTBEAT.load(Ordering::Relaxed);
 
     if current_time - last_beat < MIN_HEARTBEAT_INTERVAL {
+        return;
+    }
+
+    handle_cycle_check_async().await;
+
+    let start_time = TOURNAMENT_START_TIME.load(Ordering::Relaxed);
+
+    const ONE_HOUR_NS: u64 = 3_600_000_000_000;
+    if current_time < start_time.saturating_sub(ONE_HOUR_NS) {
         return;
     }
 

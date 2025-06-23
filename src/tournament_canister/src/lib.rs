@@ -40,7 +40,7 @@ use tournaments::tournaments::{
     utils::calculate_rake,
 };
 use utils::{
-    add_to_tournament_prize_pool, handle_addon, handle_cycle_check, handle_cycle_check_async,
+    add_to_tournament_prize_pool, handle_addon, handle_cycle_check_async,
     handle_invalid_join, handle_lost_user_rebuy_availability, handle_rebuy, handle_reentry,
     handle_refund, handle_tournament_deposit, transfer_cycles_to_tournament_index,
     update_live_leaderboard, update_tournament_state, LEADERBOARD_UPDATE_INTERVAL,
@@ -373,7 +373,7 @@ async fn user_join_tournament(
 
 #[ic_cdk::update]
 async fn handle_cancelled_tournament() -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let mut valid_callers = CONTROLLER_PRINCIPALS.clone();
     {
         let mut tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
@@ -469,7 +469,7 @@ async fn user_leave_tournament(
     users_canister_id: UsersCanisterId,
     user_id: WalletPrincipalId,
 ) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let tournament = {
         let mut tournament_state = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
         let tournament_state = tournament_state.as_mut();
@@ -519,7 +519,7 @@ async fn user_reentry_into_tournament(
     user_id: WalletPrincipalId,
     table_id: TableId,
 ) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let tournament_state = {
         let tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
         tournament
@@ -611,7 +611,7 @@ async fn user_rebuy_into_tournament(
     user_id: WalletPrincipalId,
     table_id: TableId,
 ) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let tournament_state = {
         let tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
         tournament
@@ -695,7 +695,7 @@ async fn user_refill_chips(
     table_id: TableId,
     user_id: WalletPrincipalId,
 ) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let tournament = {
         let tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
         tournament
@@ -760,7 +760,7 @@ async fn user_refill_chips(
 
 #[ic_cdk::update]
 async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let mut valid_callers = CONTROLLER_PRINCIPALS.clone();
     {
         let mut tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
@@ -937,6 +937,11 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
 
         tournament.calculate_payouts()?;
 
+        ic_cdk::println!("Payout structure:");
+        for (position, payout) in tournament.payout_structure.payouts.iter().enumerate() {
+            ic_cdk::println!("Position: {}, Percentage: {}", position + 1, payout.percentage);
+        }
+
         ic_cdk::println!("---------------- Tournament end all players contains:");
         for (player, data) in &tournament.all_players {
             ic_cdk::println!("Player: {:?}, data: {:?}", player.0.to_text(), data);
@@ -1038,7 +1043,7 @@ async fn deposit_prize_pool(
     wallet_principal_id: WalletPrincipalId,
     is_admin: bool,
 ) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let tournament = {
         let tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
         let tournament = tournament
@@ -1101,7 +1106,7 @@ async fn handle_user_losing(
     user_principal: WalletPrincipalId,
     table_id: TableId,
 ) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
 
     let tournament = {
         let tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
@@ -1300,8 +1305,9 @@ async fn move_player_from_to_table(
 const CYCLES_TOP_UP_AMOUNT: u128 = 750_000_000_000;
 
 #[ic_cdk::update]
-async fn request_cycles() -> Result<(), TournamentError> {
-    handle_cycle_check();
+async fn request_cycles() -> Result<(), CanisterManagementError> {
+    handle_cycle_check_async().await;
+
     let cycles = ic_cdk::api::canister_cycle_balance();
     let caller = TableId(ic_cdk::api::msg_caller());
     ic_cdk::println!(
@@ -1310,27 +1316,25 @@ async fn request_cycles() -> Result<(), TournamentError> {
         caller.0.to_text()
     );
     if cycles < CYCLES_TOP_UP_AMOUNT {
-        return Err(TournamentError::ManagementCanisterError(
-            CanisterManagementError::InsufficientCycles,
-        ));
+        return Err(CanisterManagementError::InsufficientCycles);
     }
 
     transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
-async fn transfer_cycles(cycles_amount: u128, caller: TableId) -> Result<(), TournamentError> {
+async fn transfer_cycles(cycles_amount: u128, caller: TableId) -> Result<(), CanisterManagementError> {
     {
-        let tournament = TOURNAMENT.lock().map_err(|_| TournamentError::LockError)?;
+        let tournament = TOURNAMENT.lock().map_err(|_| CanisterManagementError::LockError)?;
         let tournament = tournament
             .as_ref()
-            .ok_or(TournamentError::TournamentNotFound)?;
+            .ok_or(TournamentError::TournamentNotFound)
+            .map_err(|e| CanisterManagementError::ManagementCanisterError(format!("{:?}", e)))?;
         if !tournament.tables.contains_key(&caller) {
-            return Err(TournamentError::ManagementCanisterError(
-                CanisterManagementError::Transfer(format!(
+            return Err(CanisterManagementError::Transfer(format!(
                     "Caller is not a valid destination: {}",
                     caller.0.to_text()
                 )),
-            ));
+            );
         }
     }
 
@@ -1344,7 +1348,7 @@ async fn get_canister_status_formatted() -> Result<String, TournamentError> {
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
 
-    handle_cycle_check();
+    handle_cycle_check_async().await;
 
     // Call the management canister to get status
     let canister_status_arg = CanisterStatusArgs {

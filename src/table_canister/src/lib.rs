@@ -286,7 +286,7 @@ async fn join_table(
     let caller = WalletPrincipalId(ic_cdk::api::msg_caller());
     table_state.hide_cards(caller).map_err(|e| e.into_inner())?;
     let res = match table_state.config.table_type {
-        Some(TableType::Cash) | None => update_table_player_count(table_state.users.len()),
+        Some(TableType::Cash) => update_table_player_count(table_state.users.len()),
         _ => update_player_count_tournament(UserTournamentAction::Join(user_id)),
     };
     if let Err(e) = res {
@@ -386,7 +386,13 @@ async fn kick_player(
 
     let caller = WalletPrincipalId(ic_cdk::api::msg_caller());
     table.hide_cards(caller).map_err(|e| e.into_inner())?;
-    let _ = update_table_player_count(table.users.len());
+    let res = match table.config.table_type {
+        Some(TableType::Cash) => update_table_player_count(table.users.len()),
+        _ => update_player_count_tournament(UserTournamentAction::Join(user_id)),
+    };
+    if let Err(e) = res {
+        ic_cdk::println!("Error updating table player count: {:?}", e);
+    }
 
     if table.users.users.is_empty() {
         handle_last_user_leaving().await?;
@@ -494,7 +500,7 @@ async fn leave_table(
     let caller = WalletPrincipalId(ic_cdk::api::msg_caller());
     table.hide_cards(caller).map_err(|e| e.into_inner())?;
     let res = match table.config.table_type {
-        Some(TableType::Cash) | None => update_table_player_count(table.users.len()),
+        Some(TableType::Cash) => update_table_player_count(table.users.len()),
         _ => update_player_count_tournament(UserTournamentAction::Leave(user_id)),
     };
     if let Err(e) = res {
@@ -564,7 +570,7 @@ async fn leave_table_for_table_balancing(
     let caller = WalletPrincipalId(ic_cdk::api::msg_caller());
     table.hide_cards(caller).map_err(|e| e.into_inner())?;
     let res = match table.config.table_type {
-        Some(TableType::Cash) | None => update_table_player_count(table.users.len()),
+        Some(TableType::Cash) => update_table_player_count(table.users.len()),
         _ => update_player_count_tournament(UserTournamentAction::Leave(user_id)),
     };
     if let Err(e) = res {
@@ -1099,7 +1105,7 @@ async fn start_new_betting_round() -> Result<(), TableError> {
     // Reshuffle the bytes using time as seed
     reshuffle_bytes_hash(&mut raw_bytes, time_seed);
 
-    let (kicked_players, action_logs, table_id, total_users, seated_out_kicked_players, users) = {
+    let (kicked_players, action_logs, table_id, seated_out_kicked_players, users) = {
         let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;
         let table_state = table_state.as_mut().ok_or(TableError::TableNotFound)?;
         let backend_principal = BACKEND_PRINCIPAL
@@ -1147,37 +1153,10 @@ async fn start_new_betting_round() -> Result<(), TableError> {
             kicked_players,
             action_logs,
             table_state.id,
-            table_state.users.len(),
             seated_out_kicked_players,
             table_state.users.clone(),
         )
     };
-
-    if !kicked_players.is_empty() || !seated_out_kicked_players.is_empty() {
-        if let Err(e) = update_table_player_count(total_users) {
-            ic_cdk::println!("Error updating table player count: {}", e);
-        }
-
-        // TODO: This should be reduced to one call.
-        if !kicked_players.is_empty() {
-            for player in &kicked_players {
-                if let Err(e) =
-                    update_player_count_tournament(UserTournamentAction::Leave(player.0))
-                {
-                    ic_cdk::println!("Error updating tournament table player count: {}", e);
-                }
-            }
-        }
-        if !seated_out_kicked_players.is_empty() {
-            for player in &seated_out_kicked_players {
-                if let Err(e) =
-                    update_player_count_tournament(UserTournamentAction::Leave(player.0))
-                {
-                    ic_cdk::println!("Error updating tournament table player count: {}", e);
-                }
-            }
-        }
-    }
 
     let mut total_kicked_players = kicked_players.clone();
     total_kicked_players.extend(seated_out_kicked_players.clone());

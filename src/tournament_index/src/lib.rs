@@ -374,7 +374,7 @@ fn purge_table_pool() {
 
 #[ic_cdk::update]
 fn add_to_pool(principal: TableId) -> Result<(), TournamentIndexError> {
-    ic_cdk::println!("Adding to pool: {:?}", principal);
+    ic_cdk::println!("Adding to pool: {:?}", principal.0.to_text());
     {
         let tournament_index = STATE.lock().map_err(|_| TournamentIndexError::LockError)?;
         let valid_callers: Vec<Principal> = tournament_index

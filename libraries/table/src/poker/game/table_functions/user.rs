@@ -172,7 +172,7 @@ impl Table {
         seat_index: u8,
         player_sitting_out: bool,
     ) -> Result<(), TracedError<GameError>> {
-        ic_cdk::println!("Adding user to table: {:?}", user.principal_id);
+        ic_cdk::println!("Adding user to table: {:?}", user.principal_id.0.to_text());
         // Check table capacity
         if self.number_of_players() as u8 == self.config.seats {
             return Err(trace_err!(TracedError::new(GameError::GameFull)));

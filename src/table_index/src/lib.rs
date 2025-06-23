@@ -19,7 +19,7 @@ use lazy_static::lazy_static;
 use user::user::{UsersCanisterId, WalletPrincipalId};
 use std::{cmp::Ordering, collections::HashMap, sync::Mutex};
 use table::poker::game::{
-    table_functions::{rake::Rake, table::{SmallBlind, TableConfig, TableId}, types::CurrencyType},
+    table_functions::{rake::Rake, table::{SmallBlind, TableConfig, TableId, TableType}, types::CurrencyType},
     types::{GameType, PublicTable},
 };
 use table::table_canister::{
@@ -119,11 +119,13 @@ async fn create_table(
     let config = if *ENABLE_RAKE {
         TableConfig {
             enable_rake: Some(true),
+            table_type: Some(TableType::Cash),
             ..config
         }
     } else {
         TableConfig {
             enable_rake: Some(false),
+            table_type: Some(TableType::Cash),
             ..config
         }
     };
@@ -513,39 +515,35 @@ async fn delete_all_tables() -> Result<Vec<Result<(), TableIndexError>>, TableIn
 const CYCLES_TOP_UP_AMOUNT: u128 = 750_000_000_000;
 
 #[ic_cdk::update]
-async fn request_cycles() -> Result<(), TableIndexError> {
+async fn request_cycles() -> Result<(), CanisterManagementError> {
     let cycles = ic_cdk::api::canister_cycle_balance();
     let caller = TableId(ic_cdk::api::msg_caller());
     if cycles < CYCLES_TOP_UP_AMOUNT {
-        return Err(TableIndexError::ManagementCanisterError(
-            CanisterManagementError::InsufficientCycles,
-        ));
+        return Err(CanisterManagementError::InsufficientCycles);
     }
 
     transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
-async fn transfer_cycles(cycles_amount: u128, caller: TableId) -> Result<(), TableIndexError> {
+async fn transfer_cycles(cycles_amount: u128, caller: TableId) -> Result<(), CanisterManagementError> {
     let public_table_index_state = PUBLIC_TABLE_INDEX_STATE
         .lock()
-        .map_err(|_| TableIndexError::LockError)?
+        .map_err(|_| CanisterManagementError::LockError)?
         .tables
         .clone();
     let private_table_index_state = PRIVATE_TABLE_INDEX_STATE
         .lock()
-        .map_err(|_| TableIndexError::LockError)?
+        .map_err(|_| CanisterManagementError::LockError)?
         .tables
         .clone();
 
     if !public_table_index_state.contains_key(&caller)
         && !private_table_index_state.contains_key(&caller)
     {
-        return Err(TableIndexError::ManagementCanisterError(
-            CanisterManagementError::Transfer(format!(
+        return Err(CanisterManagementError::Transfer(format!(
                 "Caller is not a valid destination: {}",
                 caller.0.to_text()
-            )),
-        ));
+            )));
     }
 
     top_up_canister(caller.0, cycles_amount).await?;

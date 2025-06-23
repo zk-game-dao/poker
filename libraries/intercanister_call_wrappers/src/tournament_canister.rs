@@ -194,8 +194,8 @@ pub async fn ensure_principal_is_controller(
     if is_already_controller {
         ic_cdk::println!(
             "Principal {:?} is already a controller of canister {:?}",
-            principal,
-            canister_id
+            principal.to_text(),
+            canister_id.to_text()
         );
         return Ok(());
     }
@@ -203,8 +203,8 @@ pub async fn ensure_principal_is_controller(
     // Principal is not a controller, so we need to add it
     ic_cdk::println!(
         "Adding principal {:?} as controller for canister {:?}",
-        principal,
-        canister_id
+        principal.to_text(),
+        canister_id.to_text()
     );
 
     // Get the current controllers and append the new principal

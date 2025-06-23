@@ -1,6 +1,7 @@
 type CKTokenSymbol = variant { ETH; USDC; USDT };
 type CanisterManagementError = variant {
   CreateCanisterError : text;
+  LockError;
   InsufficientCycles;
   ManagementCanisterError : text;
   LedgerError : text;

@@ -74,6 +74,7 @@ type BuyInOptions = record {
 type CKTokenSymbol = variant { ETH; USDC; USDT };
 type CanisterManagementError = variant {
   CreateCanisterError : text;
+  LockError;
   InsufficientCycles;
   ManagementCanisterError : text;
   LedgerError : text;
@@ -249,6 +250,7 @@ type Result_4 = variant {
   Ok : vec record { principal; nat64 };
   Err : TournamentError;
 };
+type Result_5 = variant { Ok; Err : CanisterManagementError };
 type SeatStatus = variant {
   Empty;
   QueuedForNextRound : record { principal; User; bool };
@@ -524,7 +526,7 @@ service : () -> {
   handle_user_losing : (principal, principal) -> (Result);
   move_player_from_to_table : (principal, principal) -> (Result);
   ping : () -> (text) query;
-  request_cycles : () -> (Result);
+  request_cycles : () -> (Result_5);
   return_all_cycles_to_tournament_index : () -> (Result);
   update_player_count_tournament : (principal, UserTournamentAction) -> (
       Result,

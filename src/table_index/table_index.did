@@ -54,6 +54,7 @@ type BanType = variant {
 type CKTokenSymbol = variant { ETH; USDC; USDT };
 type CanisterManagementError = variant {
   CreateCanisterError : text;
+  LockError;
   InsufficientCycles;
   ManagementCanisterError : text;
   LedgerError : text;
@@ -225,6 +226,7 @@ type Rank = variant {
 };
 type Result = variant { Ok : PublicTable; Err : TableIndexError };
 type Result_1 = variant { Ok; Err : TableIndexError };
+type Result_10 = variant { Ok; Err : TableError };
 type Result_2 = variant { Ok : vec Result_1; Err : TableIndexError };
 type Result_3 = variant { Ok : opt text; Err : TableIndexError };
 type Result_4 = variant {
@@ -234,11 +236,11 @@ type Result_4 = variant {
 type Result_5 = variant { Ok : GlobalRakeStats; Err : TableIndexError };
 type Result_6 = variant { Ok : vec principal; Err : TableIndexError };
 type Result_7 = variant { Ok : text; Err : TableIndexError };
-type Result_8 = variant {
+type Result_8 = variant { Ok; Err : CanisterManagementError };
+type Result_9 = variant {
   Ok : vec record { principal; CanisterManagementError };
   Err : TableIndexError;
 };
-type Result_9 = variant { Ok; Err : TableError };
 type SeatStatus = variant {
   Empty;
   QueuedForNextRound : record { principal; User; bool };
@@ -440,10 +442,10 @@ service : () -> {
   purge_dud_tables : () -> (Result_1);
   quick_join_table : (principal, principal, nat64, CurrencyType) -> (Result);
   remove_table_from_indexes : (principal) -> (Result_1);
-  request_cycles : () -> (Result_1);
+  request_cycles : () -> (Result_8);
   top_up_table_canister : (principal, nat) -> (Result_1);
   update_table_player_count : (principal, nat64) -> (Result_1);
-  upgrade_all_table_canisters : () -> (Result_8);
+  upgrade_all_table_canisters : () -> (Result_9);
   upgrade_table_canister : (principal) -> (Result_1);
-  withdraw_rake : (nat64) -> (Result_9);
+  withdraw_rake : (nat64) -> (Result_10);
 }

@@ -27,6 +27,7 @@ type BuyInOptions = record {
 type CKTokenSymbol = variant { ETH; USDC; USDT };
 type CanisterManagementError = variant {
   CreateCanisterError : text;
+  LockError;
   InsufficientCycles;
   ManagementCanisterError : text;
   LedgerError : text;
@@ -160,7 +161,8 @@ type Result_3 = variant { Ok : opt principal; Err : TournamentIndexError };
 type Result_4 = variant { Ok : text; Err : TournamentIndexError };
 type Result_5 = variant { Ok : nat64; Err : TournamentIndexError };
 type Result_6 = variant { Ok : Currency; Err : TournamentIndexError };
-type Result_7 = variant {
+type Result_7 = variant { Ok; Err : CanisterManagementError };
+type Result_8 = variant {
   Ok : vec record { principal; CanisterManagementError };
   Err : TournamentIndexError;
 };
@@ -397,10 +399,10 @@ service : () -> {
   ping : () -> (text) query;
   purge_table_pool : () -> ();
   register_token : (principal) -> (Result_6);
-  request_cycles : () -> (Result);
+  request_cycles : () -> (Result_7);
   request_withdrawal : (Currency, nat64) -> (Result);
   update_tournament_state : (principal, TournamentState) -> (Result);
-  upgrade_all_tournament_canisters : () -> (Result_7);
+  upgrade_all_tournament_canisters : () -> (Result_8);
   upgrade_tournament_canister : (principal) -> (Result);
   withdraw_ckbtc : (principal, nat64) -> (Result);
   withdraw_cketh : (principal, nat64) -> (Result);

@@ -33,4 +33,7 @@ pub enum CanisterManagementError {
 
     #[error("Failed to call canister: {0}")]
     CanisterCallError(String),
+
+    #[error("Lock error")]
+    LockError
 }

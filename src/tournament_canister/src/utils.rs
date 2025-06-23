@@ -67,50 +67,6 @@ pub fn get_canister_state() -> CanisterState {
     }
 }
 
-pub fn handle_cycle_check() {
-    let cycles = ic_cdk::api::canister_cycle_balance();
-    if cycles >= MINIMUM_CYCLE_THRESHOLD {
-        return;
-    }
-    ic_cdk::println!("%%%%%%%%%%% Cycles balance is low: {}", Nat::from(cycles));
-
-    ic_cdk::futures::spawn(async {
-        let tournament_index_result = TOURNAMENT_INDEX.lock();
-        let tournament_index = match tournament_index_result {
-            Ok(lock) => match *lock {
-                Some(index) => index,
-                None => {
-                    ic_cdk::println!("User not found");
-                    return; // or perform some error handling
-                }
-            },
-            Err(_) => {
-                ic_cdk::println!("Lock error occurred");
-                return; // or handle the lock error
-            }
-        };
-
-        ic_cdk::println!(
-            "%%%%%%%%%%%%%%%% Requesting cycles from tournament index: {:?}",
-            tournament_index.to_text()
-        );
-
-        if let Err(e) = check_and_top_up_canister(
-            ic_cdk::api::canister_self(),
-            tournament_index,
-            MINIMUM_CYCLE_THRESHOLD,
-        )
-        .await
-        {
-            ic_cdk::println!("Failed to top up canister: {:?}", e);
-        }
-        ic_cdk::println!(
-            "%%%%%%%%%%%%%%%% Finished requesting cycles: {}",
-            Nat::from(ic_cdk::api::canister_cycle_balance())
-        );
-    });
-}
-
 pub async fn handle_cycle_check_async() {
     let cycles = ic_cdk::api::canister_cycle_balance();
     if cycles >= MINIMUM_CYCLE_THRESHOLD {
@@ -158,7 +114,7 @@ pub async fn create_table(
     table_config: TableConfig,
     table_canister: Option<Principal>,
 ) -> Result<PublicTable, TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let controllers = CONTROLLER_PRINCIPALS.clone();
     let wasm_module = TABLE_CANISTER_WASM.to_vec();
     let table_canister_principal = if let Some(table_canister) = table_canister {
@@ -322,7 +278,7 @@ pub async fn check_tournament_end(remaining_players: usize) -> Result<(), Tourna
 }
 
 pub async fn delete_table(table_principal: TableId) -> Result<(), TournamentError> {
-    handle_cycle_check();
+    handle_cycle_check_async().await;
     let res = is_game_ongoing_wrapper(table_principal).await?;
 
     if res {
