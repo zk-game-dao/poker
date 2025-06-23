@@ -2,6 +2,7 @@
 pub mod tests;
 
 pub mod blind_level;
+pub mod payouts;
 pub mod spin_and_go;
 pub mod storable;
 pub mod table_balancing;

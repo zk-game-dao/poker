@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.0] - WIP
+
+### Added
+- Add the clans system.
+- Add an admin system.
+- Add flagging and banning of users by admins.
+- Add dynamic calculation for tournament payouts.
+
 ## [2.3.2] - 2025-06-10
 
 ### Fixed

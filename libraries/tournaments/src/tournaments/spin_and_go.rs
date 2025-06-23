@@ -3,7 +3,7 @@ use errors::tournament_error::TournamentError;
 use serde::{Deserialize, Serialize};
 
 // Import your PayoutPercentage from types.rs
-use super::types::PayoutPercentage;
+use super::payouts::PayoutPercentage;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct MultiplierWithProbability {
@@ -78,11 +78,11 @@ impl SpinGoMultiplierDistribution {
             //         },
             //         PayoutPercentage {
             //             position: 2,
-            //             percentage: 10,
+            //             percentage: 15,
             //         },
             //         PayoutPercentage {
             //             position: 3,
-            //             percentage: 10,
+            //             percentage: 5,
             //         },
             //     ],
             // },
@@ -97,11 +97,11 @@ impl SpinGoMultiplierDistribution {
             //         },
             //         PayoutPercentage {
             //             position: 2,
-            //             percentage: 10,
+            //             percentage: 15,
             //         },
             //         PayoutPercentage {
             //             position: 3,
-            //             percentage: 10,
+            //             percentage: 5,
             //         },
             //     ],
             // },
@@ -116,11 +116,11 @@ impl SpinGoMultiplierDistribution {
             //         },
             //         PayoutPercentage {
             //             position: 2,
-            //             percentage: 10,
+            //             percentage: 15,
             //         },
             //         PayoutPercentage {
             //             position: 3,
-            //             percentage: 10,
+            //             percentage: 5,
             //         },
             //     ],
             // },

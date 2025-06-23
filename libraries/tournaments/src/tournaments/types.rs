@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use table::poker::game::table_functions::{table::{TableConfig, TableId}, types::CurrencyType};
 use user::user::{UsersCanisterId, WalletPrincipalId};
 
+use crate::tournaments::payouts::PayoutPercentage;
+
 use super::{
     blind_level::{BlindLevel, SpeedType},
     spin_and_go::{SpinGoMultiplier, SpinGoMultiplierDistribution},
@@ -141,12 +143,6 @@ impl Default for UserTournamentData {
             rebuys: 0,
         }
     }
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct PayoutPercentage {
-    pub position: u16,
-    pub percentage: u8, // 0-100
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
