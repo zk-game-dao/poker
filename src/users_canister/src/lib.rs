@@ -7,7 +7,7 @@ use ic_ledger_types::{AccountIdentifier, Subaccount};
 use ic_verifiable_credentials::{
     issuer_api::CredentialSpec, validate_ii_presentation_and_claims, VcFlowSigners,
 };
-use intercanister_call_wrappers::users_index::get_user_wrapper_index;
+use intercanister_call_wrappers::{users_canister::{add_referred_user_wrapper, get_users_canister_principal_by_id_wrapper}, users_index::get_user_wrapper_index};
 use lazy_static::lazy_static;
 use user::{admin::{AdminRole, BanType}, user::{User, UserAvatar, UserBalance, UsersCanisterId, WalletPrincipalId}};
 
@@ -429,6 +429,24 @@ async fn verify_credential(
         .map_err(|_| "Lock error")?;
     let user = user.get_mut(&user_id).ok_or("User not found")?;
     user.is_verified = Some(true);
+
+    match user.referrer {
+        Some(referrer_id) => {
+            let backend_principal = USER_INDEX_PRINCIPAL
+                .lock()
+                .map_err(|_| "Lock error".to_string())?
+                .clone()
+                .ok_or("User not found".to_string())?;
+            let referrer_canister = get_users_canister_principal_by_id_wrapper(backend_principal, referrer_id).await.map_err(|e| format!("{:?}", e))?;
+
+            add_referred_user_wrapper(
+                &referrer_canister,
+                referrer_id,
+                user.principal_id,
+            ).await.map_err(|e| format!("{:?}", e))?;
+        }
+        None => {}
+    }
 
     Ok(())
 }

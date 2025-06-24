@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use authentication::validate_caller;
 use candid::{CandidType, Nat, Principal};
 use clan::{
-    environment::ClanEnvironmentSettings, member::{ClanMember, MemberStatus}, subscriptions::{ClanRole, SubscriptionTier, SubscriptionTierId}, tags::ClanTag, treasury::ClanTreasury, Clan, ClanEvent, ClanId, ClanInvitation, ClanPrivacy, ClanStats, CreateClanRequest, JoinRequest
+    environment::ClanEnvironmentSettings, member::{ClanMember, MemberStatus}, subscriptions::{ClanRole, SubscriptionBenefits, SubscriptionRequirements, SubscriptionTier, SubscriptionTierId}, tags::ClanTag, treasury::ClanTreasury, Clan, ClanEvent, ClanId, ClanInvitation, ClanPrivacy, ClanStats, CreateClanRequest, JoinRequest
 };
 use currency::{
     state::TransactionState,
@@ -569,6 +569,36 @@ async fn create_subscription_tier(
         let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
 
         clan_state.update_subscription_tier(tier, &created_by)?;
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn create_custom_subscription_tier(
+    id: SubscriptionTierId,
+    name: String,
+    requirements: SubscriptionRequirements,
+    benefits: SubscriptionBenefits,
+    is_active: bool,
+    tier_order: u32,
+    creator: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        clan_state.create_custom_subscription_tier(
+            id,
+            name,
+            requirements,
+            benefits,
+            is_active,
+            tier_order,
+            &creator,
+        )?;
     }
 
     Ok(())

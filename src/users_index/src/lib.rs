@@ -14,7 +14,7 @@ use errors::{canister_management_error::CanisterManagementError, user_error::Use
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
 use ic_ledger_types::{AccountIdentifier, Subaccount, DEFAULT_SUBACCOUNT};
 use intercanister_call_wrappers::users_canister::{
-    add_referred_user_wrapper, create_user_wrapper, get_user_wrapper, update_user_wrapper
+    create_user_wrapper, get_user_wrapper, update_user_wrapper
 };
 use lazy_static::lazy_static;
 use user::user::{User, UserAvatar, UsersCanisterId, WalletPrincipalId};
@@ -197,21 +197,6 @@ async fn create_user(
                 user_index_state
                     .canister_user_count
                     .insert(user_canister, player_count);
-            }
-
-            match referrer {
-                Some(referrer_id) => {
-                    let referrer_canister = user_index_state
-                        .get_users_canister_principal(referrer_id)
-                        .ok_or(UserError::UserNotFound)?;
-
-                    add_referred_user_wrapper(
-                        referrer_canister,
-                        referrer_id,
-                        user.principal_id,
-                    ).await?;
-                }
-                None => {}
             }
 
             Ok(user)

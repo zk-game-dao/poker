@@ -96,6 +96,9 @@ pub struct SubscriptionBenefits {
     
     /// Can create tournaments for the clan
     pub can_create_tournaments: bool,
+
+    /// Can create custom tables for clan members
+    pub can_create_tables: bool,
     
     /// Gets priority in support/moderation
     pub priority_support: bool,
@@ -126,6 +129,7 @@ impl Default for SubscriptionBenefits {
             max_table_stakes: Some(1000), // Default low stakes
             tournament_access: false,
             can_create_tournaments: false,
+            can_create_tables: false,
             priority_support: false,
             custom_styling: false,
             revenue_share_bonus: 0,
@@ -149,6 +153,24 @@ pub struct SubscriptionTier {
 }
 
 impl SubscriptionTier {
+    pub fn new_custom(
+        id: SubscriptionTierId,
+        name: String,
+        requirements: SubscriptionRequirements,
+        benefits: SubscriptionBenefits,
+        is_active: bool,
+        tier_order: u32,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            requirements,
+            benefits,
+            is_active,
+            tier_order,
+        }
+    }
+
     pub fn new_basic() -> Self {
         Self {
             id: SubscriptionTierId::basic(),
@@ -196,6 +218,7 @@ impl SubscriptionTier {
                 max_table_stakes: None, // Unlimited
                 tournament_access: true,
                 can_create_tournaments: true,
+                can_create_tables: true,
                 priority_support: true,
                 custom_styling: true,
                 revenue_share_bonus: 5,
@@ -360,6 +383,42 @@ impl Clan {
             Some(max_stakes) => Ok(table_stakes <= max_stakes),
             None => Ok(true), // No limit
         }
+    }
+
+    pub fn create_custom_subscription_tier(
+        &mut self,
+        id: SubscriptionTierId,
+        name: String,
+        requirements: SubscriptionRequirements,
+        benefits: SubscriptionBenefits,
+        is_active: bool,
+        tier_order: u32,
+        creator: &WalletPrincipalId,
+    ) -> Result<(), ClanError> {
+        let creator_member = self.members.get(creator)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !creator_member.is_admin_or_higher() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Validate tier configuration
+        if name.is_empty() || name.len() > 50 {
+            return Err(ClanError::InvalidTierName);
+        }
+
+        self.subscription_tiers.insert(
+            id.clone(),
+            SubscriptionTier::new_custom(
+                id,
+                name,
+                requirements,
+                benefits,
+                is_active,
+                tier_order,
+            )
+        );
+        Ok(())
     }
 
     /// Create or update a custom subscription tier (admin+ only)
