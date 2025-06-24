@@ -620,6 +620,11 @@ async fn request_withdrawal(
     currency: Currency,
     amount: u64,
 ) -> Result<(), TournamentIndexError> {
+    ic_cdk::println!(
+        "Requesting withdrawal of {} {}",
+        amount,
+        currency.to_string()
+    );
     let active_tournaments = {STATE.lock().map_err(|_| TournamentIndexError::LockError)?.active_tournaments.clone()};
     let valid_callers = active_tournaments
         .iter()

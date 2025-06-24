@@ -962,6 +962,10 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
             ic_cdk::println!("Player: {:?}, data: {:?}", player.0.to_text(), data);
         }
         if let Some(guaranteed_prize_pool) = tournament.guaranteed_prize_pool {
+            ic_cdk::println!(
+                "Guaranteed prize pool: {}",
+                guaranteed_prize_pool
+            );
             let prize_pool = PRIZE_POOL.load(Ordering::SeqCst);
             let tournament_index = {
                 TOURNAMENT_INDEX
@@ -971,6 +975,11 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
                     .ok_or(TournamentError::InvalidState("Tournament index not found".to_string()))?
             };
             if prize_pool < guaranteed_prize_pool && tournament.currency != CurrencyType::Fake {
+                ic_cdk::println!(
+                    "Prize pool {} is less than guaranteed prize pool {}",
+                    prize_pool,
+                    guaranteed_prize_pool
+                );
                 let currency = match tournament.currency {
                     CurrencyType::Real(currency) => currency,
                     CurrencyType::Fake => {
@@ -979,9 +988,11 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
                         ))
                     }
                 };
-                request_withdrawal_wrapper(tournament_index, currency, prize_pool - guaranteed_prize_pool)
+                request_withdrawal_wrapper(tournament_index, currency, guaranteed_prize_pool - prize_pool)
                     .await
                     .map_err(|e| TournamentError::CanisterCallError(format!("{:?}", e)))?;
+
+                PRIZE_POOL.store(guaranteed_prize_pool, Ordering::SeqCst);
             }
         }
         valid_callers.push(tournament.id.0);

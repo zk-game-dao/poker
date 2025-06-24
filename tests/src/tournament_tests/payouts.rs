@@ -22,6 +22,7 @@ impl TestEnv {
         &self,
         min_players: u8,
         players_per_table: u8,
+        gtd: Option<u64>,
     ) -> (TournamentId, NewTournament) {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -37,7 +38,7 @@ impl TestEnv {
             hero_picture: "".to_string(),
             currency: CurrencyType::Real(Currency::ICP),
             buy_in: convert_to_e8s(10.0),
-            guaranteed_prize_pool: None,
+            guaranteed_prize_pool: gtd,
             starting_chips: 1000,
             speed_type: NewTournamentSpeedType::Regular(20),
             min_players: 2,
@@ -199,7 +200,7 @@ impl TestEnv {
         eliminated_players
     }
 
-    fn verify_payouts(
+    pub fn verify_payouts(
         &self,
         tournament_id: TournamentId,
         players: &[(UsersCanisterId, WalletPrincipalId)],
@@ -250,7 +251,7 @@ impl TestEnv {
 fn test_winner_takes_all_payout() {
     let test_env = TestEnv::new(None);
 
-    let (tournament_id, config) = test_env.setup_payout_tournament(2, 8);
+    let (tournament_id, config) = test_env.setup_payout_tournament(2, 8, None);
 
     // Simulate tournament
     let players = test_env.simulate_tournament_until_completion(tournament_id, 3);
@@ -275,7 +276,7 @@ fn test_winner_takes_all_payout() {
 fn test_multi_player_payout() {
     let test_env = TestEnv::new(None);
 
-    let (tournament_id, config) = test_env.setup_payout_tournament(2, 8);
+    let (tournament_id, config) = test_env.setup_payout_tournament(2, 8, None);
 
     // Simulate tournament
     let players = test_env.simulate_tournament_until_completion(tournament_id, 8);

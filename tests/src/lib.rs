@@ -154,6 +154,15 @@ impl TestEnv {
             true,
         );
 
+        transfer_tokens(
+            &pocket_ic,
+            1_000_000.0,
+            tournament_index,
+            ledger,
+            Principal::self_authenticating("minter"),
+            true,
+        );
+
         let minting_principal = Principal::self_authenticating("minter");
         let init_args = Icrc1LedgerCanisterInit::Init(Icrc1LedgerCanisterInitArgs {
             minting_account: Account {

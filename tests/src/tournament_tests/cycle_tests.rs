@@ -16,7 +16,7 @@ fn test_cycles_return_on_tournament_completion() {
         index_cycles_before_creation
     );
 
-    let (tournament_id, _) = test_env.setup_payout_tournament(2, 8);
+    let (tournament_id, _) = test_env.setup_payout_tournament(2, 8, None);
     // Get initial cycle balance for tournament index
     let index_cycles_before = test_env
         .pocket_ic
