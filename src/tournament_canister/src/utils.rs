@@ -757,8 +757,8 @@ pub async fn update_live_leaderboard() -> Result<(), TournamentError> {
                 .iter()
                 .map(|p| {
                     (
-                        *p,
-                        tournament.all_players.get(p).map_or(0, |data| data.chips),
+                        p.0,
+                        tournament.all_players.get(&p.0).map_or(0, |data| data.chips),
                     )
                 })
                 .collect();

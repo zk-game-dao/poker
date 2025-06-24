@@ -54,7 +54,7 @@ pub struct TournamentData {
 
     pub table_config: TableConfig,
     pub tables: HashMap<TableId, TableInfo>, // Key is canister id of table and value is list of players
-    pub sorted_users: Option<Vec<WalletPrincipalId>>,
+    pub sorted_users: Option<Vec<(WalletPrincipalId, u64)>>,
 
     pub require_proof_of_humanity: bool,
 }

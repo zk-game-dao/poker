@@ -832,7 +832,13 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
             ));
         }
 
-        tournament.sorted_users = Some(positions.clone());
+        let mut positions = positions.iter().map(|p| (*p, 0)).collect::<Vec<_>>();
+        for (i, payout) in tournament.payout_structure.payouts.iter().enumerate() {
+            let prize_amount = (total_prize * payout.percentage as u64) / 100;
+            positions[i].1 = prize_amount;
+        }
+
+        tournament.sorted_users = Some(positions);
     }
 
     if let CurrencyType::Real(currency) = tournament.currency {
