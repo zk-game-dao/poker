@@ -1,11 +1,17 @@
-use std::{borrow::Cow, collections::{HashMap, HashSet}};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
 
 use candid::{Decode, Encode};
 use currency::Currency;
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use user::user::WalletPrincipalId;
 
-use crate::{environment::ClanEnvironmentSettings, treasury::ClanTreasury, Clan, ClanId, ClanPrivacy, ClanStats};
+use crate::{
+    Clan, ClanId, ClanPrivacy, ClanStats, environment::ClanEnvironmentSettings,
+    treasury::ClanTreasury,
+};
 
 const MAX_CLAN_SIZE: u32 = 50_000_000; // 50MB max size for clan data
 

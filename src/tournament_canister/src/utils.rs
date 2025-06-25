@@ -17,7 +17,10 @@ use intercanister_call_wrappers::tournament_canister::{
 };
 use table::{
     poker::game::{
-        table_functions::{table::{TableConfig, TableId}, types::CurrencyType},
+        table_functions::{
+            table::{TableConfig, TableId},
+            types::CurrencyType,
+        },
         types::PublicTable,
     },
     table_canister::{
@@ -758,7 +761,10 @@ pub async fn update_live_leaderboard() -> Result<(), TournamentError> {
                 .map(|p| {
                     (
                         p.0,
-                        tournament.all_players.get(&p.0).map_or(0, |data| data.chips),
+                        tournament
+                            .all_players
+                            .get(&p.0)
+                            .map_or(0, |data| data.chips),
                     )
                 })
                 .collect();

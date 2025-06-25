@@ -232,10 +232,10 @@ pub fn reshuffle_bytes_hash(bytes: &mut [u8], seed: u64) {
     if bytes.len() <= 1 {
         return;
     }
-    
+
     // Create indices to shuffle
     let mut indices: Vec<usize> = (0..bytes.len()).collect();
-    
+
     // Shuffle indices using hash-based approach
     for i in (1..indices.len()).rev() {
         let mut hasher = DefaultHasher::new();
@@ -245,7 +245,7 @@ pub fn reshuffle_bytes_hash(bytes: &mut [u8], seed: u64) {
         let j = (hash as usize) % (i + 1);
         indices.swap(i, j);
     }
-    
+
     // Apply the shuffle to the original bytes
     let original = bytes.to_vec();
     for (new_pos, &old_pos) in indices.iter().enumerate() {

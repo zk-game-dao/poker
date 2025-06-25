@@ -3,25 +3,31 @@ use currency::Currency;
 use errors::clan_error::ClanError;
 use macros::impl_principal_traits;
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use table::poker::game::table_functions::table::TableId;
 use tournaments::tournaments::types::TournamentId;
 use user::user::{User, UserAvatar, WalletPrincipalId};
-use std::collections::{HashMap, HashSet};
 
-use crate::{environment::ClanEnvironmentSettings, member::{ClanMember, MemberStatus}, subscriptions::{ClanRole, SubscriptionTier, SubscriptionTierId}, tags::ClanTag, treasury::ClanTreasury};
+use crate::{
+    environment::ClanEnvironmentSettings,
+    member::{ClanMember, MemberStatus},
+    subscriptions::{ClanRole, SubscriptionTier, SubscriptionTierId},
+    tags::ClanTag,
+    treasury::ClanTreasury,
+};
 
 pub mod environment;
 pub mod member;
-pub mod subscriptions;
 pub mod storable;
+pub mod subscriptions;
 pub mod tags;
 pub mod treasury;
 
 /// Privacy and access control settings
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub enum ClanPrivacy {
-    Public,    // Anyone can join
-    InviteOnly, // Only invited users can join
+    Public,      // Anyone can join
+    InviteOnly,  // Only invited users can join
     Application, // Users can apply, admins approve
 }
 
@@ -71,39 +77,39 @@ pub struct Clan {
     pub name: String,
     pub description: String,
     pub avatar: Option<UserAvatar>, // Reuse the existing avatar system
-    
+
     // Currency - Each clan supports exactly one token
     pub supported_currency: Currency,
-    
+
     // Membership
     pub members: HashMap<WalletPrincipalId, ClanMember>,
     pub member_limit: u32,
     pub pending_requests: Vec<JoinRequest>,
     pub invited_users: HashMap<WalletPrincipalId, u64>, // Principal -> invitation timestamp
-    
+
     // Settings
     pub tags: HashSet<ClanTag>,
     pub privacy: ClanPrivacy,
     pub require_proof_of_humanity: bool,
     pub joining_fee: u64, // Fee required to join clan in supported_currency
-    
+
     // Subscription System - Fully customizable by clan admins
     pub subscription_tiers: HashMap<SubscriptionTierId, SubscriptionTier>,
     pub subscription_enabled: bool,
-    
+
     // Treasury and Economics
     pub treasury: ClanTreasury,
-    
+
     // Customization
     pub environment_settings: ClanEnvironmentSettings,
-    
+
     // Statistics
     pub stats: ClanStats,
-    
+
     // Active Tables and Tournaments
-    pub active_tables: Vec<TableId>, // Table canister IDs
+    pub active_tables: Vec<TableId>,           // Table canister IDs
     pub hosted_tournaments: Vec<TournamentId>, // Tournament canister IDs
-    
+
     // Metadata
     pub created_at: u64,
     pub created_by: WalletPrincipalId,
@@ -127,14 +133,14 @@ impl Clan {
         if name.is_empty() || name.len() > 50 {
             return Err(ClanError::InvalidClanName);
         }
-        
+
         if description.len() > 500 {
             return Err(ClanError::InvalidDescription);
         }
 
         let now = ic_cdk::api::time();
         let mut members = HashMap::new();
-        
+
         // Add creator as owner with elite tier
         let mut creator_member = ClanMember::new(creator, ClanRole::Owner);
         creator_member.subscription_tier = SubscriptionTierId::elite();
@@ -143,7 +149,10 @@ impl Clan {
         // Initialize default subscription tiers
         let mut subscription_tiers = HashMap::new();
         subscription_tiers.insert(SubscriptionTierId::basic(), SubscriptionTier::new_basic());
-        subscription_tiers.insert(SubscriptionTierId::premium(), SubscriptionTier::new_premium());
+        subscription_tiers.insert(
+            SubscriptionTierId::premium(),
+            SubscriptionTier::new_premium(),
+        );
         subscription_tiers.insert(SubscriptionTierId::elite(), SubscriptionTier::new_elite());
 
         Ok(Self {
@@ -191,7 +200,11 @@ impl Clan {
     }
 
     /// Add a new member to the clan
-    pub fn add_member(&mut self, principal: WalletPrincipalId, role: ClanRole) -> Result<(), ClanError> {
+    pub fn add_member(
+        &mut self,
+        principal: WalletPrincipalId,
+        role: ClanRole,
+    ) -> Result<(), ClanError> {
         if self.is_full() {
             return Err(ClanError::ClanFull(self.member_limit));
         }
@@ -200,11 +213,13 @@ impl Clan {
             return Err(ClanError::UserAlreadyMember);
         }
 
-        self.members.insert(principal, ClanMember::new(principal, role));
-        
+        self.members
+            .insert(principal, ClanMember::new(principal, role));
+
         // Remove from pending requests if applicable
-        self.pending_requests.retain(|req| req.applicant != principal);
-        
+        self.pending_requests
+            .retain(|req| req.applicant != principal);
+
         // Remove from invited users if applicable
         self.invited_users.remove(&principal);
 
@@ -212,7 +227,11 @@ impl Clan {
     }
 
     /// Process joining fee payment and add member
-    pub fn join_with_fee(&mut self, principal: WalletPrincipalId, paid_amount: u64) -> Result<(), ClanError> {
+    pub fn join_with_fee(
+        &mut self,
+        principal: WalletPrincipalId,
+        paid_amount: u64,
+    ) -> Result<(), ClanError> {
         if paid_amount < self.joining_fee {
             return Err(ClanError::InsufficientJoiningFee {
                 required: self.joining_fee,
@@ -236,7 +255,10 @@ impl Clan {
     }
 
     /// Remove a member from the clan
-    pub fn remove_member(&mut self, principal: &WalletPrincipalId) -> Result<ClanMember, ClanError> {
+    pub fn remove_member(
+        &mut self,
+        principal: &WalletPrincipalId,
+    ) -> Result<ClanMember, ClanError> {
         // Can't remove the owner
         if let Some(member) = self.members.get(principal) {
             if member.role == ClanRole::Owner {
@@ -244,30 +266,39 @@ impl Clan {
             }
         }
 
-        self.members.remove(principal)
+        self.members
+            .remove(principal)
             .ok_or(ClanError::MemberNotFound)
     }
 
     /// Get members by role
     pub fn get_members_by_role(&self, role: ClanRole) -> Vec<&ClanMember> {
-        self.members.values()
+        self.members
+            .values()
             .filter(|member| member.role == role)
             .collect()
     }
 
     /// Get active members (not suspended)
     pub fn get_active_members(&self) -> Vec<&ClanMember> {
-        self.members.values()
+        self.members
+            .values()
             .filter(|member| member.status == MemberStatus::Active)
             .collect()
     }
 
     /// Update member role
-    pub fn update_member_role(&mut self, principal: &WalletPrincipalId, new_role: ClanRole, updater: &WalletPrincipalId) -> Result<(), ClanError> {
-        let updater_member = self.members.get(updater)
-            .ok_or(ClanError::MemberNotFound)?;
+    pub fn update_member_role(
+        &mut self,
+        principal: &WalletPrincipalId,
+        new_role: ClanRole,
+        updater: &WalletPrincipalId,
+    ) -> Result<(), ClanError> {
+        let updater_member = self.members.get(updater).ok_or(ClanError::MemberNotFound)?;
 
-        let target_member = self.members.get(principal)
+        let target_member = self
+            .members
+            .get(principal)
             .ok_or(ClanError::MemberNotFound)?;
 
         // Only owners can promote to admin, only admin+ can change roles
@@ -276,7 +307,7 @@ impl Clan {
                 if updater_member.role != ClanRole::Owner {
                     return Err(ClanError::InsufficientPermissions);
                 }
-            },
+            }
             _ => {
                 if !updater_member.is_admin_or_higher() {
                     return Err(ClanError::InsufficientPermissions);
@@ -297,9 +328,12 @@ impl Clan {
     }
 
     /// Update joining fee (admin+ only)
-    pub fn update_joining_fee(&mut self, new_fee: u64, updater: &WalletPrincipalId) -> Result<(), ClanError> {
-        let updater_member = self.members.get(updater)
-            .ok_or(ClanError::MemberNotFound)?;
+    pub fn update_joining_fee(
+        &mut self,
+        new_fee: u64,
+        updater: &WalletPrincipalId,
+    ) -> Result<(), ClanError> {
+        let updater_member = self.members.get(updater).ok_or(ClanError::MemberNotFound)?;
 
         if !updater_member.is_admin_or_higher() {
             return Err(ClanError::InsufficientPermissions);
@@ -311,30 +345,36 @@ impl Clan {
 
     /// Get clan leaderboard by contribution points
     pub fn get_contribution_leaderboard(&self) -> Vec<(&WalletPrincipalId, u64)> {
-        let mut members: Vec<_> = self.members.iter()
+        let mut members: Vec<_> = self
+            .members
+            .iter()
             .map(|(principal, member)| (principal, member.contribution_points))
             .collect();
-        
+
         members.sort_by(|a, b| b.1.cmp(&a.1));
         members
     }
 
     /// Get clan leaderboard by games played
     pub fn get_games_leaderboard(&self) -> Vec<(&WalletPrincipalId, u64)> {
-        let mut members: Vec<_> = self.members.iter()
+        let mut members: Vec<_> = self
+            .members
+            .iter()
             .map(|(principal, member)| (principal, member.games_played))
             .collect();
-        
+
         members.sort_by(|a, b| b.1.cmp(&a.1));
         members
     }
 
     /// Get clan leaderboard by total winnings
     pub fn get_winnings_leaderboard(&self) -> Vec<(&WalletPrincipalId, u64)> {
-        let mut members: Vec<_> = self.members.iter()
+        let mut members: Vec<_> = self
+            .members
+            .iter()
             .map(|(principal, member)| (principal, member.total_winnings))
             .collect();
-        
+
         members.sort_by(|a, b| b.1.cmp(&a.1));
         members
     }
@@ -352,15 +392,50 @@ impl Clan {
 /// Events that can occur in a clan (for audit trail and notifications)
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub enum ClanEvent {
-    MemberJoined { member: WalletPrincipalId, joining_fee_paid: u64, timestamp: u64 },
-    MemberLeft { member: WalletPrincipalId, timestamp: u64 },
-    MemberPromoted { member: WalletPrincipalId, new_role: ClanRole, by: WalletPrincipalId, timestamp: u64 },
-    MemberSuspended { member: WalletPrincipalId, by: WalletPrincipalId, until: Option<u64>, timestamp: u64 },
-    TournamentHosted { tournament_id: WalletPrincipalId, timestamp: u64 },
-    RevenueGenerated { amount: u64, timestamp: u64 },
-    RewardDistributed { amount: u64, to: WalletPrincipalId, timestamp: u64 },
-    JoiningFeeUpdated { old_fee: u64, new_fee: u64, by: WalletPrincipalId, timestamp: u64 },
-    SettingsUpdated { by: WalletPrincipalId, timestamp: u64 },
+    MemberJoined {
+        member: WalletPrincipalId,
+        joining_fee_paid: u64,
+        timestamp: u64,
+    },
+    MemberLeft {
+        member: WalletPrincipalId,
+        timestamp: u64,
+    },
+    MemberPromoted {
+        member: WalletPrincipalId,
+        new_role: ClanRole,
+        by: WalletPrincipalId,
+        timestamp: u64,
+    },
+    MemberSuspended {
+        member: WalletPrincipalId,
+        by: WalletPrincipalId,
+        until: Option<u64>,
+        timestamp: u64,
+    },
+    TournamentHosted {
+        tournament_id: WalletPrincipalId,
+        timestamp: u64,
+    },
+    RevenueGenerated {
+        amount: u64,
+        timestamp: u64,
+    },
+    RewardDistributed {
+        amount: u64,
+        to: WalletPrincipalId,
+        timestamp: u64,
+    },
+    JoiningFeeUpdated {
+        old_fee: u64,
+        new_fee: u64,
+        by: WalletPrincipalId,
+        timestamp: u64,
+    },
+    SettingsUpdated {
+        by: WalletPrincipalId,
+        timestamp: u64,
+    },
 }
 
 /// Clan invitation structure

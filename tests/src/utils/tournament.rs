@@ -21,7 +21,8 @@ impl TestEnv {
 
         match result {
             Ok(arg) => {
-                let table_id: Result<TournamentId, TournamentIndexError> = decode_one(&arg).unwrap();
+                let table_id: Result<TournamentId, TournamentIndexError> =
+                    decode_one(&arg).unwrap();
                 table_id
             }
             _ => panic!("Failed to create tournament"),

@@ -5,7 +5,10 @@ use errors::game_error::GameError;
 use serde::{Deserialize, Serialize};
 use user::user::{User, UsersCanisterId, WalletPrincipalId};
 
-use crate::poker::{core::{Card, FlatDeck, Hand, Rank}, game::table_functions::table::{BigBlind, Pot, SmallBlind, TableId}};
+use crate::poker::{
+    core::{Card, FlatDeck, Hand, Rank},
+    game::table_functions::table::{BigBlind, Pot, SmallBlind, TableId},
+};
 
 use super::{
     table_functions::{

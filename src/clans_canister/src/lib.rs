@@ -3,18 +3,21 @@ use std::collections::HashMap;
 use authentication::validate_caller;
 use candid::{CandidType, Nat, Principal};
 use clan::{
-    environment::ClanEnvironmentSettings, member::{ClanMember, MemberStatus}, subscriptions::{ClanRole, SubscriptionBenefits, SubscriptionRequirements, SubscriptionTier, SubscriptionTierId}, tags::ClanTag, treasury::ClanTreasury, Clan, ClanEvent, ClanId, ClanInvitation, ClanPrivacy, ClanStats, CreateClanRequest, JoinRequest
+    environment::ClanEnvironmentSettings,
+    member::{ClanMember, MemberStatus},
+    subscriptions::{
+        ClanRole, SubscriptionBenefits, SubscriptionRequirements, SubscriptionTier,
+        SubscriptionTierId,
+    },
+    tags::ClanTag,
+    treasury::ClanTreasury,
+    Clan, ClanEvent, ClanId, ClanInvitation, ClanPrivacy, ClanStats, CreateClanRequest,
+    JoinRequest,
 };
-use currency::{
-    state::TransactionState,
-    types::currency_manager::CurrencyManager,
-    Currency,
-};
+use currency::{state::TransactionState, types::currency_manager::CurrencyManager, Currency};
 use errors::clan_error::ClanError;
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, DepositCyclesArgs};
-use intercanister_call_wrappers::{
-    users_canister::get_user_wrapper,
-};
+use intercanister_call_wrappers::users_canister::get_user_wrapper;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use user::user::{UsersCanisterId, WalletPrincipalId};
@@ -30,9 +33,7 @@ pub struct ClanEvents {
 
 impl ClanEvents {
     pub fn new() -> Self {
-        ClanEvents {
-            events: Vec::new(),
-        }
+        ClanEvents { events: Vec::new() }
     }
 
     pub fn add_event(&mut self, event: ClanEvent) {
@@ -84,9 +85,7 @@ async fn create_clan(
     creator: WalletPrincipalId,
     creator_canister_id: UsersCanisterId,
 ) -> Result<Clan, ClanError> {
-    let mut backend_principal = BACKEND_PRINCIPAL
-        .lock()
-        .map_err(|_| ClanError::LockError)?;
+    let mut backend_principal = BACKEND_PRINCIPAL.lock().map_err(|_| ClanError::LockError)?;
 
     if let Some(backend_principal) = *backend_principal {
         validate_caller(vec![backend_principal]);
@@ -118,7 +117,7 @@ async fn create_clan(
     clan.discord = request.discord;
     clan.twitter = request.twitter;
     clan.require_proof_of_humanity = request.require_proof_of_humanity;
-    
+
     if let Some(limit) = request.member_limit {
         clan.member_limit = limit;
     }
@@ -127,7 +126,9 @@ async fn create_clan(
     let currency_manager = match &clan.supported_currency {
         Currency::ICP | Currency::BTC => {
             let mut currency_manager = CurrencyManager::new();
-            currency_manager.add_currency(clan.supported_currency.clone()).await?;
+            currency_manager
+                .add_currency(clan.supported_currency.clone())
+                .await?;
             Some(currency_manager)
         }
         _ => None, // For fake currencies or other types
@@ -143,7 +144,10 @@ async fn create_clan(
         by: creator,
         timestamp: ic_cdk::api::time(),
     };
-    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
 
     Ok(clan)
 }
@@ -164,8 +168,9 @@ fn get_clan() -> Result<Clan, ClanError> {
 fn get_clan_member(member_id: WalletPrincipalId) -> Result<ClanMember, ClanError> {
     let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
     let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
-    
-    clan.members.get(&member_id)
+
+    clan.members
+        .get(&member_id)
         .cloned()
         .ok_or(ClanError::MemberNotFound)
 }
@@ -181,7 +186,7 @@ fn get_clan_members() -> Result<Vec<ClanMember>, ClanError> {
 fn get_clan_events(limit: Option<usize>) -> Result<Vec<ClanEvent>, ClanError> {
     let events = CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?;
     let limit = limit.unwrap_or(100);
-    
+
     if events.len() <= limit {
         Ok(events.events.clone())
     } else {
@@ -239,7 +244,12 @@ async fn join_clan(
                     .clone();
 
                 currency_manager
-                    .deposit(&mut transaction_state, &clan.supported_currency, user_id.0, joining_fee_paid)
+                    .deposit(
+                        &mut transaction_state,
+                        &clan.supported_currency,
+                        user_id.0,
+                        joining_fee_paid,
+                    )
                     .await?;
 
                 *TRANSACTION_STATE.lock().map_err(|_| ClanError::LockError)? = transaction_state;
@@ -252,7 +262,7 @@ async fn join_clan(
     {
         let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
         let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
-        
+
         if clan.joining_fee > 0 {
             clan_state.join_with_fee(user_id, joining_fee_paid)?;
         } else {
@@ -266,7 +276,10 @@ async fn join_clan(
         joining_fee_paid,
         timestamp: ic_cdk::api::time(),
     };
-    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
 
     Ok(())
 }
@@ -283,7 +296,9 @@ async fn leave_clan(user_id: WalletPrincipalId) -> Result<(), ClanError> {
         let backend_principal = BACKEND_PRINCIPAL
             .lock()
             .map_err(|_| ClanError::LockError)?
-            .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+            .ok_or(ClanError::CanisterCallError(
+                "Backend principal not found".to_string(),
+            ))?;
 
         validate_caller(vec![user_id.0, backend_principal]);
 
@@ -301,7 +316,10 @@ async fn leave_clan(user_id: WalletPrincipalId) -> Result<(), ClanError> {
         member: user_id,
         timestamp: ic_cdk::api::time(),
     };
-    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
 
     Ok(())
 }
@@ -313,35 +331,40 @@ async fn kick_member(
 ) -> Result<(), ClanError> {
     handle_cycle_check();
 
-    let removed_member = {
-        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
-        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+    let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
 
-        // Validate caller permissions
-        let kicker = clan_state.members.get(&kicked_by)
-            .ok_or(ClanError::MemberNotFound)?;
+    // Validate caller permissions
+    let kicker = clan_state
+        .members
+        .get(&kicked_by)
+        .ok_or(ClanError::MemberNotFound)?;
 
-        if !kicker.can_moderate() {
-            return Err(ClanError::InsufficientPermissions);
-        }
+    if !kicker.can_moderate() {
+        return Err(ClanError::InsufficientPermissions);
+    }
 
-        // Cannot kick owner or same/higher role
-        let target = clan_state.members.get(&user_id)
-            .ok_or(ClanError::MemberNotFound)?;
+    // Cannot kick owner or same/higher role
+    let target = clan_state
+        .members
+        .get(&user_id)
+        .ok_or(ClanError::MemberNotFound)?;
 
-        if target.role == ClanRole::Owner {
-            return Err(ClanError::CannotRemoveOwner);
-        }
+    if target.role == ClanRole::Owner {
+        return Err(ClanError::CannotRemoveOwner);
+    }
 
-        clan_state.remove_member(&user_id)?
-    };
+    clan_state.remove_member(&user_id)?;
 
     // Log event
     let event = ClanEvent::MemberLeft {
         member: user_id,
         timestamp: ic_cdk::api::time(),
     };
-    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
 
     Ok(())
 }
@@ -362,7 +385,9 @@ async fn update_member_role(
         let backend_principal = BACKEND_PRINCIPAL
             .lock()
             .map_err(|_| ClanError::LockError)?
-            .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+            .ok_or(ClanError::CanisterCallError(
+                "Backend principal not found".to_string(),
+            ))?;
 
         validate_caller(vec![updated_by.0, backend_principal]);
 
@@ -376,7 +401,10 @@ async fn update_member_role(
         by: updated_by,
         timestamp: ic_cdk::api::time(),
     };
-    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
 
     Ok(())
 }
@@ -394,7 +422,9 @@ async fn suspend_member(
         let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
 
         // Validate permissions
-        let suspender = clan_state.members.get(&suspended_by)
+        let suspender = clan_state
+            .members
+            .get(&suspended_by)
             .ok_or(ClanError::MemberNotFound)?;
 
         if !suspender.can_moderate() {
@@ -416,7 +446,10 @@ async fn suspend_member(
         until,
         timestamp: ic_cdk::api::time(),
     };
-    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
 
     Ok(())
 }
@@ -453,7 +486,12 @@ async fn upgrade_subscription(
                 .clone();
 
             currency_manager
-                .deposit(&mut transaction_state, &clan_currency, user_id.0, paid_amount)
+                .deposit(
+                    &mut transaction_state,
+                    &clan_currency,
+                    user_id.0,
+                    paid_amount,
+                )
                 .await?;
 
             *TRANSACTION_STATE.lock().map_err(|_| ClanError::LockError)? = transaction_state;
@@ -484,7 +522,9 @@ async fn update_clan_settings(
         let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
 
         // Validate permissions
-        let updater = clan_state.members.get(&updated_by)
+        let updater = clan_state
+            .members
+            .get(&updated_by)
             .ok_or(ClanError::MemberNotFound)?;
 
         if !updater.is_admin_or_higher() {
@@ -552,7 +592,10 @@ async fn update_clan_settings(
         by: updated_by,
         timestamp: ic_cdk::api::time(),
     };
-    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
 
     Ok(())
 }
@@ -640,7 +683,9 @@ async fn distribute_rewards(
         let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
 
         // Validate permissions
-        let distributor = clan_state.members.get(&distributed_by)
+        let distributor = clan_state
+            .members
+            .get(&distributed_by)
             .ok_or(ClanError::MemberNotFound)?;
 
         if !distributor.is_admin_or_higher() {
@@ -673,7 +718,10 @@ async fn distribute_rewards(
                         to: recipient,
                         timestamp: ic_cdk::api::time(),
                     };
-                    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+                    CLAN_EVENTS
+                        .lock()
+                        .map_err(|_| ClanError::LockError)?
+                        .add_event(event);
                 }
             }
         }
@@ -705,7 +753,9 @@ fn get_subscription_tiers() -> Result<Vec<SubscriptionTier>, ClanError> {
 }
 
 #[ic_cdk::query]
-fn get_leaderboard(leaderboard_type: LeaderboardType) -> Result<Vec<(WalletPrincipalId, u64)>, ClanError> {
+fn get_leaderboard(
+    leaderboard_type: LeaderboardType,
+) -> Result<Vec<(WalletPrincipalId, u64)>, ClanError> {
     let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
     let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
 
@@ -722,15 +772,15 @@ fn get_leaderboard(leaderboard_type: LeaderboardType) -> Result<Vec<(WalletPrinc
 async fn request_cycles() -> Result<(), ClanError> {
     let cycles = ic_cdk::api::canister_cycle_balance();
     let caller = ic_cdk::api::msg_caller();
-    
+
     const CYCLES_TOP_UP_AMOUNT: u128 = 750_000_000_000;
-    
+
     ic_cdk::println!(
         "Clan canister: Requesting cycles: {} from caller: {}",
         cycles,
         caller.to_text()
     );
-    
+
     if cycles < CYCLES_TOP_UP_AMOUNT {
         return Err(ClanError::ManagementCanisterError(
             errors::canister_management_error::CanisterManagementError::InsufficientCycles,
@@ -740,7 +790,9 @@ async fn request_cycles() -> Result<(), ClanError> {
     let backend_principal = BACKEND_PRINCIPAL
         .lock()
         .map_err(|_| ClanError::LockError)?
-        .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+        .ok_or(ClanError::CanisterCallError(
+            "Backend principal not found".to_string(),
+        ))?;
 
     if caller != backend_principal {
         return Err(ClanError::ManagementCanisterError(
@@ -867,8 +919,8 @@ async fn send_clan_invitation(
         let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
 
         // Validate inviter permissions
-        let inviter = clan.members.get(&invited_by)
-            .ok_or(ClanError::MemberNotFound)?;
+        // let inviter = clan.members.get(&invited_by)
+        //     .ok_or(ClanError::MemberNotFound)?;
 
         if !clan.has_tier_access(&invited_by, "can_invite_members")? {
             return Err(ClanError::InsufficientPermissions);
@@ -952,7 +1004,9 @@ async fn submit_join_request(
 
     // Check if clan accepts applications
     if clan.privacy != ClanPrivacy::Application {
-        return Err(ClanError::InvalidRequest("Clan does not accept applications".to_string()));
+        return Err(ClanError::InvalidRequest(
+            "Clan does not accept applications".to_string(),
+        ));
     }
 
     // Get user and validate
@@ -969,7 +1023,8 @@ async fn submit_join_request(
         return Err(ClanError::UserAlreadyMember);
     }
 
-    let has_pending_request = clan.pending_requests
+    let has_pending_request = clan
+        .pending_requests
         .iter()
         .any(|req| req.applicant == user_id);
 
@@ -1006,26 +1061,27 @@ async fn approve_join_request(
     handle_cycle_check();
 
     // Find and remove the request
-    let request = {
-        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
-        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+    let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
 
-        // Validate approver permissions
-        let approver = clan_state.members.get(&approved_by)
-            .ok_or(ClanError::MemberNotFound)?;
+    // Validate approver permissions
+    let approver = clan_state
+        .members
+        .get(&approved_by)
+        .ok_or(ClanError::MemberNotFound)?;
 
-        if !approver.can_moderate() {
-            return Err(ClanError::InsufficientPermissions);
-        }
+    if !approver.can_moderate() {
+        return Err(ClanError::InsufficientPermissions);
+    }
 
-        // Find and remove the request
-        let request_index = clan_state.pending_requests
-            .iter()
-            .position(|req| req.applicant == applicant)
-            .ok_or(ClanError::JoinRequestNotFound)?;
+    // Find and remove the request
+    let request_index = clan_state
+        .pending_requests
+        .iter()
+        .position(|req| req.applicant == applicant)
+        .ok_or(ClanError::JoinRequestNotFound)?;
 
-        clan_state.pending_requests.remove(request_index)
-    };
+    clan_state.pending_requests.remove(request_index);
 
     // Add member to clan (no fee for approved applications)
     join_clan(users_canister_principal, applicant, 0).await?;
@@ -1045,7 +1101,9 @@ async fn reject_join_request(
         let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
 
         // Validate rejector permissions
-        let rejector = clan_state.members.get(&rejected_by)
+        let rejector = clan_state
+            .members
+            .get(&rejected_by)
             .ok_or(ClanError::MemberNotFound)?;
 
         if !rejector.can_moderate() {
@@ -1053,7 +1111,8 @@ async fn reject_join_request(
         }
 
         // Find and remove the request
-        let request_index = clan_state.pending_requests
+        let request_index = clan_state
+            .pending_requests
             .iter()
             .position(|req| req.applicant == applicant)
             .ok_or(ClanError::JoinRequestNotFound)?;
@@ -1092,7 +1151,9 @@ async fn update_member_stats(
     let backend_principal = BACKEND_PRINCIPAL
         .lock()
         .map_err(|_| ClanError::LockError)?
-        .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+        .ok_or(ClanError::CanisterCallError(
+            "Backend principal not found".to_string(),
+        ))?;
 
     validate_caller(vec![backend_principal]);
 
@@ -1108,7 +1169,8 @@ async fn update_member_stats(
             member.last_active = ic_cdk::api::time();
 
             // Update contribution points based on activity
-            let contribution_points = games_played_delta * 10 + tournaments_won_delta * 100 + xp_delta / 10;
+            let contribution_points =
+                games_played_delta * 10 + tournaments_won_delta * 100 + xp_delta / 10;
             member.contribution_points += contribution_points;
         }
 
@@ -1121,17 +1183,16 @@ async fn update_member_stats(
 }
 
 #[ic_cdk::update]
-async fn add_clan_revenue(
-    amount: u64,
-    source: RevenueSource,
-) -> Result<(), ClanError> {
+async fn add_clan_revenue(amount: u64, source: RevenueSource) -> Result<(), ClanError> {
     handle_cycle_check();
 
     // Validate caller is backend
     let backend_principal = BACKEND_PRINCIPAL
         .lock()
         .map_err(|_| ClanError::LockError)?
-        .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+        .ok_or(ClanError::CanisterCallError(
+            "Backend principal not found".to_string(),
+        ))?;
 
     validate_caller(vec![backend_principal]);
 
@@ -1166,7 +1227,10 @@ async fn add_clan_revenue(
         amount,
         timestamp: ic_cdk::api::time(),
     };
-    CLAN_EVENTS.lock().map_err(|_| ClanError::LockError)?.add_event(event);
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
 
     Ok(())
 }
@@ -1179,7 +1243,9 @@ async fn process_subscription_renewals() -> Result<Vec<(WalletPrincipalId, Strin
     let backend_principal = BACKEND_PRINCIPAL
         .lock()
         .map_err(|_| ClanError::LockError)?
-        .ok_or(ClanError::CanisterCallError("Backend principal not found".to_string()))?;
+        .ok_or(ClanError::CanisterCallError(
+            "Backend principal not found".to_string(),
+        ))?;
 
     validate_caller(vec![backend_principal]);
 

@@ -9,7 +9,8 @@ use table::poker::game::{
     utils::convert_to_e8s,
 };
 use tournaments::tournaments::{
-    tournament_type::{BuyInOptions, TournamentSizeType, TournamentType}, types::{NewTournament, NewTournamentSpeedType}
+    tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
+    types::{NewTournament, NewTournamentSpeedType},
 };
 use user::user::WalletPrincipalId;
 

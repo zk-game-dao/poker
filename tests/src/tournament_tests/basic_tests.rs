@@ -225,7 +225,9 @@ fn duplicate_join_tournament() {
     let user_1 = test_env
         .create_user(
             "User 1".to_string(),
-            WalletPrincipalId(Principal::self_authenticating("user1duplicatejointournament")),
+            WalletPrincipalId(Principal::self_authenticating(
+                "user1duplicatejointournament",
+            )),
         )
         .expect("Failed to create user");
     test_env.transfer_approve_tokens_for_testing(id.0, user_1.principal_id, 1000.0, true);
@@ -449,7 +451,10 @@ fn start_tournament() {
         let user = test_env
             .create_user(
                 format!("User {}", i),
-                WalletPrincipalId(Principal::self_authenticating(format!("user{}starttournament", i))),
+                WalletPrincipalId(Principal::self_authenticating(format!(
+                    "user{}starttournament",
+                    i
+                ))),
             )
             .expect("Failed to create user");
 

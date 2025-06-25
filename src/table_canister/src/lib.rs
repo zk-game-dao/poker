@@ -276,7 +276,8 @@ async fn join_table(
     let is_paused = table_state.config.is_paused.unwrap_or(false);
 
     if table_state.number_of_players() >= 2 && !table_state.is_game_ongoing() && !is_paused {
-        if let Err(e) = start_new_betting_round_wrapper(TableId(ic_cdk::api::canister_self())).await {
+        if let Err(e) = start_new_betting_round_wrapper(TableId(ic_cdk::api::canister_self())).await
+        {
             ic_cdk::println!("Error starting new betting round: {:?}", e);
             if matches!(e, TableError::CanisterCallError(_)) {
                 return Err(e);
@@ -481,9 +482,12 @@ async fn leave_table(
     }
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) =
-            remove_users_active_table(users_canister_id, user_id, TableId(ic_cdk::api::canister_self()))
-                .await
+        if let Err(e) = remove_users_active_table(
+            users_canister_id,
+            user_id,
+            TableId(ic_cdk::api::canister_self()),
+        )
+        .await
         {
             ic_cdk::println!("Error removing active table: {}", e);
         }
@@ -551,9 +555,12 @@ async fn leave_table_for_table_balancing(
     };
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) =
-            remove_users_active_table(users_canister_id, user_id, TableId(ic_cdk::api::canister_self()))
-                .await
+        if let Err(e) = remove_users_active_table(
+            users_canister_id,
+            user_id,
+            TableId(ic_cdk::api::canister_self()),
+        )
+        .await
         {
             ic_cdk::println!("Error removing active table: {}", e);
         }
@@ -774,7 +781,11 @@ async fn set_player_action(
         .ok_or(TableError::CanisterCallError(
             "Backend principal not found.".to_string(),
         ))?;
-    validate_caller(vec![user_principal.0, user.principal_id.0, backend_principal]);
+    validate_caller(vec![
+        user_principal.0,
+        user.principal_id.0,
+        backend_principal,
+    ]);
 
     table_state
         .set_player_action(user_principal, player_action)
@@ -843,7 +854,11 @@ async fn player_sitting_out(user_principal: WalletPrincipalId) -> Result<(), Tab
         .ok_or(TableError::CanisterCallError(
             "Backend principal not found.".to_string(),
         ))?;
-    validate_caller(vec![user_principal.0, user.principal_id.0, backend_principal]);
+    validate_caller(vec![
+        user_principal.0,
+        user.principal_id.0,
+        backend_principal,
+    ]);
 
     if table_state.users.get(&user_principal).is_none() {
         return Err(GameError::ActionNotAllowed {
@@ -893,8 +908,12 @@ async fn player_sitting_in(
                 table_state
                     .kick_user(user_id, "Insufficient Funds".to_string())
                     .map_err(|e| e.into_inner())?;
-                remove_users_active_table(users_canister_id, user_id, TableId(ic_cdk::api::canister_self()))
-                    .await?;
+                remove_users_active_table(
+                    users_canister_id,
+                    user_id,
+                    TableId(ic_cdk::api::canister_self()),
+                )
+                .await?;
 
                 *TABLE.lock().map_err(|_| TableError::LockError)? = Some(table_state);
                 return Err(GameError::InsufficientFunds.into());
@@ -939,7 +958,8 @@ async fn player_sitting_in(
         && !table_state.is_game_ongoing()
         && auto_start
     {
-        if let Err(e) = start_new_betting_round_wrapper(TableId(ic_cdk::api::canister_self())).await {
+        if let Err(e) = start_new_betting_round_wrapper(TableId(ic_cdk::api::canister_self())).await
+        {
             ic_cdk::println!("Error starting new betting round: {:?}", e);
             if matches!(e, TableError::CanisterCallError(_)) {
                 return Err(e);
@@ -966,7 +986,11 @@ async fn place_bet(user_principal: WalletPrincipalId, bet_type: BetType) -> Resu
         .ok_or(TableError::CanisterCallError(
             "Backend principal not found.".to_string(),
         ))?;
-    validate_caller(vec![user_principal.0, user.principal_id.0, backend_principal]);
+    validate_caller(vec![
+        user_principal.0,
+        user.principal_id.0,
+        backend_principal,
+    ]);
 
     if table_state
         .get_player_at_seat(table_state.current_player_index)
@@ -1001,7 +1025,11 @@ async fn fold(user_principal: WalletPrincipalId, is_pre_fold: bool) -> Result<()
         .ok_or(TableError::CanisterCallError(
             "Backend principal not found.".to_string(),
         ))?;
-    validate_caller(vec![user_principal.0, user.principal_id.0, backend_principal]);
+    validate_caller(vec![
+        user_principal.0,
+        user.principal_id.0,
+        backend_principal,
+    ]);
 
     if is_pre_fold {
         table_state
@@ -1032,7 +1060,11 @@ async fn check(user_principal: WalletPrincipalId) -> Result<(), TableError> {
         .ok_or(TableError::CanisterCallError(
             "Backend principal not found.".to_string(),
         ))?;
-    validate_caller(vec![user_principal.0, user.principal_id.0, backend_principal]);
+    validate_caller(vec![
+        user_principal.0,
+        user.principal_id.0,
+        backend_principal,
+    ]);
 
     if let SeatStatus::Occupied(current_player) =
         table_state.seats[table_state.current_player_index]
@@ -1101,7 +1133,7 @@ async fn start_new_betting_round() -> Result<(), TableError> {
 
     // Get current time in nanoseconds as seed
     let time_seed = ic_cdk::api::time();
-    
+
     // Reshuffle the bytes using time as seed
     reshuffle_bytes_hash(&mut raw_bytes, time_seed);
 
@@ -1474,7 +1506,11 @@ async fn transfer_cycles_to_table_index(cycles_amount: u128) -> Result<(), Table
 }
 
 #[ic_cdk::update]
-async fn update_blinds(small_blind: SmallBlind, big_blind: BigBlind, ante: AnteType) -> Result<(), TableError> {
+async fn update_blinds(
+    small_blind: SmallBlind,
+    big_blind: BigBlind,
+    ante: AnteType,
+) -> Result<(), TableError> {
     handle_cycle_check().await;
 
     let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
@@ -1553,12 +1589,20 @@ async fn clear_table() -> Result<(), TableError> {
             .into_iter()
             .map(|(user_id, users_canister_id)| async move {
                 // TODO: Handle this properly
-                match leave_table_wrapper(TableId(ic_cdk::api::canister_self()), users_canister_id, user_id)
-                    .await
+                match leave_table_wrapper(
+                    TableId(ic_cdk::api::canister_self()),
+                    users_canister_id,
+                    user_id,
+                )
+                .await
                 {
                     Ok(_) => Ok(()),
                     Err(e) => {
-                        ic_cdk::println!("Error removing user {}: {:?}", users_canister_id.0.to_text(), e);
+                        ic_cdk::println!(
+                            "Error removing user {}: {:?}",
+                            users_canister_id.0.to_text(),
+                            e
+                        );
                         Err(e)
                     }
                 }
@@ -1660,7 +1704,8 @@ async fn resume_table() -> Result<(), TableError> {
     };
 
     if !is_paused {
-        if let Err(e) = start_new_betting_round_wrapper(TableId(ic_cdk::api::canister_self())).await {
+        if let Err(e) = start_new_betting_round_wrapper(TableId(ic_cdk::api::canister_self())).await
+        {
             ic_cdk::println!("Error resuming table: {:?}", e);
             return Ok(());
         }
@@ -1771,7 +1816,11 @@ async fn send_chat_message(
             "Backend principal not found".to_string(),
         ))?;
 
-    validate_caller(vec![user_principal.0, user.principal_id.0, backend_principal]);
+    validate_caller(vec![
+        user_principal.0,
+        user.principal_id.0,
+        backend_principal,
+    ]);
 
     // Check message length
     if content.len() > 2000 {
@@ -1828,7 +1877,11 @@ async fn edit_chat_message(
             "Backend principal not found".to_string(),
         ))?;
 
-    validate_caller(vec![user_principal.0, user.principal_id.0, backend_principal]);
+    validate_caller(vec![
+        user_principal.0,
+        user.principal_id.0,
+        backend_principal,
+    ]);
 
     // Check message length
     if new_content.len() > 2000 {
@@ -1859,7 +1912,9 @@ fn get_recent_chat_messages(
 }
 
 #[ic_cdk::query]
-fn get_chat_messages_for_user(user_principal: WalletPrincipalId) -> Result<Vec<ChatMessage>, ChatError> {
+fn get_chat_messages_for_user(
+    user_principal: WalletPrincipalId,
+) -> Result<Vec<ChatMessage>, ChatError> {
     let chat_history = CHAT_HISTORY
         .lock()
         .map_err(|_| ChatError::LockError("Failed to acquire chat history lock".to_string()))?;

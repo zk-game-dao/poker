@@ -4,11 +4,14 @@ use canister_functions::{
     create_canister_wrapper, cycle::check_and_top_up_canister, install_wasm_code,
 };
 use currency::{
-    rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL, types::{
+    rake_constants::RAKE_WALLET_ADDRESS_PRINCIPAL,
+    types::{
         canister_wallets::icrc1_token_wallet::GenericICRC1TokenWallet,
         currency::{CKTokenSymbol, Token},
         currency_manager::CurrencyManager,
-    }, utils::get_canister_state, Currency
+    },
+    utils::get_canister_state,
+    Currency,
 };
 use errors::{
     canister_management_error::CanisterManagementError,
@@ -21,18 +24,22 @@ use intercanister_call_wrappers::tournament_canister::{
 };
 use lazy_static::lazy_static;
 use memory::TABLE_CANISTER_POOL;
-use user::user::{UsersCanisterId, WalletPrincipalId};
 use std::{collections::HashMap, sync::Mutex};
-use table::poker::game::table_functions::{table::{TableConfig, TableId}, types::CurrencyType};
+use table::poker::game::table_functions::{
+    table::{TableConfig, TableId},
+    types::CurrencyType,
+};
 use table::poker::game::types::GameType::NoLimit;
 use tournament_index::{create_spin_go_tournament, TournamentIndex};
 use tournaments::tournaments::{
     blind_level::BlindLevel,
     tournament_type::TournamentType,
     types::{
-        get_blind_level_at_time, NewTournament, NewTournamentSpeedType, TournamentData, TournamentId, TournamentState
+        get_blind_level_at_time, NewTournament, NewTournamentSpeedType, TournamentData,
+        TournamentId, TournamentState,
     },
 };
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 pub mod cycle;
 pub mod memory;
@@ -616,16 +623,19 @@ async fn withdraw_cketh(principal: Principal, amount: u64) -> Result<(), Tournam
 }
 
 #[ic_cdk::update]
-async fn request_withdrawal(
-    currency: Currency,
-    amount: u64,
-) -> Result<(), TournamentIndexError> {
+async fn request_withdrawal(currency: Currency, amount: u64) -> Result<(), TournamentIndexError> {
     ic_cdk::println!(
         "Requesting withdrawal of {} {}",
         amount,
         currency.to_string()
     );
-    let active_tournaments = {STATE.lock().map_err(|_| TournamentIndexError::LockError)?.active_tournaments.clone()};
+    let active_tournaments = {
+        STATE
+            .lock()
+            .map_err(|_| TournamentIndexError::LockError)?
+            .active_tournaments
+            .clone()
+    };
     let valid_callers = active_tournaments
         .iter()
         .map(|t| t.0)
@@ -641,9 +651,12 @@ async fn request_withdrawal(
     let fee = currency_manager.get_fee(&currency).await.map_err(|e| {
         TournamentIndexError::CanisterCallFailed(format!("Failed to get fee: {:?}", e))
     })?;
-    currency_manager.withdraw(&currency, ic_cdk::api::msg_caller(), amount + fee as u64).await.map_err(|e| {
-        TournamentIndexError::CanisterCallFailed(format!("Failed to withdraw: {:?}", e))
-    })
+    currency_manager
+        .withdraw(&currency, ic_cdk::api::msg_caller(), amount + fee as u64)
+        .await
+        .map_err(|e| {
+            TournamentIndexError::CanisterCallFailed(format!("Failed to withdraw: {:?}", e))
+        })
 }
 
 #[ic_cdk::update]
@@ -800,8 +813,12 @@ async fn check_tournament_liquidity() -> Result<(), TournamentIndexError> {
     validate_caller(CONTROLLER_PRINCIPALS.clone());
 
     let (min_tournament_liquidity, currency_manager) = {
-        let min_tournament_liquidity = MIN_TOURNAMENT_LIQUIDITY.lock().map_err(|_| TournamentIndexError::LockError)?;
-        let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| TournamentIndexError::LockError)?;
+        let min_tournament_liquidity = MIN_TOURNAMENT_LIQUIDITY
+            .lock()
+            .map_err(|_| TournamentIndexError::LockError)?;
+        let currency_manager = CURRENCY_MANAGER
+            .lock()
+            .map_err(|_| TournamentIndexError::LockError)?;
         (min_tournament_liquidity.clone(), currency_manager.clone())
     };
 
@@ -810,10 +827,14 @@ async fn check_tournament_liquidity() -> Result<(), TournamentIndexError> {
             .get_balance(currency, ic_cdk::api::canister_self())
             .await
             .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
-        
+
         if balance > *min_liquidity {
             currency_manager
-                .withdraw(currency, Principal::from_text(RAKE_WALLET_ADDRESS_PRINCIPAL).unwrap(), (balance - min_liquidity) as u64)
+                .withdraw(
+                    currency,
+                    Principal::from_text(RAKE_WALLET_ADDRESS_PRINCIPAL).unwrap(),
+                    (balance - min_liquidity) as u64,
+                )
                 .await
                 .map_err(|e| TournamentIndexError::CanisterCallFailed(format!("{:?}", e)))?;
         }

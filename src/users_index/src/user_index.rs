@@ -59,7 +59,10 @@ impl UserIndex {
         Ok(())
     }
 
-    pub fn get_users_canister_principal(&self, user_id: WalletPrincipalId) -> Option<&UsersCanisterId> {
+    pub fn get_users_canister_principal(
+        &self,
+        user_id: WalletPrincipalId,
+    ) -> Option<&UsersCanisterId> {
         self.user_to_canister.get(&user_id)
     }
 

@@ -1,6 +1,5 @@
 use candid::Principal;
 use currency::Currency;
-use user::user::WalletPrincipalId;
 use std::time::Duration;
 use table::poker::game::{
     table_functions::{
@@ -15,6 +14,7 @@ use tournaments::tournaments::{
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
     types::{NewTournament, NewTournamentSpeedType, TournamentId, TournamentState},
 };
+use user::user::WalletPrincipalId;
 
 use crate::TestEnv;
 

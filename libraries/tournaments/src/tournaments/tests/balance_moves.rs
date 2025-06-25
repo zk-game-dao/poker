@@ -2,11 +2,11 @@ use crate::tournaments::{
     blind_level::SpeedType, table_balancing::TableBalancer, types::TableInfo,
 };
 use candid::Principal;
-use table::poker::game::table_functions::table::TableId;
 use std::{
     collections::{HashMap, HashSet},
     time::SystemTime,
 };
+use table::poker::game::table_functions::table::TableId;
 
 fn get_current_time_ns() -> u64 {
     SystemTime::now()
@@ -22,7 +22,9 @@ fn create_test_principal(id: &str) -> Principal {
 fn create_test_table_info(player_count: usize) -> TableInfo {
     let mut players = HashSet::new();
     for i in 0..player_count {
-        players.insert(user::user::WalletPrincipalId(create_test_principal(&format!("user{}", i))));
+        players.insert(user::user::WalletPrincipalId(create_test_principal(
+            &format!("user{}", i),
+        )));
     }
     TableInfo {
         players,
@@ -35,9 +37,18 @@ fn test_balanced_tables() {
     let balancer = TableBalancer::new(4, 8, &SpeedType::new_regular(1000, 100));
     let mut tables = HashMap::new();
 
-    tables.insert(TableId(create_test_principal("table1")), create_test_table_info(6));
-    tables.insert(TableId(create_test_principal("table2")), create_test_table_info(6));
-    tables.insert(TableId(create_test_principal("table3")), create_test_table_info(6));
+    tables.insert(
+        TableId(create_test_principal("table1")),
+        create_test_table_info(6),
+    );
+    tables.insert(
+        TableId(create_test_principal("table2")),
+        create_test_table_info(6),
+    );
+    tables.insert(
+        TableId(create_test_principal("table3")),
+        create_test_table_info(6),
+    );
 
     let moves = balancer.get_balance_moves(&mut tables);
     assert_eq!(
@@ -154,7 +165,10 @@ fn test_single_table() {
     let balancer = TableBalancer::new(4, 8, &SpeedType::new_regular(1000, 100));
     let mut tables = HashMap::new();
 
-    tables.insert(TableId(create_test_principal("table1")), create_test_table_info(6));
+    tables.insert(
+        TableId(create_test_principal("table1")),
+        create_test_table_info(6),
+    );
 
     let moves = balancer.get_balance_moves(&mut tables);
     assert_eq!(moves.len(), 0, "No moves possible with single table");
@@ -439,9 +453,18 @@ fn test_all_tables_below_min() {
     let balancer = TableBalancer::new(4, 8, &SpeedType::new_regular(1000, 100));
     let mut tables = HashMap::new();
 
-    tables.insert(TableId(create_test_principal("table1")), create_test_table_info(3));
-    tables.insert(TableId(create_test_principal("table2")), create_test_table_info(2));
-    tables.insert(TableId(create_test_principal("table3")), create_test_table_info(3));
+    tables.insert(
+        TableId(create_test_principal("table1")),
+        create_test_table_info(3),
+    );
+    tables.insert(
+        TableId(create_test_principal("table2")),
+        create_test_table_info(2),
+    );
+    tables.insert(
+        TableId(create_test_principal("table3")),
+        create_test_table_info(3),
+    );
 
     let moves = balancer.get_balance_moves(&mut tables);
     assert_eq!(
@@ -465,9 +488,18 @@ fn test_all_tables_above_max() {
     let balancer = TableBalancer::new(2, 5, &SpeedType::new_regular(1000, 100));
     let mut tables = HashMap::new();
 
-    tables.insert(TableId(create_test_principal("table1")), create_test_table_info(6));
-    tables.insert(TableId(create_test_principal("table2")), create_test_table_info(7));
-    tables.insert(TableId(create_test_principal("table3")), create_test_table_info(6));
+    tables.insert(
+        TableId(create_test_principal("table1")),
+        create_test_table_info(6),
+    );
+    tables.insert(
+        TableId(create_test_principal("table2")),
+        create_test_table_info(7),
+    );
+    tables.insert(
+        TableId(create_test_principal("table3")),
+        create_test_table_info(6),
+    );
 
     let moves = balancer.get_balance_moves(&mut tables);
     assert_eq!(moves.len(), 0, "No moves when no understaffed tables exist");
@@ -844,9 +876,18 @@ fn test_all_tables_full() {
     let balancer = TableBalancer::new(3, 6, &SpeedType::new_regular(1000, 100));
     let mut tables = HashMap::new();
 
-    tables.insert(TableId(create_test_principal("table1")), create_test_table_info(6));
-    tables.insert(TableId(create_test_principal("table2")), create_test_table_info(6));
-    tables.insert(TableId(create_test_principal("table3")), create_test_table_info(6));
+    tables.insert(
+        TableId(create_test_principal("table1")),
+        create_test_table_info(6),
+    );
+    tables.insert(
+        TableId(create_test_principal("table2")),
+        create_test_table_info(6),
+    );
+    tables.insert(
+        TableId(create_test_principal("table3")),
+        create_test_table_info(6),
+    );
 
     let moves = balancer.get_balance_moves(&mut tables);
 

@@ -24,7 +24,10 @@ pub async fn request_withdrawal_wrapper(
         },
         Err(err) => {
             ic_cdk::println!("Error in user_join_tournament call: {:?}", err);
-            Err(TournamentIndexError::CanisterCallError(format!("{:?}", err)))
+            Err(TournamentIndexError::CanisterCallError(format!(
+                "{:?}",
+                err
+            )))
         }
     }
 }

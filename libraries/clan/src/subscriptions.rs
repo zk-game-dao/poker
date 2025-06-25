@@ -3,8 +3,7 @@ use errors::clan_error::ClanError;
 use serde::{Deserialize, Serialize};
 use user::user::{User, WalletPrincipalId};
 
-use crate::{member::ClanMember, Clan};
-
+use crate::{Clan, member::ClanMember};
 
 /// Represents the role a member has within a clan
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
@@ -16,22 +15,24 @@ pub enum ClanRole {
 }
 
 /// Subscription tier identifier - clans can create custom tiers
-#[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, PartialOrd, Ord,
+)]
 pub struct SubscriptionTierId(pub String);
 
 impl SubscriptionTierId {
     pub fn new(name: &str) -> Self {
         Self(name.to_string())
     }
-    
+
     pub fn basic() -> Self {
         Self("Basic".to_string())
     }
-    
+
     pub fn premium() -> Self {
         Self("Premium".to_string())
     }
-    
+
     pub fn elite() -> Self {
         Self("Elite".to_string())
     }
@@ -51,19 +52,19 @@ pub struct SubscriptionRequirements {
 
     /// One-time payment required in clan's supported currency
     pub one_time_payment: Option<u64>,
-    
+
     /// Minimum contribution points within the clan
     pub minimum_contribution_points: Option<u64>,
-    
+
     /// Must be invited by an admin/owner
     pub requires_invitation: bool,
-    
+
     /// Must be verified (proof of humanity)
     pub requires_verification: bool,
-    
+
     /// Minimum time as clan member (in nanoseconds)
     pub minimum_membership_duration: Option<u64>,
-    
+
     /// Minimum games played within clan
     pub minimum_games_played: Option<u64>,
 }
@@ -87,37 +88,37 @@ impl Default for SubscriptionRequirements {
 pub struct SubscriptionBenefits {
     /// Custom description of benefits
     pub description: String,
-    
+
     /// Maximum stakes for tables this tier can access (None = unlimited)
     pub max_table_stakes: Option<u64>,
-    
+
     /// Can participate in clan tournaments
     pub tournament_access: bool,
-    
+
     /// Can create tournaments for the clan
     pub can_create_tournaments: bool,
 
     /// Can create custom tables for clan members
     pub can_create_tables: bool,
-    
+
     /// Gets priority in support/moderation
     pub priority_support: bool,
-    
+
     /// Can set custom avatar/colors in clan
     pub custom_styling: bool,
-    
+
     /// Additional percentage points for revenue sharing (0-50)
     pub revenue_share_bonus: u8,
-    
+
     /// Can access exclusive clan channels/areas
     pub exclusive_access: bool,
-    
+
     /// Can invite new members to clan
     pub can_invite_members: bool,
-    
+
     /// Can see detailed clan analytics
     pub analytics_access: bool,
-    
+
     /// Custom role name displayed in clan
     pub custom_role_name: Option<String>,
 }
@@ -181,7 +182,7 @@ impl SubscriptionTier {
             tier_order: 1,
         }
     }
-    
+
     pub fn new_premium() -> Self {
         Self {
             id: SubscriptionTierId::premium(),
@@ -203,7 +204,7 @@ impl SubscriptionTier {
             tier_order: 2,
         }
     }
-    
+
     pub fn new_elite() -> Self {
         Self {
             id: SubscriptionTierId::elite(),
@@ -242,7 +243,9 @@ impl Clan {
         member: &ClanMember,
         tier_id: &SubscriptionTierId,
     ) -> Result<(), ClanError> {
-        let tier = self.subscription_tiers.get(tier_id)
+        let tier = self
+            .subscription_tiers
+            .get(tier_id)
             .ok_or(ClanError::SubscriptionTierNotFound(tier_id.0.clone()))?;
 
         if !tier.is_active {
@@ -292,10 +295,14 @@ impl Clan {
         paid_amount: u64,
         months: u32,
     ) -> Result<(), ClanError> {
-        let member = self.members.get_mut(member_principal)
+        let member = self
+            .members
+            .get_mut(member_principal)
             .ok_or(ClanError::MemberNotFound)?;
 
-        let tier = self.subscription_tiers.get(new_tier_id)
+        let tier = self
+            .subscription_tiers
+            .get(new_tier_id)
             .ok_or(ClanError::SubscriptionTierNotFound(new_tier_id.0.clone()))?;
 
         if !tier.is_active {
@@ -340,16 +347,26 @@ impl Clan {
     }
 
     /// Check if member has access to specific functionality based on tier
-    pub fn has_tier_access(&self, member_principal: &WalletPrincipalId, required_benefit: &str) -> Result<bool, ClanError> {
-        let member = self.members.get(member_principal)
+    pub fn has_tier_access(
+        &self,
+        member_principal: &WalletPrincipalId,
+        required_benefit: &str,
+    ) -> Result<bool, ClanError> {
+        let member = self
+            .members
+            .get(member_principal)
             .ok_or(ClanError::MemberNotFound)?;
 
         if !member.is_subscription_active() {
             return Ok(false);
         }
 
-        let tier = self.subscription_tiers.get(&member.subscription_tier)
-            .ok_or(ClanError::SubscriptionTierNotFound(member.subscription_tier.0.clone()))?;
+        let tier = self
+            .subscription_tiers
+            .get(&member.subscription_tier)
+            .ok_or(ClanError::SubscriptionTierNotFound(
+                member.subscription_tier.0.clone(),
+            ))?;
 
         let benefits = &tier.benefits;
 
@@ -368,16 +385,26 @@ impl Clan {
     }
 
     /// Check if member can access table with specific stakes
-    pub fn can_access_table_stakes(&self, member_principal: &WalletPrincipalId, table_stakes: u64) -> Result<bool, ClanError> {
-        let member = self.members.get(member_principal)
+    pub fn can_access_table_stakes(
+        &self,
+        member_principal: &WalletPrincipalId,
+        table_stakes: u64,
+    ) -> Result<bool, ClanError> {
+        let member = self
+            .members
+            .get(member_principal)
             .ok_or(ClanError::MemberNotFound)?;
 
         if !member.is_subscription_active() {
             return Ok(false);
         }
 
-        let tier = self.subscription_tiers.get(&member.subscription_tier)
-            .ok_or(ClanError::SubscriptionTierNotFound(member.subscription_tier.0.clone()))?;
+        let tier = self
+            .subscription_tiers
+            .get(&member.subscription_tier)
+            .ok_or(ClanError::SubscriptionTierNotFound(
+                member.subscription_tier.0.clone(),
+            ))?;
 
         match tier.benefits.max_table_stakes {
             Some(max_stakes) => Ok(table_stakes <= max_stakes),
@@ -395,8 +422,7 @@ impl Clan {
         tier_order: u32,
         creator: &WalletPrincipalId,
     ) -> Result<(), ClanError> {
-        let creator_member = self.members.get(creator)
-            .ok_or(ClanError::MemberNotFound)?;
+        let creator_member = self.members.get(creator).ok_or(ClanError::MemberNotFound)?;
 
         if !creator_member.is_admin_or_higher() {
             return Err(ClanError::InsufficientPermissions);
@@ -409,14 +435,7 @@ impl Clan {
 
         self.subscription_tiers.insert(
             id.clone(),
-            SubscriptionTier::new_custom(
-                id,
-                name,
-                requirements,
-                benefits,
-                is_active,
-                tier_order,
-            )
+            SubscriptionTier::new_custom(id, name, requirements, benefits, is_active, tier_order),
         );
         Ok(())
     }
@@ -427,8 +446,7 @@ impl Clan {
         tier: SubscriptionTier,
         updater: &WalletPrincipalId,
     ) -> Result<(), ClanError> {
-        let updater_member = self.members.get(updater)
-            .ok_or(ClanError::MemberNotFound)?;
+        let updater_member = self.members.get(updater).ok_or(ClanError::MemberNotFound)?;
 
         if !updater_member.is_admin_or_higher() {
             return Err(ClanError::InsufficientPermissions);
@@ -453,8 +471,7 @@ impl Clan {
         tier_id: &SubscriptionTierId,
         updater: &WalletPrincipalId,
     ) -> Result<(), ClanError> {
-        let updater_member = self.members.get(updater)
-            .ok_or(ClanError::MemberNotFound)?;
+        let updater_member = self.members.get(updater).ok_or(ClanError::MemberNotFound)?;
 
         if !updater_member.is_admin_or_higher() {
             return Err(ClanError::InsufficientPermissions);
@@ -466,7 +483,9 @@ impl Clan {
         }
 
         // Check if any members are using this tier
-        let members_using_tier = self.members.values()
+        let members_using_tier = self
+            .members
+            .values()
             .filter(|member| member.subscription_tier == *tier_id)
             .count();
 
@@ -480,8 +499,11 @@ impl Clan {
 
     /// Get members by subscription tier
     pub fn get_members_by_tier(&self, tier_id: &SubscriptionTierId) -> Vec<&ClanMember> {
-        self.members.values()
-            .filter(|member| member.subscription_tier == *tier_id && member.is_subscription_active())
+        self.members
+            .values()
+            .filter(|member| {
+                member.subscription_tier == *tier_id && member.is_subscription_active()
+            })
             .collect()
     }
 
@@ -513,7 +535,8 @@ impl Clan {
                         let seven_days = 7 * 24 * 60 * 60 * 1_000_000_000;
                         if expiry <= now + seven_days {
                             // In a real implementation, you'd charge their payment method here
-                            renewal_results.push((member_principal, "Renewal required".to_string()));
+                            renewal_results
+                                .push((member_principal, "Renewal required".to_string()));
                         }
                     }
                 }

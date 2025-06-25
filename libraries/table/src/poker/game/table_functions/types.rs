@@ -167,7 +167,11 @@ impl Notifications {
         }
     }
 
-    pub fn add_notification(&mut self, user_principal: WalletPrincipalId, message: NotificationMessage) {
+    pub fn add_notification(
+        &mut self,
+        user_principal: WalletPrincipalId,
+        message: NotificationMessage,
+    ) {
         let notification = Notification::new(self.id_counter, user_principal, message);
         self.id_counter += 1;
         self.notifications.push(notification);
@@ -197,7 +201,11 @@ pub enum NotificationMessage {
 }
 
 impl Notification {
-    pub fn new(id: u64, user_principal: WalletPrincipalId, message: NotificationMessage) -> Notification {
+    pub fn new(
+        id: u64,
+        user_principal: WalletPrincipalId,
+        message: NotificationMessage,
+    ) -> Notification {
         #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
         {
             Notification {

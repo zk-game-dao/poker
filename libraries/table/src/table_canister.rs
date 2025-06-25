@@ -1,5 +1,8 @@
 use crate::{
-    poker::game::{table_functions::table::{SeatIndex, TableConfig, TableId}, types::PublicTable},
+    poker::game::{
+        table_functions::table::{SeatIndex, TableConfig, TableId},
+        types::PublicTable,
+    },
     types::ReturnResult,
 };
 use candid::Principal;
@@ -54,11 +57,8 @@ pub async fn get_table_wrapper(table_id: TableId) -> Result<PublicTable, TableEr
     }
 }
 
-pub async fn get_players_on_table(
-    table_id: TableId,
-) -> Result<Vec<WalletPrincipalId>, TableError> {
-    let call_result =
-        ic_cdk::call::Call::unbounded_wait(table_id.0, "get_players_on_table").await;
+pub async fn get_players_on_table(table_id: TableId) -> Result<Vec<WalletPrincipalId>, TableError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "get_players_on_table").await;
 
     match call_result {
         Ok(table_result) => match table_result.candid() {
@@ -99,7 +99,10 @@ pub async fn get_free_seat_index(table_id: TableId) -> Result<Option<u8>, TableE
     }
 }
 
-pub async fn get_seat_index(player: WalletPrincipalId, table: TableId) -> Result<Option<u8>, TableError> {
+pub async fn get_seat_index(
+    player: WalletPrincipalId,
+    table: TableId,
+) -> Result<Option<u8>, TableError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(table.0, "get_seat_index")
         .with_arg(player)
         .await;
@@ -155,9 +158,10 @@ pub async fn leave_table_for_table_balancing(
     table: TableId,
     to_table: TableId,
 ) -> Result<PublicTable, TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table.0, "leave_table_for_table_balancing")
-        .with_args(&(users_canister_id, user_id, to_table))
-        .await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(table.0, "leave_table_for_table_balancing")
+            .with_args(&(users_canister_id, user_id, to_table))
+            .await;
 
     match call_result {
         Ok(leave_result) => match leave_result.candid() {
@@ -262,7 +266,8 @@ pub async fn player_sitting_in(
 }
 
 pub async fn start_new_betting_round_wrapper(table_id: TableId) -> Result<(), TableError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "start_new_betting_round").await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(table_id.0, "start_new_betting_round").await;
 
     match call_result {
         Ok(res) => match res.candid() {
@@ -504,10 +509,9 @@ pub async fn handle_timer_expiration_wrapper(
     table_id: TableId,
     user_id: WalletPrincipalId,
 ) -> Result<(), TableError> {
-    let call_result =
-        ic_cdk::call::Call::unbounded_wait(table_id.0, "handle_timer_expiration")
-            .with_arg(user_id)
-            .await;
+    let call_result = ic_cdk::call::Call::unbounded_wait(table_id.0, "handle_timer_expiration")
+        .with_arg(user_id)
+        .await;
 
     match call_result {
         Ok(res) => match res.candid() {

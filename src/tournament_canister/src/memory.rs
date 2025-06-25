@@ -4,10 +4,10 @@ use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     Cell, Storable,
 };
-use user::user::WalletPrincipalId;
 use std::cell::RefCell;
 use std::sync::atomic::Ordering;
 use tournaments::tournaments::types::TournamentData;
+use user::user::WalletPrincipalId;
 
 use crate::{
     LAST_BALANCE_TIMESTAMP, LAST_HEARTBEAT, LEADERBOARD, PRIZE_POOL, TOURNAMENT, TOURNAMENT_INDEX,
@@ -195,7 +195,9 @@ fn post_upgrade() {
                         let len = u32::from_le_bytes(len_bytes) as usize;
                         offset += 4;
                         if offset + len <= bytes.len() {
-                            let principal = WalletPrincipalId(Principal::from_slice(&bytes[offset..offset + len]));
+                            let principal = WalletPrincipalId(Principal::from_slice(
+                                &bytes[offset..offset + len],
+                            ));
                             leaderboard_vec.push(principal);
 
                             offset += len;

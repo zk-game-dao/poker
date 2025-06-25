@@ -110,7 +110,7 @@ fn sitting_out_and_back_in() {
     public_table = test_env.get_table(public_table.id).unwrap();
 
     for user in &public_table.user_table_data {
-        println!("{} {:?}", user.0.0.to_text(), user.1.player_action);
+        println!("{} {:?}", user.0 .0.to_text(), user.1.player_action);
     }
 
     while public_table.sorted_users.is_none() {
@@ -301,7 +301,11 @@ fn test_two_of_three_players_sitting_out() {
     let dealer = public_table
         .get_player_at_seat(public_table.dealer_position)
         .unwrap();
-    let all_users = vec![(user_1, user_1_id), (user_2, user_2_id), (user_3, user_3_id)];
+    let all_users = vec![
+        (user_1, user_1_id),
+        (user_2, user_2_id),
+        (user_3, user_3_id),
+    ];
 
     // Get the other two users by filtering out the dealer
     let other_users: Vec<_> = all_users

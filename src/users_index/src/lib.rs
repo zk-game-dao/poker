@@ -14,7 +14,7 @@ use errors::{canister_management_error::CanisterManagementError, user_error::Use
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
 use ic_ledger_types::{AccountIdentifier, Subaccount, DEFAULT_SUBACCOUNT};
 use intercanister_call_wrappers::users_canister::{
-    create_user_wrapper, get_user_wrapper, update_user_wrapper
+    create_user_wrapper, get_user_wrapper, update_user_wrapper,
 };
 use lazy_static::lazy_static;
 use user::user::{User, UserAvatar, UsersCanisterId, WalletPrincipalId};
@@ -79,7 +79,8 @@ lazy_static! {
     static ref PURE_POKER_LEADERBOARD_CACHE: Mutex<Option<Vec<(WalletPrincipalId, u64)>>> =
         Mutex::new(None);
     static ref PURE_POKER_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
-    static ref VERIFIED_LEADERBOARD_CACHE: Mutex<Option<Vec<(WalletPrincipalId, u64)>>> = Mutex::new(None);
+    static ref VERIFIED_LEADERBOARD_CACHE: Mutex<Option<Vec<(WalletPrincipalId, u64)>>> =
+        Mutex::new(None);
     static ref VERIFIED_LEADERBOARD_CACHE_TIMESTAMP: Mutex<Option<u64>> = Mutex::new(None);
     static ref VERIFIED_PURE_POKER_LEADERBOARD_CACHE: Mutex<Option<Vec<(WalletPrincipalId, u64)>>> =
         Mutex::new(None);
@@ -206,7 +207,9 @@ async fn create_user(
 }
 
 #[ic_cdk::update]
-async fn get_users_canister_principal_by_id(user_id: WalletPrincipalId) -> Result<UsersCanisterId, UserError> {
+async fn get_users_canister_principal_by_id(
+    user_id: WalletPrincipalId,
+) -> Result<UsersCanisterId, UserError> {
     let user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
 
     match user_index_state.get_users_canister_principal(user_id) {
@@ -266,7 +269,11 @@ async fn monitor_and_top_up_user_canisters() -> Result<(), UserError> {
     handle_cycle_check().await?;
     let user_canisters = {
         let user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
-        user_index_state.get_user_canisters().iter().map(|c| c.0).collect()
+        user_index_state
+            .get_user_canisters()
+            .iter()
+            .map(|c| c.0)
+            .collect()
     };
 
     monitor_and_top_up_canisters(user_canisters).await?;
@@ -289,7 +296,11 @@ fn get_number_of_registered_users() -> Result<usize, UserError> {
 async fn get_user_canisters_cycles() -> Result<Vec<(Principal, Nat)>, UserError> {
     let user_canisters = {
         let user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
-        user_index_state.get_user_canisters().iter().map(|c| c.0).collect::<Vec<_>>()
+        user_index_state
+            .get_user_canisters()
+            .iter()
+            .map(|c| c.0)
+            .collect::<Vec<_>>()
     };
 
     let balances = get_cycle_balances(user_canisters).await;
@@ -320,7 +331,10 @@ async fn request_cycles() -> Result<(), UserError> {
 async fn transfer_cycles(cycles_amount: u128, caller: Principal) -> Result<(), UserError> {
     {
         let user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
-        if !user_index_state.canister_user_count.contains_key(&UsersCanisterId(caller)) {
+        if !user_index_state
+            .canister_user_count
+            .contains_key(&UsersCanisterId(caller))
+        {
             return Err(UserError::ManagementCanisterError(
                 CanisterManagementError::Transfer(format!(
                     "Caller is not a valid destination: {}",
@@ -558,8 +572,8 @@ fn get_leaderboard_length() -> Result<usize, UserError> {
 }
 
 #[ic_cdk::update]
-async fn upgrade_all_user_canisters() -> Result<Vec<(UsersCanisterId, CanisterManagementError)>, UserError>
-{
+async fn upgrade_all_user_canisters(
+) -> Result<Vec<(UsersCanisterId, CanisterManagementError)>, UserError> {
     // Validate caller permissions
     let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
@@ -587,7 +601,10 @@ async fn upgrade_all_user_canisters() -> Result<Vec<(UsersCanisterId, CanisterMa
                 async move {
                     match upgrade_wasm_code(user_canister.0, wasm_clone).await {
                         Ok(_) => {
-                            ic_cdk::println!("Successfully upgraded canister {}", user_canister.0.to_text());
+                            ic_cdk::println!(
+                                "Successfully upgraded canister {}",
+                                user_canister.0.to_text()
+                            );
                             Ok(user_canister)
                         }
                         Err(e) => {
@@ -667,12 +684,17 @@ async fn delete_users_canister(user_canister: UsersCanisterId) -> Result<(), Use
     handle_cycle_check().await?;
 
     // Delete the canister
-    stop_and_delete_canister(user_canister.0).await.map_err(|e| {
-        UserError::ManagementCanisterError(CanisterManagementError::DeleteCanisterError(format!(
-            "Failed to delete canister {}: {:?}",
-            user_canister.0.to_text(), e
-        )))
-    })?;
+    stop_and_delete_canister(user_canister.0)
+        .await
+        .map_err(|e| {
+            UserError::ManagementCanisterError(CanisterManagementError::DeleteCanisterError(
+                format!(
+                    "Failed to delete canister {}: {:?}",
+                    user_canister.0.to_text(),
+                    e
+                ),
+            ))
+        })?;
 
     Ok(())
 }

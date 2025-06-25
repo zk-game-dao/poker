@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 
-use clan::{member::ClanMember, subscriptions::{ClanRole, SubscriptionTier, SubscriptionTierId}, treasury::ClanTreasury, Clan, ClanEvent, ClanId, ClanInvitation, ClanStats, CreateClanRequest, JoinRequest};
+use clan::{
+    Clan, ClanEvent, ClanId, ClanInvitation, ClanStats, CreateClanRequest, JoinRequest,
+    member::ClanMember,
+    subscriptions::{ClanRole, SubscriptionTier, SubscriptionTierId},
+    treasury::ClanTreasury,
+};
 use errors::clan_error::ClanError;
 use user::user::{UsersCanisterId, WalletPrincipalId};
 
@@ -162,9 +167,7 @@ pub async fn get_clan_member_wrapper(
     }
 }
 
-pub async fn get_clan_members_wrapper(
-    clan_canister: ClanId,
-) -> Result<Vec<ClanMember>, ClanError> {
+pub async fn get_clan_members_wrapper(clan_canister: ClanId) -> Result<Vec<ClanMember>, ClanError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_clan_members").await;
 
     match call_result {
@@ -277,7 +280,8 @@ pub async fn upgrade_subscription_wrapper(
 pub async fn get_subscription_tiers_wrapper(
     clan_canister: ClanId,
 ) -> Result<Vec<SubscriptionTier>, ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_subscription_tiers").await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_subscription_tiers").await;
 
     match call_result {
         Ok(tiers_result) => match tiers_result.candid() {
@@ -302,9 +306,10 @@ pub async fn create_subscription_tier_wrapper(
     tier: SubscriptionTier,
     created_by: WalletPrincipalId,
 ) -> Result<(), ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "create_subscription_tier")
-        .with_args(&(tier, created_by))
-        .await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "create_subscription_tier")
+            .with_args(&(tier, created_by))
+            .await;
 
     match call_result {
         Ok(result) => match result.candid() {
@@ -329,9 +334,10 @@ pub async fn remove_subscription_tier_wrapper(
     tier_id: SubscriptionTierId,
     removed_by: WalletPrincipalId,
 ) -> Result<(), ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "remove_subscription_tier")
-        .with_args(&(tier_id, removed_by))
-        .await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "remove_subscription_tier")
+            .with_args(&(tier_id, removed_by))
+            .await;
 
     match call_result {
         Ok(result) => match result.candid() {
@@ -353,10 +359,9 @@ pub async fn remove_subscription_tier_wrapper(
 
 // Treasury and rewards wrappers
 
-pub async fn get_clan_treasury_wrapper(
-    clan_canister: ClanId,
-) -> Result<ClanTreasury, ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_clan_treasury").await;
+pub async fn get_clan_treasury_wrapper(clan_canister: ClanId) -> Result<ClanTreasury, ClanError> {
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_clan_treasury").await;
 
     match call_result {
         Ok(treasury_result) => match treasury_result.candid() {
@@ -405,10 +410,9 @@ pub async fn distribute_rewards_wrapper(
 
 // Statistics and events wrappers
 
-pub async fn get_clan_statistics_wrapper(
-    clan_canister: ClanId,
-) -> Result<ClanStats, ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_clan_statistics").await;
+pub async fn get_clan_statistics_wrapper(clan_canister: ClanId) -> Result<ClanStats, ClanError> {
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_clan_statistics").await;
 
     match call_result {
         Ok(stats_result) => match stats_result.candid() {
@@ -572,7 +576,8 @@ pub async fn approve_join_request_wrapper(
 pub async fn get_pending_requests_wrapper(
     clan_canister: ClanId,
 ) -> Result<Vec<JoinRequest>, ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_pending_requests").await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_pending_requests").await;
 
     match call_result {
         Ok(requests_result) => match requests_result.candid() {
@@ -603,7 +608,13 @@ pub async fn update_member_stats_wrapper(
     xp_delta: u64,
 ) -> Result<(), ClanError> {
     let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "update_member_stats")
-        .with_args(&(member_id, games_played_delta, tournaments_won_delta, winnings_delta, xp_delta))
+        .with_args(&(
+            member_id,
+            games_played_delta,
+            tournaments_won_delta,
+            winnings_delta,
+            xp_delta,
+        ))
         .await;
 
     match call_result {
@@ -627,7 +638,8 @@ pub async fn update_member_stats_wrapper(
 pub async fn process_subscription_renewals_wrapper(
     clan_canister: ClanId,
 ) -> Result<Vec<(WalletPrincipalId, String)>, ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "process_subscription_renewals").await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "process_subscription_renewals").await;
 
     match call_result {
         Ok(renewals_result) => match renewals_result.candid() {
@@ -681,9 +693,10 @@ pub async fn can_access_table_stakes_wrapper(
     member_id: WalletPrincipalId,
     table_stakes: u64,
 ) -> Result<bool, ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "can_access_table_stakes")
-        .with_args(&(member_id, table_stakes))
-        .await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "can_access_table_stakes")
+            .with_args(&(member_id, table_stakes))
+            .await;
 
     match call_result {
         Ok(access_result) => match access_result.candid() {
@@ -731,7 +744,8 @@ pub async fn request_cycles_wrapper(clan_canister: ClanId) -> Result<(), ClanErr
 pub async fn get_invited_users_wrapper(
     clan_canister: ClanId,
 ) -> Result<HashMap<WalletPrincipalId, u64>, ClanError> {
-    let call_result = ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_invited_users").await;
+    let call_result =
+        ic_cdk::call::Call::unbounded_wait(clan_canister.0, "get_invited_users").await;
 
     match call_result {
         Ok(invited_result) => match invited_result.candid() {

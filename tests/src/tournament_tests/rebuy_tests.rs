@@ -112,7 +112,10 @@ impl TestEnv {
             let user = self
                 .create_user(
                     format!("User {}", i),
-                    WalletPrincipalId(Principal::self_authenticating(format!("user{}{}", i, name_suffix))),
+                    WalletPrincipalId(Principal::self_authenticating(format!(
+                        "user{}{}",
+                        i, name_suffix
+                    ))),
                 )
                 .expect("Failed to create user");
 

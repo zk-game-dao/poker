@@ -1,26 +1,30 @@
-use std::collections::{HashMap, HashSet};
-use candid::{CandidType, Principal};
-use currency::Currency;
-use serde::{Deserialize, Serialize};
-use clan::{subscriptions::{ClanRole, SubscriptionTierId}, tags::{ClanTag, TagCategory}, Clan, ClanId, ClanPrivacy};
-use user::user::WalletPrincipalId;
 use crate::tags::TagSearchFilters;
+use candid::{CandidType, Principal};
+use clan::{
+    subscriptions::{ClanRole, SubscriptionTierId},
+    tags::{ClanTag, TagCategory},
+    Clan, ClanId, ClanPrivacy,
+};
+use currency::Currency;
 use errors::clan_index_error::ClanIndexError;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
+use user::user::WalletPrincipalId;
 
 #[derive(Debug, Clone, PartialEq, CandidType, Serialize, Deserialize)]
 pub struct ClanIndex {
     /// Map of clan ID to clan data
     pub clans: HashMap<ClanId, Clan>,
-    
+
     /// Map of individual clan tags to clan IDs for fast tag-based lookup
     pub tag_to_clans: HashMap<ClanTag, HashSet<ClanId>>,
-    
+
     /// Map of user principals to clan IDs they're members of
     pub user_to_clans: HashMap<WalletPrincipalId, HashSet<ClanId>>,
-    
+
     /// Map of currency types to clan IDs using that currency
     pub currency_to_clans: HashMap<Currency, HashSet<ClanId>>,
-    
+
     /// Statistics
     pub total_clans: usize,
     pub total_members: usize,
@@ -36,7 +40,7 @@ pub struct ClanSearchFilters {
     pub has_joining_fee: Option<bool>,
     pub subscription_enabled: Option<bool>,
     pub require_proof_of_humanity: Option<bool>,
-    
+
     // New tag-based filters
     pub tag_filters: Option<TagSearchFilters>,
 }
@@ -67,7 +71,7 @@ impl ClanIndex {
 
         // Add to various indexes
         self.clans.insert(clan_id, clan.clone());
-        
+
         // Add to tag indexes
         for tag in &tags {
             self.tag_to_clans
@@ -75,7 +79,7 @@ impl ClanIndex {
                 .or_insert_with(HashSet::new)
                 .insert(clan_id);
         }
-        
+
         // Add to currency index
         self.currency_to_clans
             .entry(currency)
@@ -99,7 +103,9 @@ impl ClanIndex {
 
     /// Remove a clan from the index
     pub fn remove_clan(&mut self, clan_id: ClanId) -> Result<(), ClanIndexError> {
-        let clan = self.clans.remove(&clan_id)
+        let clan = self
+            .clans
+            .remove(&clan_id)
             .ok_or(ClanIndexError::ClanNotFound)?;
 
         // Remove from tag indexes
@@ -140,12 +146,12 @@ impl ClanIndex {
     /// Update clan data in the index
     pub fn update_clan(&mut self, clan: Clan) -> Result<(), ClanIndexError> {
         let clan_id = clan.id;
-        
+
         if let Some(old_clan) = self.clans.get(&clan_id) {
             // Handle tag changes
             let old_tags = &old_clan.tags;
             let new_tags = &clan.tags;
-            
+
             // Remove old tags that are no longer present
             for old_tag in old_tags {
                 if !new_tags.contains(old_tag) {
@@ -157,7 +163,7 @@ impl ClanIndex {
                     }
                 }
             }
-            
+
             // Add new tags
             for new_tag in new_tags {
                 if !old_tags.contains(new_tag) {
@@ -171,13 +177,15 @@ impl ClanIndex {
             // Handle currency change
             if old_clan.supported_currency != clan.supported_currency {
                 // Remove from old currency index
-                if let Some(old_currency_set) = self.currency_to_clans.get_mut(&old_clan.supported_currency) {
+                if let Some(old_currency_set) =
+                    self.currency_to_clans.get_mut(&old_clan.supported_currency)
+                {
                     old_currency_set.remove(&clan_id);
                     if old_currency_set.is_empty() {
                         self.currency_to_clans.remove(&old_clan.supported_currency);
                     }
                 }
-                
+
                 // Add to new currency index
                 self.currency_to_clans
                     .entry(clan.supported_currency.clone())
@@ -188,9 +196,10 @@ impl ClanIndex {
             // Handle member changes
             let old_member_count = old_clan.members.len();
             let new_member_count = clan.members.len();
-            
+
             // Update total members count
-            self.total_members = self.total_members
+            self.total_members = self
+                .total_members
                 .saturating_sub(old_member_count)
                 .saturating_add(new_member_count);
 
@@ -223,7 +232,11 @@ impl ClanIndex {
     }
 
     /// Add a member to a clan
-    pub fn add_member_to_clan(&mut self, clan_id: ClanId, user_principal: WalletPrincipalId) -> Result<(), ClanIndexError> {
+    pub fn add_member_to_clan(
+        &mut self,
+        clan_id: ClanId,
+        user_principal: WalletPrincipalId,
+    ) -> Result<(), ClanIndexError> {
         if self.clans.contains_key(&clan_id) {
             self.user_to_clans
                 .entry(user_principal)
@@ -237,7 +250,11 @@ impl ClanIndex {
     }
 
     /// Remove a member from a clan
-    pub fn remove_member_from_clan(&mut self, clan_id: ClanId, user_principal: WalletPrincipalId) -> Result<(), ClanIndexError> {
+    pub fn remove_member_from_clan(
+        &mut self,
+        clan_id: ClanId,
+        user_principal: WalletPrincipalId,
+    ) -> Result<(), ClanIndexError> {
         if self.clans.contains_key(&clan_id) {
             if let Some(user_clans) = self.user_to_clans.get_mut(&user_principal) {
                 if user_clans.remove(&clan_id) {
@@ -263,7 +280,8 @@ impl ClanIndex {
         self.currency_to_clans
             .get(currency)
             .map(|clan_ids| {
-                clan_ids.iter()
+                clan_ids
+                    .iter()
                     .filter_map(|clan_id| self.clans.get(clan_id))
                     .cloned()
                     .collect()
@@ -276,7 +294,8 @@ impl ClanIndex {
         self.user_to_clans
             .get(user_principal)
             .map(|clan_ids| {
-                clan_ids.iter()
+                clan_ids
+                    .iter()
                     .filter_map(|clan_id| self.clans.get(clan_id))
                     .cloned()
                     .collect()
@@ -285,7 +304,12 @@ impl ClanIndex {
     }
 
     /// Search clans with filters
-    pub fn search_clans(&self, filters: Option<ClanSearchFilters>, page: u64, page_size: u64) -> Vec<Clan> {
+    pub fn search_clans(
+        &self,
+        filters: Option<ClanSearchFilters>,
+        page: u64,
+        page_size: u64,
+    ) -> Vec<Clan> {
         let mut clan_ids: Vec<ClanId> = self.clans.keys().copied().collect();
 
         // Apply tag filters first if provided
@@ -296,72 +320,80 @@ impl ClanIndex {
         }
 
         // Get clans from IDs
-        let mut clans: Vec<Clan> = clan_ids.iter()
+        let mut clans: Vec<Clan> = clan_ids
+            .iter()
             .filter_map(|clan_id| self.clans.get(clan_id))
             .cloned()
             .collect();
 
         // Apply other filters
         if let Some(filters) = filters {
-            clans = clans.into_iter().filter(|clan| {
-                // Name filter
-                if let Some(ref name_filter) = filters.name_contains {
-                    if !clan.name.to_lowercase().contains(&name_filter.to_lowercase()) {
-                        return false;
+            clans = clans
+                .into_iter()
+                .filter(|clan| {
+                    // Name filter
+                    if let Some(ref name_filter) = filters.name_contains {
+                        if !clan
+                            .name
+                            .to_lowercase()
+                            .contains(&name_filter.to_lowercase())
+                        {
+                            return false;
+                        }
                     }
-                }
 
-                // Currency filter
-                if let Some(ref currency_filter) = filters.currency {
-                    if clan.supported_currency != *currency_filter {
-                        return false;
+                    // Currency filter
+                    if let Some(ref currency_filter) = filters.currency {
+                        if clan.supported_currency != *currency_filter {
+                            return false;
+                        }
                     }
-                }
 
-                // Privacy filter
-                if let Some(ref privacy_filter) = filters.privacy {
-                    if clan.privacy != *privacy_filter {
-                        return false;
+                    // Privacy filter
+                    if let Some(ref privacy_filter) = filters.privacy {
+                        if clan.privacy != *privacy_filter {
+                            return false;
+                        }
                     }
-                }
 
-                // Member count filters
-                let member_count = clan.members.len() as u32;
-                if let Some(min_members) = filters.min_members {
-                    if member_count < min_members {
-                        return false;
+                    // Member count filters
+                    let member_count = clan.members.len() as u32;
+                    if let Some(min_members) = filters.min_members {
+                        if member_count < min_members {
+                            return false;
+                        }
                     }
-                }
-                if let Some(max_members) = filters.max_members {
-                    if member_count > max_members {
-                        return false;
+                    if let Some(max_members) = filters.max_members {
+                        if member_count > max_members {
+                            return false;
+                        }
                     }
-                }
 
-                // Joining fee filter
-                if let Some(has_joining_fee) = filters.has_joining_fee {
-                    let clan_has_fee = clan.joining_fee > 0;
-                    if has_joining_fee != clan_has_fee {
-                        return false;
+                    // Joining fee filter
+                    if let Some(has_joining_fee) = filters.has_joining_fee {
+                        let clan_has_fee = clan.joining_fee > 0;
+                        if has_joining_fee != clan_has_fee {
+                            return false;
+                        }
                     }
-                }
 
-                // Subscription enabled filter
-                if let Some(subscription_enabled) = filters.subscription_enabled {
-                    if clan.subscription_enabled != subscription_enabled {
-                        return false;
+                    // Subscription enabled filter
+                    if let Some(subscription_enabled) = filters.subscription_enabled {
+                        if clan.subscription_enabled != subscription_enabled {
+                            return false;
+                        }
                     }
-                }
 
-                // Proof of humanity filter
-                if let Some(require_poh) = filters.require_proof_of_humanity {
-                    if clan.require_proof_of_humanity != require_poh {
-                        return false;
+                    // Proof of humanity filter
+                    if let Some(require_poh) = filters.require_proof_of_humanity {
+                        if clan.require_proof_of_humanity != require_poh {
+                            return false;
+                        }
                     }
-                }
 
-                true
-            }).collect();
+                    true
+                })
+                .collect();
         }
 
         // Sort by member count (most popular first)
@@ -370,7 +402,7 @@ impl ClanIndex {
         // Apply pagination
         let start = (page * page_size) as usize;
         let end = std::cmp::min(start + page_size as usize, clans.len());
-        
+
         if start >= clans.len() {
             Vec::new()
         } else {
@@ -379,12 +411,16 @@ impl ClanIndex {
     }
 
     /// Get clans by member count range
-    pub fn get_clans_by_member_count(&self, min_members: usize, max_members: Option<usize>) -> Vec<Clan> {
-        self.clans.values()
+    pub fn get_clans_by_member_count(
+        &self,
+        min_members: usize,
+        max_members: Option<usize>,
+    ) -> Vec<Clan> {
+        self.clans
+            .values()
             .filter(|clan| {
                 let member_count = clan.members.len();
-                member_count >= min_members && 
-                max_members.map_or(true, |max| member_count <= max)
+                member_count >= min_members && max_members.map_or(true, |max| member_count <= max)
             })
             .cloned()
             .collect()
@@ -420,17 +456,24 @@ impl ClanIndex {
 
     /// Get clans created by a specific user
     pub fn get_clans_created_by(&self, creator: &Principal) -> Vec<Clan> {
-        self.clans.values()
+        self.clans
+            .values()
             .filter(|clan| clan.created_by == *creator)
             .cloned()
             .collect()
     }
 
     /// Get clans where user has a specific role
-    pub fn get_clans_by_user_role(&self, user_principal: &WalletPrincipalId, role: &ClanRole) -> Vec<Clan> {
-        self.clans.values()
+    pub fn get_clans_by_user_role(
+        &self,
+        user_principal: &WalletPrincipalId,
+        role: &ClanRole,
+    ) -> Vec<Clan> {
+        self.clans
+            .values()
             .filter(|clan| {
-                clan.members.get(user_principal)
+                clan.members
+                    .get(user_principal)
                     .map_or(false, |member| member.role == *role)
             })
             .cloned()
@@ -439,7 +482,8 @@ impl ClanIndex {
 
     /// Get clans by subscription tier
     pub fn get_clans_with_subscription_tier(&self, tier: &SubscriptionTierId) -> Vec<Clan> {
-        self.clans.values()
+        self.clans
+            .values()
             .filter(|clan| clan.subscription_tiers.contains_key(tier))
             .cloned()
             .collect()
@@ -448,7 +492,7 @@ impl ClanIndex {
     /// Get statistics about clans
     pub fn get_clan_statistics(&self) -> ClanStatistics {
         let mut stats = ClanStatistics::default();
-        
+
         stats.total_clans = self.total_clans;
         stats.total_members = self.total_members;
 
@@ -461,7 +505,10 @@ impl ClanIndex {
             }
 
             // Currency distribution
-            *stats.currency_distribution.entry(clan.supported_currency.clone()).or_insert(0) += 1;
+            *stats
+                .currency_distribution
+                .entry(clan.supported_currency.clone())
+                .or_insert(0) += 1;
 
             // Subscription enabled
             if clan.subscription_enabled {

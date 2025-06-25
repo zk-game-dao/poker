@@ -295,7 +295,9 @@ fn test_addon_time_passed_for_tournament() {
     let user_1 = test_env
         .create_user(
             "User 1".to_string(),
-            WalletPrincipalId(Principal::self_authenticating("user1invalidbuyinaddontimehasntended")),
+            WalletPrincipalId(Principal::self_authenticating(
+                "user1invalidbuyinaddontimehasntended",
+            )),
         )
         .expect("Failed to create user");
     test_env.transfer_approve_tokens_for_testing(id.0, user_1.principal_id, 1000.0, true);
@@ -367,7 +369,9 @@ fn test_addon_time_hasnt_started_for_tournament() {
     let user_1 = test_env
         .create_user(
             "User 1".to_string(),
-            WalletPrincipalId(Principal::self_authenticating("user1invalidbuyinaddontimehasntstarted")),
+            WalletPrincipalId(Principal::self_authenticating(
+                "user1invalidbuyinaddontimehasntstarted",
+            )),
         )
         .expect("Failed to create user");
     test_env.transfer_approve_tokens_for_testing(id.0, user_1.principal_id, 1000.0, true);

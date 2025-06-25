@@ -123,7 +123,10 @@ impl Table {
     ///
     /// - [`GameError::Other`] if the user table data cannot be retrieved
     /// - [`GameError::PlayerNotFound`] if retrieving a player fails
-    pub fn force_fold(&mut self, user_principal: WalletPrincipalId) -> Result<(), TracedError<GameError>> {
+    pub fn force_fold(
+        &mut self,
+        user_principal: WalletPrincipalId,
+    ) -> Result<(), TracedError<GameError>> {
         if self.sorted_users.is_none() {
             if self
                 .handle_inactive_user(user_principal)

@@ -10,7 +10,9 @@ use intercanister_call_wrappers::tournament_canister::{
 use serde::{Deserialize, Serialize};
 use table::poker::game::table_functions::{table::TableConfig, types::CurrencyType};
 use tournaments::tournaments::{
-    spin_and_go::SpinGoMultiplier, tournament_type::{BuyInOptions, TournamentSizeType, TournamentType}, types::{NewTournament, NewTournamentSpeedType, TournamentData, TournamentId}
+    spin_and_go::SpinGoMultiplier,
+    tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
+    types::{NewTournament, NewTournamentSpeedType, TournamentData, TournamentId},
 };
 use user::user::{UsersCanisterId, WalletPrincipalId};
 
@@ -73,7 +75,7 @@ impl TournamentIndex {
             active_tournaments: Vec::new(),
             completed_tournaments: Vec::new(),
             spin_go_pools: HashMap::new(),
-            spin_go_templates
+            spin_go_templates,
         }
     }
 

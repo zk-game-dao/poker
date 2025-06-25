@@ -1,8 +1,8 @@
 use candid::{Decode, Encode, Principal};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{storable::Bound, DefaultMemoryImpl, StableBTreeMap, Storable};
-use user::user::{UsersCanisterId, WalletPrincipalId};
 use std::{borrow::Cow, cell::RefCell};
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use crate::user_index::UserIndex;
 use crate::USER_INDEX_STATE;

@@ -52,7 +52,8 @@ impl Table {
                 self.users
                     .get_mut(&user_principal)
                     .ok_or_else(|| trace_err!(TracedError::new(GameError::PlayerNotFound)))?
-                    .balance.0 -= amount;
+                    .balance
+                    .0 -= amount;
                 self.add_to_pot(amount);
                 Ok(())
             }

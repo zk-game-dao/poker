@@ -10,14 +10,14 @@ pub enum ClanTag {
     Advanced,
     Professional,
     MixedSkill,
-    
+
     // Stakes Tags
-    Microstakes,     // Very low stakes
-    LowStakes,       // Low stakes
-    MidStakes,       // Medium stakes
-    HighStakes,      // High stakes
-    Nosebleeds,      // Highest stakes
-    
+    Microstakes, // Very low stakes
+    LowStakes,   // Low stakes
+    MidStakes,   // Medium stakes
+    HighStakes,  // High stakes
+    Nosebleeds,  // Highest stakes
+
     // Game Type Tags
     CashGames,
     Tournaments,
@@ -25,7 +25,7 @@ pub enum ClanTag {
     SpinAndGo,
     MixedGameTypes,
     HeadsUp,
-    
+
     // Activity Schedule Tags
     Weekdays,
     Weekends,
@@ -34,43 +34,43 @@ pub enum ClanTag {
     Evening,         // 6pm-12am
     LateNight,       // 12am-6am
     TwentyFourSeven, // Always active
-    
+
     // Geographic/Timezone Tags - Comprehensive timezone coverage
     // Major Regions
     NorthAmerica,
-    SouthAmerica, 
+    SouthAmerica,
     Europe,
     Asia,
     Africa,
     Oceania,
-    
+
     // Specific Timezones - UTC offsets
-    UTCMinus12,     // Baker Island Time
-    UTCMinus11,     // Samoa Standard Time
-    UTCMinus10,     // Hawaii Standard Time
-    UTCMinus9,      // Alaska Standard Time
-    UTCMinus8,      // Pacific Standard Time (PST)
-    UTCMinus7,      // Mountain Standard Time (MST)
-    UTCMinus6,      // Central Standard Time (CST)
-    UTCMinus5,      // Eastern Standard Time (EST)
-    UTCMinus4,      // Atlantic Standard Time
-    UTCMinus3,      // Argentina Time, Brazil Time
-    UTCMinus2,      // South Georgia Time
-    UTCMinus1,      // Azores Time
-    UTC,            // Coordinated Universal Time
-    UTCPlus1,       // Central European Time (CET)
-    UTCPlus2,       // Eastern European Time (EET)
-    UTCPlus3,       // Moscow Time
-    UTCPlus4,       // Gulf Standard Time
-    UTCPlus5,       // Pakistan Standard Time
-    UTCPlus6,       // Bangladesh Standard Time
-    UTCPlus7,       // Indochina Time
-    UTCPlus8,       // China Standard Time
-    UTCPlus9,       // Japan Standard Time
-    UTCPlus10,      // Australian Eastern Standard Time
-    UTCPlus11,      // Solomon Islands Time
-    UTCPlus12,      // Fiji Time
-    
+    UTCMinus12, // Baker Island Time
+    UTCMinus11, // Samoa Standard Time
+    UTCMinus10, // Hawaii Standard Time
+    UTCMinus9,  // Alaska Standard Time
+    UTCMinus8,  // Pacific Standard Time (PST)
+    UTCMinus7,  // Mountain Standard Time (MST)
+    UTCMinus6,  // Central Standard Time (CST)
+    UTCMinus5,  // Eastern Standard Time (EST)
+    UTCMinus4,  // Atlantic Standard Time
+    UTCMinus3,  // Argentina Time, Brazil Time
+    UTCMinus2,  // South Georgia Time
+    UTCMinus1,  // Azores Time
+    UTC,        // Coordinated Universal Time
+    UTCPlus1,   // Central European Time (CET)
+    UTCPlus2,   // Eastern European Time (EET)
+    UTCPlus3,   // Moscow Time
+    UTCPlus4,   // Gulf Standard Time
+    UTCPlus5,   // Pakistan Standard Time
+    UTCPlus6,   // Bangladesh Standard Time
+    UTCPlus7,   // Indochina Time
+    UTCPlus8,   // China Standard Time
+    UTCPlus9,   // Japan Standard Time
+    UTCPlus10,  // Australian Eastern Standard Time
+    UTCPlus11,  // Solomon Islands Time
+    UTCPlus12,  // Fiji Time
+
     // Language Tags
     English,
     Spanish,
@@ -83,7 +83,7 @@ pub enum ClanTag {
     Italian,
     Korean,
     Multilingual,
-    
+
     // Community Style Tags
     Casual,
     Competitive,
@@ -92,7 +92,7 @@ pub enum ClanTag {
     Serious,
     Fun,
     StudyGroup,
-    
+
     // Special Features Tags
     Coaching,
     HandReviews,
@@ -101,12 +101,12 @@ pub enum ClanTag {
     VoiceChat,
     TextChat,
     DiscordIntegration,
-    
+
     // Member Requirements Tags
     InviteOnly,
-    Verified,        // Requires proof of humanity
+    Verified, // Requires proof of humanity
     Application,
-    
+
     // Clan Benefits Tags
     Rakeback,
     Freerolls,
@@ -114,7 +114,7 @@ pub enum ClanTag {
     Leaderboards,
     Exclusive,
     VIP,
-    
+
     // Custom tag for user-defined tags
     Custom(String),
 }
@@ -128,20 +128,20 @@ impl ClanTag {
             ClanTag::Advanced => "Advanced".to_string(),
             ClanTag::Professional => "Professional".to_string(),
             ClanTag::MixedSkill => "Mixed Skill".to_string(),
-            
+
             ClanTag::Microstakes => "Micro Stakes".to_string(),
             ClanTag::LowStakes => "Low Stakes".to_string(),
             ClanTag::MidStakes => "Mid Stakes".to_string(),
             ClanTag::HighStakes => "High Stakes".to_string(),
             ClanTag::Nosebleeds => "Nosebleeds".to_string(),
-            
+
             ClanTag::CashGames => "Cash Games".to_string(),
             ClanTag::Tournaments => "Tournaments".to_string(),
             ClanTag::SitAndGo => "Sit & Go".to_string(),
             ClanTag::SpinAndGo => "Spin & Go".to_string(),
             ClanTag::HeadsUp => "Heads Up".to_string(),
             ClanTag::MixedGameTypes => "Mixed Game Types".to_string(),
-            
+
             ClanTag::Weekdays => "Weekdays".to_string(),
             ClanTag::Weekends => "Weekends".to_string(),
             ClanTag::EarlyMorning => "Early Morning".to_string(),
@@ -149,14 +149,14 @@ impl ClanTag {
             ClanTag::Evening => "Evening".to_string(),
             ClanTag::LateNight => "Late Night".to_string(),
             ClanTag::TwentyFourSeven => "24/7 Active".to_string(),
-            
+
             ClanTag::NorthAmerica => "North America".to_string(),
             ClanTag::SouthAmerica => "South America".to_string(),
             ClanTag::Europe => "Europe".to_string(),
             ClanTag::Asia => "Asia".to_string(),
             ClanTag::Africa => "Africa".to_string(),
             ClanTag::Oceania => "Oceania".to_string(),
-            
+
             ClanTag::UTCMinus12 => "UTC-12".to_string(),
             ClanTag::UTCMinus11 => "UTC-11".to_string(),
             ClanTag::UTCMinus10 => "UTC-10 (HST)".to_string(),
@@ -182,7 +182,7 @@ impl ClanTag {
             ClanTag::UTCPlus10 => "UTC+10 (AEST)".to_string(),
             ClanTag::UTCPlus11 => "UTC+11".to_string(),
             ClanTag::UTCPlus12 => "UTC+12".to_string(),
-            
+
             ClanTag::English => "English".to_string(),
             ClanTag::Spanish => "Spanish".to_string(),
             ClanTag::French => "French".to_string(),
@@ -194,7 +194,7 @@ impl ClanTag {
             ClanTag::Italian => "Italian".to_string(),
             ClanTag::Korean => "Korean".to_string(),
             ClanTag::Multilingual => "Multilingual".to_string(),
-            
+
             ClanTag::Casual => "Casual".to_string(),
             ClanTag::Competitive => "Competitive".to_string(),
             ClanTag::Educational => "Educational".to_string(),
@@ -202,7 +202,7 @@ impl ClanTag {
             ClanTag::Serious => "Serious".to_string(),
             ClanTag::Fun => "Fun".to_string(),
             ClanTag::StudyGroup => "Study Group".to_string(),
-            
+
             ClanTag::Coaching => "Coaching".to_string(),
             ClanTag::HandReviews => "Hand Reviews".to_string(),
             ClanTag::Strategy => "Strategy".to_string(),
@@ -210,18 +210,18 @@ impl ClanTag {
             ClanTag::VoiceChat => "Voice Chat".to_string(),
             ClanTag::TextChat => "Text Chat".to_string(),
             ClanTag::DiscordIntegration => "Discord".to_string(),
-            
+
             ClanTag::InviteOnly => "Invite Only".to_string(),
             ClanTag::Verified => "Verified Members".to_string(),
             ClanTag::Application => "Application Required".to_string(),
-            
+
             ClanTag::Rakeback => "Rakeback".to_string(),
             ClanTag::Freerolls => "Freerolls".to_string(),
             ClanTag::Rewards => "Rewards".to_string(),
             ClanTag::Leaderboards => "Leaderboards".to_string(),
             ClanTag::Exclusive => "Exclusive".to_string(),
             ClanTag::VIP => "VIP".to_string(),
-            
+
             ClanTag::Custom(tag) => tag.clone(),
         }
     }
@@ -229,48 +229,104 @@ impl ClanTag {
     /// Get the category this tag belongs to
     pub fn category(&self) -> TagCategory {
         match self {
-            ClanTag::Beginner | ClanTag::Intermediate | ClanTag::Advanced | 
-            ClanTag::Professional | ClanTag::MixedSkill => TagCategory::SkillLevel,
-            
-            ClanTag::Microstakes | ClanTag::LowStakes | ClanTag::MidStakes | 
-            ClanTag::HighStakes | ClanTag::Nosebleeds => TagCategory::Stakes,
-            
-            ClanTag::CashGames | ClanTag::Tournaments | ClanTag::SitAndGo | 
-            ClanTag::SpinAndGo | ClanTag::HeadsUp | ClanTag::MixedGameTypes => TagCategory::GameType,
-            
-            ClanTag::Weekdays | ClanTag::Weekends | ClanTag::EarlyMorning | 
-            ClanTag::Afternoon | ClanTag::Evening | ClanTag::LateNight | 
-            ClanTag::TwentyFourSeven => TagCategory::Schedule,
-            
-            ClanTag::NorthAmerica | ClanTag::SouthAmerica | ClanTag::Europe | 
-            ClanTag::Asia | ClanTag::Africa | ClanTag::Oceania |
-            ClanTag::UTCMinus12 | ClanTag::UTCMinus11 | ClanTag::UTCMinus10 | 
-            ClanTag::UTCMinus9 | ClanTag::UTCMinus8 | ClanTag::UTCMinus7 | 
-            ClanTag::UTCMinus6 | ClanTag::UTCMinus5 | ClanTag::UTCMinus4 | 
-            ClanTag::UTCMinus3 | ClanTag::UTCMinus2 | ClanTag::UTCMinus1 | 
-            ClanTag::UTC | ClanTag::UTCPlus1 | ClanTag::UTCPlus2 | 
-            ClanTag::UTCPlus3 | ClanTag::UTCPlus4 | ClanTag::UTCPlus5 | 
-            ClanTag::UTCPlus6 | ClanTag::UTCPlus7 | ClanTag::UTCPlus8 | 
-            ClanTag::UTCPlus9 | ClanTag::UTCPlus10 | ClanTag::UTCPlus11 | 
-            ClanTag::UTCPlus12 => TagCategory::Geographic,
-            
-            ClanTag::English | ClanTag::Spanish | ClanTag::French | ClanTag::German |
-            ClanTag::Chinese | ClanTag::Japanese | ClanTag::Russian | ClanTag::Portuguese |
-            ClanTag::Italian | ClanTag::Korean | ClanTag::Multilingual => TagCategory::Language,
-            
-            ClanTag::Casual | ClanTag::Competitive | ClanTag::Educational | 
-            ClanTag::Social | ClanTag::Serious | ClanTag::Fun | 
-            ClanTag::StudyGroup => TagCategory::CommunityStyle,
-            
-            ClanTag::Coaching | ClanTag::HandReviews | ClanTag::Strategy | 
-            ClanTag::Streaming | ClanTag::VoiceChat | ClanTag::TextChat | 
-            ClanTag::DiscordIntegration => TagCategory::Features,
-            
-            ClanTag::InviteOnly | ClanTag::Verified | ClanTag::Application => TagCategory::Requirements,
-            
-            ClanTag::Rakeback | ClanTag::Freerolls | ClanTag::Rewards | 
-            ClanTag::Leaderboards | ClanTag::Exclusive | ClanTag::VIP => TagCategory::Benefits,
-            
+            ClanTag::Beginner
+            | ClanTag::Intermediate
+            | ClanTag::Advanced
+            | ClanTag::Professional
+            | ClanTag::MixedSkill => TagCategory::SkillLevel,
+
+            ClanTag::Microstakes
+            | ClanTag::LowStakes
+            | ClanTag::MidStakes
+            | ClanTag::HighStakes
+            | ClanTag::Nosebleeds => TagCategory::Stakes,
+
+            ClanTag::CashGames
+            | ClanTag::Tournaments
+            | ClanTag::SitAndGo
+            | ClanTag::SpinAndGo
+            | ClanTag::HeadsUp
+            | ClanTag::MixedGameTypes => TagCategory::GameType,
+
+            ClanTag::Weekdays
+            | ClanTag::Weekends
+            | ClanTag::EarlyMorning
+            | ClanTag::Afternoon
+            | ClanTag::Evening
+            | ClanTag::LateNight
+            | ClanTag::TwentyFourSeven => TagCategory::Schedule,
+
+            ClanTag::NorthAmerica
+            | ClanTag::SouthAmerica
+            | ClanTag::Europe
+            | ClanTag::Asia
+            | ClanTag::Africa
+            | ClanTag::Oceania
+            | ClanTag::UTCMinus12
+            | ClanTag::UTCMinus11
+            | ClanTag::UTCMinus10
+            | ClanTag::UTCMinus9
+            | ClanTag::UTCMinus8
+            | ClanTag::UTCMinus7
+            | ClanTag::UTCMinus6
+            | ClanTag::UTCMinus5
+            | ClanTag::UTCMinus4
+            | ClanTag::UTCMinus3
+            | ClanTag::UTCMinus2
+            | ClanTag::UTCMinus1
+            | ClanTag::UTC
+            | ClanTag::UTCPlus1
+            | ClanTag::UTCPlus2
+            | ClanTag::UTCPlus3
+            | ClanTag::UTCPlus4
+            | ClanTag::UTCPlus5
+            | ClanTag::UTCPlus6
+            | ClanTag::UTCPlus7
+            | ClanTag::UTCPlus8
+            | ClanTag::UTCPlus9
+            | ClanTag::UTCPlus10
+            | ClanTag::UTCPlus11
+            | ClanTag::UTCPlus12 => TagCategory::Geographic,
+
+            ClanTag::English
+            | ClanTag::Spanish
+            | ClanTag::French
+            | ClanTag::German
+            | ClanTag::Chinese
+            | ClanTag::Japanese
+            | ClanTag::Russian
+            | ClanTag::Portuguese
+            | ClanTag::Italian
+            | ClanTag::Korean
+            | ClanTag::Multilingual => TagCategory::Language,
+
+            ClanTag::Casual
+            | ClanTag::Competitive
+            | ClanTag::Educational
+            | ClanTag::Social
+            | ClanTag::Serious
+            | ClanTag::Fun
+            | ClanTag::StudyGroup => TagCategory::CommunityStyle,
+
+            ClanTag::Coaching
+            | ClanTag::HandReviews
+            | ClanTag::Strategy
+            | ClanTag::Streaming
+            | ClanTag::VoiceChat
+            | ClanTag::TextChat
+            | ClanTag::DiscordIntegration => TagCategory::Features,
+
+            ClanTag::InviteOnly | ClanTag::Verified | ClanTag::Application => {
+                TagCategory::Requirements
+            }
+
+            ClanTag::Rakeback
+            | ClanTag::Freerolls
+            | ClanTag::Rewards
+            | ClanTag::Leaderboards
+            | ClanTag::Exclusive
+            | ClanTag::VIP => TagCategory::Benefits,
+
             ClanTag::Custom(_) => TagCategory::Custom,
         }
     }
@@ -280,11 +336,17 @@ impl ClanTag {
         if tag.is_empty() || tag.len() > 20 {
             return Err("Custom tag must be 1-20 characters".to_string());
         }
-        
-        if tag.chars().any(|c| !c.is_alphanumeric() && c != ' ' && c != '-' && c != '_') {
-            return Err("Custom tag can only contain letters, numbers, spaces, hyphens, and underscores".to_string());
+
+        if tag
+            .chars()
+            .any(|c| !c.is_alphanumeric() && c != ' ' && c != '-' && c != '_')
+        {
+            return Err(
+                "Custom tag can only contain letters, numbers, spaces, hyphens, and underscores"
+                    .to_string(),
+            );
         }
-        
+
         Ok(ClanTag::Custom(tag.to_string()))
     }
 
@@ -292,56 +354,110 @@ impl ClanTag {
     pub fn get_tags_by_category(category: TagCategory) -> Vec<ClanTag> {
         match category {
             TagCategory::SkillLevel => vec![
-                ClanTag::Beginner, ClanTag::Intermediate, ClanTag::Advanced,
-                ClanTag::Professional, ClanTag::MixedSkill,
+                ClanTag::Beginner,
+                ClanTag::Intermediate,
+                ClanTag::Advanced,
+                ClanTag::Professional,
+                ClanTag::MixedSkill,
             ],
             TagCategory::Stakes => vec![
-                ClanTag::Microstakes, ClanTag::LowStakes, ClanTag::MidStakes,
-                ClanTag::HighStakes, ClanTag::Nosebleeds,
+                ClanTag::Microstakes,
+                ClanTag::LowStakes,
+                ClanTag::MidStakes,
+                ClanTag::HighStakes,
+                ClanTag::Nosebleeds,
             ],
             TagCategory::GameType => vec![
-                ClanTag::CashGames, ClanTag::Tournaments, ClanTag::SitAndGo,
-                ClanTag::SpinAndGo, ClanTag::HeadsUp, ClanTag::MixedGameTypes,
+                ClanTag::CashGames,
+                ClanTag::Tournaments,
+                ClanTag::SitAndGo,
+                ClanTag::SpinAndGo,
+                ClanTag::HeadsUp,
+                ClanTag::MixedGameTypes,
             ],
             TagCategory::Schedule => vec![
-                ClanTag::Weekdays, ClanTag::Weekends, ClanTag::EarlyMorning,
-                ClanTag::Afternoon, ClanTag::Evening, ClanTag::LateNight,
+                ClanTag::Weekdays,
+                ClanTag::Weekends,
+                ClanTag::EarlyMorning,
+                ClanTag::Afternoon,
+                ClanTag::Evening,
+                ClanTag::LateNight,
                 ClanTag::TwentyFourSeven,
             ],
             TagCategory::Geographic => vec![
-                ClanTag::NorthAmerica, ClanTag::SouthAmerica, ClanTag::Europe, 
-                ClanTag::Asia, ClanTag::Africa, ClanTag::Oceania,
-                ClanTag::UTCMinus12, ClanTag::UTCMinus11, ClanTag::UTCMinus10,
-                ClanTag::UTCMinus9, ClanTag::UTCMinus8, ClanTag::UTCMinus7,
-                ClanTag::UTCMinus6, ClanTag::UTCMinus5, ClanTag::UTCMinus4,
-                ClanTag::UTCMinus3, ClanTag::UTCMinus2, ClanTag::UTCMinus1,
-                ClanTag::UTC, ClanTag::UTCPlus1, ClanTag::UTCPlus2,
-                ClanTag::UTCPlus3, ClanTag::UTCPlus4, ClanTag::UTCPlus5,
-                ClanTag::UTCPlus6, ClanTag::UTCPlus7, ClanTag::UTCPlus8,
-                ClanTag::UTCPlus9, ClanTag::UTCPlus10, ClanTag::UTCPlus11,
+                ClanTag::NorthAmerica,
+                ClanTag::SouthAmerica,
+                ClanTag::Europe,
+                ClanTag::Asia,
+                ClanTag::Africa,
+                ClanTag::Oceania,
+                ClanTag::UTCMinus12,
+                ClanTag::UTCMinus11,
+                ClanTag::UTCMinus10,
+                ClanTag::UTCMinus9,
+                ClanTag::UTCMinus8,
+                ClanTag::UTCMinus7,
+                ClanTag::UTCMinus6,
+                ClanTag::UTCMinus5,
+                ClanTag::UTCMinus4,
+                ClanTag::UTCMinus3,
+                ClanTag::UTCMinus2,
+                ClanTag::UTCMinus1,
+                ClanTag::UTC,
+                ClanTag::UTCPlus1,
+                ClanTag::UTCPlus2,
+                ClanTag::UTCPlus3,
+                ClanTag::UTCPlus4,
+                ClanTag::UTCPlus5,
+                ClanTag::UTCPlus6,
+                ClanTag::UTCPlus7,
+                ClanTag::UTCPlus8,
+                ClanTag::UTCPlus9,
+                ClanTag::UTCPlus10,
+                ClanTag::UTCPlus11,
                 ClanTag::UTCPlus12,
             ],
             TagCategory::Language => vec![
-                ClanTag::English, ClanTag::Spanish, ClanTag::French, ClanTag::German,
-                ClanTag::Chinese, ClanTag::Japanese, ClanTag::Russian, ClanTag::Portuguese,
-                ClanTag::Italian, ClanTag::Korean, ClanTag::Multilingual,
+                ClanTag::English,
+                ClanTag::Spanish,
+                ClanTag::French,
+                ClanTag::German,
+                ClanTag::Chinese,
+                ClanTag::Japanese,
+                ClanTag::Russian,
+                ClanTag::Portuguese,
+                ClanTag::Italian,
+                ClanTag::Korean,
+                ClanTag::Multilingual,
             ],
             TagCategory::CommunityStyle => vec![
-                ClanTag::Casual, ClanTag::Competitive, ClanTag::Educational,
-                ClanTag::Social, ClanTag::Serious, ClanTag::Fun, ClanTag::StudyGroup,
+                ClanTag::Casual,
+                ClanTag::Competitive,
+                ClanTag::Educational,
+                ClanTag::Social,
+                ClanTag::Serious,
+                ClanTag::Fun,
+                ClanTag::StudyGroup,
             ],
             TagCategory::Features => vec![
-                ClanTag::Coaching, ClanTag::HandReviews, ClanTag::Strategy,
-                ClanTag::Streaming, ClanTag::VoiceChat, ClanTag::TextChat,
+                ClanTag::Coaching,
+                ClanTag::HandReviews,
+                ClanTag::Strategy,
+                ClanTag::Streaming,
+                ClanTag::VoiceChat,
+                ClanTag::TextChat,
                 ClanTag::DiscordIntegration,
             ],
-            TagCategory::Requirements => vec![
-                ClanTag::InviteOnly, ClanTag::Verified,
-                ClanTag::Application,
-            ],
+            TagCategory::Requirements => {
+                vec![ClanTag::InviteOnly, ClanTag::Verified, ClanTag::Application]
+            }
             TagCategory::Benefits => vec![
-                ClanTag::Rakeback, ClanTag::Freerolls, ClanTag::Rewards,
-                ClanTag::Leaderboards, ClanTag::Exclusive, ClanTag::VIP,
+                ClanTag::Rakeback,
+                ClanTag::Freerolls,
+                ClanTag::Rewards,
+                ClanTag::Leaderboards,
+                ClanTag::Exclusive,
+                ClanTag::VIP,
             ],
             TagCategory::Custom => vec![], // Custom tags are user-defined
         }

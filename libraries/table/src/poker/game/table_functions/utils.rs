@@ -43,7 +43,9 @@ impl Table {
     }
 
     /// Returns the principal of the player who is the small blind.
-    pub fn get_small_blind_user_principal(&self) -> Result<WalletPrincipalId, TracedError<GameError>> {
+    pub fn get_small_blind_user_principal(
+        &self,
+    ) -> Result<WalletPrincipalId, TracedError<GameError>> {
         let mut index = (self.dealer_position + 1) % (self.config.seats as usize);
 
         for _ in 0..self.config.seats {
@@ -60,7 +62,9 @@ impl Table {
     }
 
     /// Returns the principal of the player who is the big blind.
-    pub fn get_big_blind_user_principal(&self) -> Result<WalletPrincipalId, TracedError<GameError>> {
+    pub fn get_big_blind_user_principal(
+        &self,
+    ) -> Result<WalletPrincipalId, TracedError<GameError>> {
         let mut index = (self.dealer_position + 1) % self.seats.len();
 
         let mut found_small_blind = false;
@@ -706,7 +710,10 @@ impl Table {
             match item {
                 QueueItem::SittingIn(user_principal, is_game_paused) => {
                     if !self.user_table_data.contains_key(&user_principal) {
-                        ic_cdk::println!("Warning: User data not found for {}", user_principal.0.to_text());
+                        ic_cdk::println!(
+                            "Warning: User data not found for {}",
+                            user_principal.0.to_text()
+                        );
                         continue;
                     }
                     self.set_player_action(user_principal, PlayerAction::None)
@@ -723,7 +730,10 @@ impl Table {
                 }
                 QueueItem::Deposit(user_id, users_canister_id, amount) => {
                     if !self.user_table_data.contains_key(&user_id) {
-                        ic_cdk::println!("Warning: User data not found for {}", user_id.0.to_text());
+                        ic_cdk::println!(
+                            "Warning: User data not found for {}",
+                            user_id.0.to_text()
+                        );
                         continue;
                     }
                     let table_principal = self.id;
@@ -822,7 +832,10 @@ impl Table {
                 }
                 QueueItem::SittingOut(user_principal) => {
                     if !self.user_table_data.contains_key(&user_principal) {
-                        ic_cdk::println!("Warning: User data not found for {}", user_principal.0.to_text());
+                        ic_cdk::println!(
+                            "Warning: User data not found for {}",
+                            user_principal.0.to_text()
+                        );
                         continue;
                     }
                     self.set_player_action(user_principal, PlayerAction::SittingOut)
@@ -908,7 +921,10 @@ impl Table {
         }
     }
 
-    pub fn get_player_at_seat(&self, index: usize) -> Result<WalletPrincipalId, TracedError<GameError>> {
+    pub fn get_player_at_seat(
+        &self,
+        index: usize,
+    ) -> Result<WalletPrincipalId, TracedError<GameError>> {
         match self.seats.get(index) {
             Some(SeatStatus::Occupied(principal)) => Ok(*principal),
             _ => Err(trace_err!(TracedError::new(GameError::PlayerNotFound))),

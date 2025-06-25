@@ -1,7 +1,10 @@
 use currency::{types::currency::CKTokenSymbol, Currency};
 
 use crate::poker::game::{
-    table_functions::{rake::{get_no_limit_config, interpolate_u64, Rake}, table::SmallBlind},
+    table_functions::{
+        rake::{get_no_limit_config, interpolate_u64, Rake},
+        table::SmallBlind,
+    },
     types::GameType,
     utils::convert_to_e8s,
 };
@@ -72,16 +75,24 @@ fn test_rake_new() {
     // No Limit game with valid small blind
     let small_blind = convert_to_e8s(0.05); // $0.05
     let game_type = GameType::NoLimit(small_blind);
-    let rake = Rake::new(SmallBlind(small_blind), &game_type, &currency::Currency::ICP)
-        .expect("Rake should be created");
+    let rake = Rake::new(
+        SmallBlind(small_blind),
+        &game_type,
+        &currency::Currency::ICP,
+    )
+    .expect("Rake should be created");
     assert_eq!(rake.percentage_millipercent, 4500);
 
     // Fixed Limit game with valid small blind
     let small_blind = convert_to_e8s(0.05);
     let big_blind = convert_to_e8s(0.10);
     let game_type = GameType::FixedLimit(small_blind, big_blind);
-    let rake = Rake::new(SmallBlind(small_blind), &game_type, &currency::Currency::ICP)
-        .expect("Rake should be created");
+    let rake = Rake::new(
+        SmallBlind(small_blind),
+        &game_type,
+        &currency::Currency::ICP,
+    )
+    .expect("Rake should be created");
     assert_eq!(rake.percentage_millipercent, 4500);
 }
 
@@ -91,8 +102,12 @@ fn test_calculate_rake() {
     // Setup Rake
     let small_blind = convert_to_e8s(0.05); // $0.05
     let game_type = GameType::NoLimit(small_blind);
-    let rake = Rake::new(SmallBlind(small_blind), &game_type, &currency::Currency::ICP)
-        .expect("Rake should be created");
+    let rake = Rake::new(
+        SmallBlind(small_blind),
+        &game_type,
+        &currency::Currency::ICP,
+    )
+    .expect("Rake should be created");
 
     // Pot size $1.00
     let pot = convert_to_e8s(1.00);
@@ -148,8 +163,12 @@ fn test_rake_edges() {
     // Small blind at the minimum of low stakes range
     let small_blind = convert_to_e8s(0.25); // $0.25
     let game_type = GameType::NoLimit(small_blind);
-    let rake = Rake::new(SmallBlind(small_blind), &game_type, &currency::Currency::ICP)
-        .expect("Rake should be created");
+    let rake = Rake::new(
+        SmallBlind(small_blind),
+        &game_type,
+        &currency::Currency::ICP,
+    )
+    .expect("Rake should be created");
     assert_eq!(rake.percentage_millipercent, 4000); // 4.0%
 
     let expected_cap_2_3_players = interpolate_u64(
@@ -176,8 +195,12 @@ fn test_rake_edges() {
 fn test_rake_with_intermediate_small_blind() {
     let small_blind = convert_to_e8s(0.075); // $0.075
     let game_type = GameType::NoLimit(small_blind);
-    let rake = Rake::new(SmallBlind(small_blind), &game_type, &currency::Currency::ICP)
-        .expect("Rake should be created");
+    let rake = Rake::new(
+        SmallBlind(small_blind),
+        &game_type,
+        &currency::Currency::ICP,
+    )
+    .expect("Rake should be created");
     assert_eq!(rake.percentage_millipercent, 4500); // 4.5%
 
     let expected_cap_2_3_players = interpolate_u64(
@@ -226,8 +249,8 @@ fn test_rake_different_currencies() {
     // Test BTC (8 decimals)
     let small_blind_btc = 5_000_000; // 0.05 BTC
     let game_type = GameType::NoLimit(small_blind_btc);
-    let rake_btc =
-        Rake::new(SmallBlind(small_blind_btc), &game_type, &Currency::BTC).expect("BTC rake should be created");
+    let rake_btc = Rake::new(SmallBlind(small_blind_btc), &game_type, &Currency::BTC)
+        .expect("BTC rake should be created");
     assert_eq!(rake_btc.percentage_millipercent, 4500); // 4.5%
 }
 
@@ -256,8 +279,8 @@ fn test_rake_decimal_precision() {
     // Test precise BTC amounts (8 decimals)
     let small_blind_btc = 1_000; // 0.00001 BTC
     let game_type = GameType::NoLimit(small_blind_btc);
-    let _rake_btc =
-        Rake::new(SmallBlind(small_blind_btc), &game_type, &Currency::BTC).expect("BTC rake should be created");
+    let _rake_btc = Rake::new(SmallBlind(small_blind_btc), &game_type, &Currency::BTC)
+        .expect("BTC rake should be created");
 }
 
 #[test]
@@ -287,7 +310,7 @@ fn test_rake_edge_cases_different_currencies() {
     // Test BTC at range boundaries
     let small_blind_btc = 25_000_000; // 0.25 BTC
     let game_type = GameType::NoLimit(small_blind_btc);
-    let rake_btc =
-        Rake::new(SmallBlind(small_blind_btc), &game_type, &Currency::BTC).expect("BTC rake should be created");
+    let rake_btc = Rake::new(SmallBlind(small_blind_btc), &game_type, &Currency::BTC)
+        .expect("BTC rake should be created");
     assert_eq!(rake_btc.percentage_millipercent, 4000); // 4.0%
 }

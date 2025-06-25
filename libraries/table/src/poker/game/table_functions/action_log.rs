@@ -74,7 +74,11 @@ impl Table {
     ///
     /// - `user_principal` - The principal of the user who took the action.
     /// - `action_type` - The type of action that was taken.
-    pub fn log_action(&mut self, user_principal: Option<WalletPrincipalId>, action_type: ActionType) {
+    pub fn log_action(
+        &mut self,
+        user_principal: Option<WalletPrincipalId>,
+        action_type: ActionType,
+    ) {
         let action_log = ActionLog::new(user_principal, action_type);
 
         self.action_logs.push(action_log);

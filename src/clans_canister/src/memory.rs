@@ -3,9 +3,9 @@ use clan::{Clan, ClanId};
 use currency::state::TransactionState;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{Cell, DefaultMemoryImpl, Storable};
-use user::user::WalletPrincipalId;
 use std::borrow::Cow;
 use std::cell::RefCell;
+use user::user::WalletPrincipalId;
 
 use crate::{ClanEvents, BACKEND_PRINCIPAL, CLAN, CLAN_EVENTS, TRANSACTION_STATE};
 
@@ -29,10 +29,11 @@ impl Storable for ClanEvents {
         })
     }
 
-    const BOUND: ic_stable_structures::storable::Bound = ic_stable_structures::storable::Bound::Bounded {
-        max_size: MAX_CLAN_EVENTS_SIZE,
-        is_fixed_size: false,
-    };
+    const BOUND: ic_stable_structures::storable::Bound =
+        ic_stable_structures::storable::Bound::Bounded {
+            max_size: MAX_CLAN_EVENTS_SIZE,
+            is_fixed_size: false,
+        };
 }
 
 thread_local! {
@@ -157,7 +158,7 @@ fn post_upgrade() {
             CLAN_CELL.with(|cell| {
                 let cell = cell.borrow();
                 let restored_clan = cell.get().clone();
-                
+
                 // Only restore if it's not the default empty clan
                 if restored_clan.id != Principal::anonymous() {
                     *clan = Some(restored_clan);

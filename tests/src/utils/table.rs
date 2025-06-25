@@ -3,7 +3,10 @@ use currency::Currency;
 use errors::{table_error::TableError, table_index_error::TableIndexError};
 use table::{
     poker::game::{
-        table_functions::{table::{TableConfig, TableId}, types::BetType},
+        table_functions::{
+            table::{TableConfig, TableId},
+            types::BetType,
+        },
         types::PublicTable,
     },
     types::ReturnResult,
@@ -106,9 +109,12 @@ impl TestEnv {
     }
 
     pub fn pause_table(&self, table_id: TableId) -> Result<(), TableError> {
-        let res =
-            self.pocket_ic
-                .update_call(table_id.0, table_id.0, "pause_table", encode_args(()).unwrap());
+        let res = self.pocket_ic.update_call(
+            table_id.0,
+            table_id.0,
+            "pause_table",
+            encode_args(()).unwrap(),
+        );
 
         match res {
             Ok(arg) => {
@@ -236,7 +242,11 @@ impl TestEnv {
         }
     }
 
-    pub fn player_check(&self, table_id: TableId, user: WalletPrincipalId) -> Result<(), TableError> {
+    pub fn player_check(
+        &self,
+        table_id: TableId,
+        user: WalletPrincipalId,
+    ) -> Result<(), TableError> {
         let table_state = self.pocket_ic.update_call(
             table_id.0,
             user.0,
@@ -253,7 +263,11 @@ impl TestEnv {
         }
     }
 
-    pub fn player_fold(&self, table_id: TableId, user: WalletPrincipalId) -> Result<(), TableError> {
+    pub fn player_fold(
+        &self,
+        table_id: TableId,
+        user: WalletPrincipalId,
+    ) -> Result<(), TableError> {
         let table_state = self.pocket_ic.update_call(
             table_id.0,
             user.0,
@@ -437,7 +451,11 @@ impl TestEnv {
             user_id.0,
         );
 
-        (user_principal.users_canister_id, user_principal.principal_id, approval_block)
+        (
+            user_principal.users_canister_id,
+            user_principal.principal_id,
+            approval_block,
+        )
     }
 
     // Create a test user with CKUSDC deposit using approvals
@@ -471,7 +489,11 @@ impl TestEnv {
             user_id.0,
         );
 
-        (user_principal.users_canister_id, user_principal.principal_id, approval_block)
+        (
+            user_principal.users_canister_id,
+            user_principal.principal_id,
+            approval_block,
+        )
     }
 
     // Update player_deposit to use approval-based flow

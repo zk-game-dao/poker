@@ -103,7 +103,8 @@ impl TestEnv {
 
         match exp {
             Ok(arg) => {
-                let exp: Result<Vec<(WalletPrincipalId, u64)>, UserError> = decode_one(&arg).unwrap();
+                let exp: Result<Vec<(WalletPrincipalId, u64)>, UserError> =
+                    decode_one(&arg).unwrap();
                 exp
             }
             _ => panic!("Failed to get experience points"),
@@ -123,7 +124,8 @@ impl TestEnv {
 
         match exp {
             Ok(arg) => {
-                let exp: Result<Vec<(WalletPrincipalId, u64)>, UserError> = decode_one(&arg).unwrap();
+                let exp: Result<Vec<(WalletPrincipalId, u64)>, UserError> =
+                    decode_one(&arg).unwrap();
                 exp
             }
             _ => panic!("Failed to get experience points"),

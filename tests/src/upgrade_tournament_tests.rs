@@ -8,9 +8,7 @@ use tournaments::tournaments::{
         AddonOptions, BuyInOptions, RebuyOptions, ReentryOptions, TournamentSizeType,
         TournamentType,
     },
-    types::{
-        NewTournament, NewTournamentSpeedType, TournamentData, TournamentId, TournamentState
-    },
+    types::{NewTournament, NewTournamentSpeedType, TournamentData, TournamentId, TournamentState},
 };
 
 use crate::{utils::get_current_time_ns, wasms, TestEnv};

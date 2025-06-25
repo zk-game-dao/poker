@@ -6,7 +6,10 @@ use errors::{
 use ic_cdk::management_canister::{
     CanisterSettings, CanisterStatusArgs, UpdateSettingsArgs, canister_status, update_settings,
 };
-use table::poker::game::{table_functions::table::{TableConfig, TableId}, types::PublicTable};
+use table::poker::game::{
+    table_functions::table::{TableConfig, TableId},
+    types::PublicTable,
+};
 use tournaments::tournaments::{
     blind_level::BlindLevel,
     types::{TournamentData, TournamentId, TournamentState, UserTournamentAction},
@@ -96,9 +99,11 @@ pub async fn handle_cancelled_tournament_wrapper(
 pub async fn return_all_cycles_to_tournament_index_wrapper(
     tournament_id: TournamentId,
 ) -> Result<(), TournamentError> {
-    let call_result =
-        ic_cdk::call::Call::unbounded_wait(tournament_id.0, "return_all_cycles_to_tournament_index")
-            .await;
+    let call_result = ic_cdk::call::Call::unbounded_wait(
+        tournament_id.0,
+        "return_all_cycles_to_tournament_index",
+    )
+    .await;
 
     match call_result {
         Ok(res) => match res.candid() {

@@ -90,7 +90,11 @@ impl TestEnv {
         (id, tournament_config)
     }
 
-    pub fn eliminate_players(&self, tournament_id: TournamentId, num_players: u8) -> Vec<WalletPrincipalId> {
+    pub fn eliminate_players(
+        &self,
+        tournament_id: TournamentId,
+        num_players: u8,
+    ) -> Vec<WalletPrincipalId> {
         println!("Eliminating players...");
         let tournament = self.get_tournament(tournament_id).unwrap();
 
@@ -99,7 +103,7 @@ impl TestEnv {
             tournament
                 .current_players
                 .iter()
-                .map(|p| p.0.0.to_text())
+                .map(|p| p.0 .0.to_text())
                 .collect::<Vec<_>>()
         );
 

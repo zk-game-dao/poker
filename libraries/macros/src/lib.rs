@@ -15,10 +15,10 @@ macro_rules! impl_principal_traits {
 
         impl Default for $type {
             fn default() -> Self {
-                Self(Principal::anonymous())  // Use Self() instead of $type()
+                Self(Principal::anonymous()) // Use Self() instead of $type()
             }
         }
-    }
+    };
 }
 
 #[macro_export]

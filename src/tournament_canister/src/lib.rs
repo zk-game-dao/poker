@@ -11,10 +11,11 @@ use intercanister_call_wrappers::{
         add_to_table_pool_wrapper, distribute_winnings_wrapper, ensure_principal_is_controller,
         handle_cancelled_tournament_wrapper, return_all_cycles_to_tournament_index_wrapper,
         user_leave_tournament_wrapper,
-    }, tournament_index::request_withdrawal_wrapper, users_canister::get_user_wrapper
+    },
+    tournament_index::request_withdrawal_wrapper,
+    users_canister::get_user_wrapper,
 };
 use lazy_static::lazy_static;
-use user::user::{UsersCanisterId, WalletPrincipalId};
 use std::{
     collections::HashSet,
     sync::{
@@ -36,14 +37,17 @@ use table_balancing::{check_and_balance_tables, move_player_to_table};
 use tournaments::tournaments::{
     table_balancing::get_balance_interval,
     tournament_type::{TournamentSizeType, TournamentType},
-    types::{TournamentData, TournamentId, TournamentState, UserTournamentAction, UserTournamentData},
+    types::{
+        TournamentData, TournamentId, TournamentState, UserTournamentAction, UserTournamentData,
+    },
     utils::calculate_rake,
 };
+use user::user::{UsersCanisterId, WalletPrincipalId};
 use utils::{
-    add_to_tournament_prize_pool, handle_addon, handle_cycle_check_async,
-    handle_invalid_join, handle_lost_user_rebuy_availability, handle_rebuy, handle_reentry,
-    handle_refund, handle_tournament_deposit, transfer_cycles_to_tournament_index,
-    update_live_leaderboard, update_tournament_state, LEADERBOARD_UPDATE_INTERVAL,
+    add_to_tournament_prize_pool, handle_addon, handle_cycle_check_async, handle_invalid_join,
+    handle_lost_user_rebuy_availability, handle_rebuy, handle_reentry, handle_refund,
+    handle_tournament_deposit, transfer_cycles_to_tournament_index, update_live_leaderboard,
+    update_tournament_state, LEADERBOARD_UPDATE_INTERVAL,
 };
 
 pub mod heartbeat;
@@ -455,8 +459,10 @@ async fn handle_cancelled_tournament() -> Result<(), TournamentError> {
     }
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) =
-            return_all_cycles_to_tournament_index_wrapper(TournamentId(ic_cdk::api::canister_self())).await
+        if let Err(e) = return_all_cycles_to_tournament_index_wrapper(TournamentId(
+            ic_cdk::api::canister_self(),
+        ))
+        .await
         {
             ic_cdk::println!("Error returning cycles to tournament index: {:?}", e);
         }
@@ -805,7 +811,7 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
             .collect();
 
         // Sort by balance in descending order
-        active_players.sort_by(|a, b| b.1.0.cmp(&a.1.0));
+        active_players.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
 
         // Combine active players with eliminated players
         let positions = active_players
@@ -866,7 +872,11 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
                     .await
                     .map_err(|e| TournamentError::CanisterCallError(format!("{:?}", e)))?;
 
-                ic_cdk::println!("Distributed {} to user {}", prize_amount, user_id.0.to_text());
+                ic_cdk::println!(
+                    "Distributed {} to user {}",
+                    prize_amount,
+                    user_id.0.to_text()
+                );
             }
         }
 
@@ -933,8 +943,10 @@ async fn distribute_winnings(table: PublicTable) -> Result<(), TournamentError> 
         }
     }
     ic_cdk::futures::spawn(async move {
-        if let Err(e) =
-            return_all_cycles_to_tournament_index_wrapper(TournamentId(ic_cdk::api::canister_self())).await
+        if let Err(e) = return_all_cycles_to_tournament_index_wrapper(TournamentId(
+            ic_cdk::api::canister_self(),
+        ))
+        .await
         {
             ic_cdk::println!("Error returning cycles to tournament index: {:?}", e);
         }
@@ -955,7 +967,11 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
 
         ic_cdk::println!("Payout structure:");
         for (position, payout) in tournament.payout_structure.payouts.iter().enumerate() {
-            ic_cdk::println!("Position: {}, Percentage: {}", position + 1, payout.percentage);
+            ic_cdk::println!(
+                "Position: {}, Percentage: {}",
+                position + 1,
+                payout.percentage
+            );
         }
 
         ic_cdk::println!("---------------- Tournament end all players contains:");
@@ -968,17 +984,16 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
             ic_cdk::println!("Player: {:?}, data: {:?}", player.0.to_text(), data);
         }
         if let Some(guaranteed_prize_pool) = tournament.guaranteed_prize_pool {
-            ic_cdk::println!(
-                "Guaranteed prize pool: {}",
-                guaranteed_prize_pool
-            );
+            ic_cdk::println!("Guaranteed prize pool: {}", guaranteed_prize_pool);
             let prize_pool = PRIZE_POOL.load(Ordering::SeqCst);
             let tournament_index = {
                 TOURNAMENT_INDEX
                     .lock()
                     .map_err(|_| TournamentError::LockError)?
                     .clone()
-                    .ok_or(TournamentError::InvalidState("Tournament index not found".to_string()))?
+                    .ok_or(TournamentError::InvalidState(
+                        "Tournament index not found".to_string(),
+                    ))?
             };
             if prize_pool < guaranteed_prize_pool && tournament.currency != CurrencyType::Fake {
                 ic_cdk::println!(
@@ -994,9 +1009,13 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
                         ))
                     }
                 };
-                request_withdrawal_wrapper(tournament_index, currency, guaranteed_prize_pool - prize_pool)
-                    .await
-                    .map_err(|e| TournamentError::CanisterCallError(format!("{:?}", e)))?;
+                request_withdrawal_wrapper(
+                    tournament_index,
+                    currency,
+                    guaranteed_prize_pool - prize_pool,
+                )
+                .await
+                .map_err(|e| TournamentError::CanisterCallError(format!("{:?}", e)))?;
 
                 PRIZE_POOL.store(guaranteed_prize_pool, Ordering::SeqCst);
             }
@@ -1022,7 +1041,9 @@ async fn handle_tournament_end() -> Result<(), TournamentError> {
     let table = get_table_wrapper(table).await?;
 
     ic_cdk::futures::spawn(async move {
-        if let Err(e) = distribute_winnings_wrapper(TournamentId(ic_cdk::api::canister_self()), table).await {
+        if let Err(e) =
+            distribute_winnings_wrapper(TournamentId(ic_cdk::api::canister_self()), table).await
+        {
             ic_cdk::println!("Error distributing winnings: {:?}", e);
         }
     });
@@ -1354,19 +1375,23 @@ async fn request_cycles() -> Result<(), CanisterManagementError> {
     transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
-async fn transfer_cycles(cycles_amount: u128, caller: TableId) -> Result<(), CanisterManagementError> {
+async fn transfer_cycles(
+    cycles_amount: u128,
+    caller: TableId,
+) -> Result<(), CanisterManagementError> {
     {
-        let tournament = TOURNAMENT.lock().map_err(|_| CanisterManagementError::LockError)?;
+        let tournament = TOURNAMENT
+            .lock()
+            .map_err(|_| CanisterManagementError::LockError)?;
         let tournament = tournament
             .as_ref()
             .ok_or(TournamentError::TournamentNotFound)
             .map_err(|e| CanisterManagementError::ManagementCanisterError(format!("{:?}", e)))?;
         if !tournament.tables.contains_key(&caller) {
             return Err(CanisterManagementError::Transfer(format!(
-                    "Caller is not a valid destination: {}",
-                    caller.0.to_text()
-                )),
-            );
+                "Caller is not a valid destination: {}",
+                caller.0.to_text()
+            )));
         }
     }
 

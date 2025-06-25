@@ -7,9 +7,15 @@ use ic_ledger_types::{AccountIdentifier, Subaccount};
 use ic_verifiable_credentials::{
     issuer_api::CredentialSpec, validate_ii_presentation_and_claims, VcFlowSigners,
 };
-use intercanister_call_wrappers::{users_canister::{add_referred_user_wrapper, get_users_canister_principal_by_id_wrapper}, users_index::get_user_wrapper_index};
+use intercanister_call_wrappers::{
+    users_canister::{add_referred_user_wrapper, get_users_canister_principal_by_id_wrapper},
+    users_index::get_user_wrapper_index,
+};
 use lazy_static::lazy_static;
-use user::{admin::{AdminRole, BanType}, user::{User, UserAvatar, UserBalance, UsersCanisterId, WalletPrincipalId}};
+use user::{
+    admin::{AdminRole, BanType},
+    user::{User, UserAvatar, UserBalance, UsersCanisterId, WalletPrincipalId},
+};
 
 use std::{collections::HashMap, sync::Mutex};
 
@@ -243,7 +249,10 @@ fn get_user_icc(user_id: WalletPrincipalId) -> Result<User, UserError> {
 }
 
 #[ic_cdk::update]
-fn add_active_table(table_principal: Principal, user_id: WalletPrincipalId) -> Result<User, UserError> {
+fn add_active_table(
+    table_principal: Principal,
+    user_id: WalletPrincipalId,
+) -> Result<User, UserError> {
     handle_cycle_check();
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
@@ -253,7 +262,10 @@ fn add_active_table(table_principal: Principal, user_id: WalletPrincipalId) -> R
 }
 
 #[ic_cdk::update]
-fn remove_active_table(table_principal: Principal, user_id: WalletPrincipalId) -> Result<User, UserError> {
+fn remove_active_table(
+    table_principal: Principal,
+    user_id: WalletPrincipalId,
+) -> Result<User, UserError> {
     handle_cycle_check();
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
@@ -283,7 +295,9 @@ fn add_experience_points(
 
     // Check if user can gain XP (respects ban status)
     if !user.can_gain_xp() {
-        return Err(UserError::InvalidRequest("User cannot gain experience points due to ban".to_string()));
+        return Err(UserError::InvalidRequest(
+            "User cannot gain experience points due to ban".to_string(),
+        ));
     }
 
     if currency == *"BTC" {
@@ -356,7 +370,8 @@ fn get_verified_user_experience_points() -> Result<Vec<(WalletPrincipalId, u64)>
 }
 
 #[ic_cdk::query]
-fn get_verified_pure_poker_user_experience_points() -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
+fn get_verified_pure_poker_user_experience_points(
+) -> Result<Vec<(WalletPrincipalId, u64)>, UserError> {
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let experience_points = user
         .into_iter()
@@ -437,13 +452,14 @@ async fn verify_credential(
                 .map_err(|_| "Lock error".to_string())?
                 .clone()
                 .ok_or("User not found".to_string())?;
-            let referrer_canister = get_users_canister_principal_by_id_wrapper(backend_principal, referrer_id).await.map_err(|e| format!("{:?}", e))?;
+            let referrer_canister =
+                get_users_canister_principal_by_id_wrapper(backend_principal, referrer_id)
+                    .await
+                    .map_err(|e| format!("{:?}", e))?;
 
-            add_referred_user_wrapper(
-                &referrer_canister,
-                referrer_id,
-                user.principal_id,
-            ).await.map_err(|e| format!("{:?}", e))?;
+            add_referred_user_wrapper(&referrer_canister, referrer_id, user.principal_id)
+                .await
+                .map_err(|e| format!("{:?}", e))?;
         }
         None => {}
     }
@@ -500,7 +516,7 @@ fn add_referred_user(
     handle_cycle_check();
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
     let referrer = users.get_mut(&referrer_id).ok_or(UserError::UserNotFound)?;
-    
+
     // Add the referred user to the referrer's list
     referrer.add_referred_user(referred_user_id);
 
@@ -584,7 +600,7 @@ async fn get_canister_status_formatted() -> Result<String, UserError> {
 
 async fn get_admin(user_id: WalletPrincipalId) -> Result<User, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
-    
+
     match users.get(&user_id) {
         Some(user) => Ok(user.clone()),
         None => {
@@ -594,7 +610,7 @@ async fn get_admin(user_id: WalletPrincipalId) -> Result<User, UserError> {
                 .clone()
                 .ok_or(UserError::UserNotFound)?;
             get_user_wrapper_index(user_index, user_id).await
-        },
+        }
     }
 }
 
@@ -604,22 +620,27 @@ async fn promote_user_to_admin(
     new_role: AdminRole,
 ) -> Result<User, UserError> {
     handle_cycle_check();
-    
+
     let caller_principal = WalletPrincipalId(ic_cdk::api::msg_caller());
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
-    
+
     // Get the admin performing the action
     let admin = get_admin(caller_principal).await?;
-    
+
     // Check if caller has admin permissions
     if !admin.is_admin() {
         return Err(UserError::AuthorizationError);
     }
-    
+
     // Check if admin can promote to this role
     match new_role {
         AdminRole::Moderator => {
-            if !admin.admin_role.as_ref().unwrap().can_promote_to_moderator() {
+            if !admin
+                .admin_role
+                .as_ref()
+                .unwrap()
+                .can_promote_to_moderator()
+            {
                 return Err(UserError::AuthorizationError);
             }
         }
@@ -635,42 +656,48 @@ async fn promote_user_to_admin(
             }
         }
     }
-    
+
     // Get target user and promote
-    let target_user = users.get_mut(&target_user_id).ok_or(UserError::UserNotFound)?;
+    let target_user = users
+        .get_mut(&target_user_id)
+        .ok_or(UserError::UserNotFound)?;
     target_user.promote_to_role(new_role);
-    
+
     Ok(target_user.clone())
 }
 
 #[ic_cdk::update]
 async fn remove_admin_role(target_user_id: WalletPrincipalId) -> Result<User, UserError> {
     handle_cycle_check();
-    
+
     let caller_principal = WalletPrincipalId(ic_cdk::api::msg_caller());
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
-    
+
     // Get the admin performing the action
     let admin = get_admin(caller_principal).await?;
-    
+
     // Check if caller has admin permissions or is a controller
     if !admin.is_admin() && !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
+
     // Get target user and check permissions
     let target_user = users.get(&target_user_id).ok_or(UserError::UserNotFound)?;
-    
+
     if let Some(target_role) = &target_user.admin_role {
-        if !admin.can_perform_admin_action(target_role) && !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
+        if !admin.can_perform_admin_action(target_role)
+            && !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller())
+        {
             return Err(UserError::AuthorizationError);
         }
     }
-    
+
     // Remove admin role
-    let target_user = users.get_mut(&target_user_id).ok_or(UserError::UserNotFound)?;
+    let target_user = users
+        .get_mut(&target_user_id)
+        .ok_or(UserError::UserNotFound)?;
     target_user.admin_role = None;
-    
+
     Ok(target_user.clone())
 }
 
@@ -682,18 +709,18 @@ async fn ban_user_xp_only(
     duration_hours: u64,
 ) -> Result<User, UserError> {
     handle_cycle_check();
-    
+
     let caller_principal = WalletPrincipalId(ic_cdk::api::msg_caller());
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
-    
+
     // Get the admin performing the action
     let admin = get_admin(caller_principal).await?;
-    
+
     // Check permissions
     if !admin.is_admin() && !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
+
     if let Some(admin_role) = &admin.admin_role {
         if !admin_role.can_ban_users() {
             return Err(UserError::AuthorizationError);
@@ -701,20 +728,22 @@ async fn ban_user_xp_only(
     } else if !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
+
     let now = ic_cdk::api::time();
     let duration_nanos = duration_hours * 60 * 60 * 1_000_000_000; // Convert hours to nanoseconds
-    
+
     let ban = BanType::XpBan {
         reason,
         banned_by: caller_principal,
         banned_at: now,
         expires_at: now + duration_nanos,
     };
-    
-    let target_user = users.get_mut(&target_user_id).ok_or(UserError::UserNotFound)?;
+
+    let target_user = users
+        .get_mut(&target_user_id)
+        .ok_or(UserError::UserNotFound)?;
     target_user.apply_ban(ban);
-    
+
     Ok(target_user.clone())
 }
 
@@ -725,16 +754,16 @@ async fn suspend_user_temporarily(
     duration_hours: u64,
 ) -> Result<User, UserError> {
     handle_cycle_check();
-    
+
     let caller_principal = WalletPrincipalId(ic_cdk::api::msg_caller());
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
-    
+
     let admin = get_admin(caller_principal).await?;
-    
+
     if !admin.is_admin() && !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
+
     if let Some(admin_role) = &admin.admin_role {
         if !admin_role.can_ban_users() {
             return Err(UserError::AuthorizationError);
@@ -742,20 +771,22 @@ async fn suspend_user_temporarily(
     } else if !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
+
     let now = ic_cdk::api::time();
     let duration_nanos = duration_hours * 60 * 60 * 1_000_000_000;
-    
+
     let ban = BanType::TemporarySuspension {
         reason,
         banned_by: caller_principal,
         banned_at: now,
         expires_at: now + duration_nanos,
     };
-    
-    let target_user = users.get_mut(&target_user_id).ok_or(UserError::UserNotFound)?;
+
+    let target_user = users
+        .get_mut(&target_user_id)
+        .ok_or(UserError::UserNotFound)?;
     target_user.apply_ban(ban);
-    
+
     Ok(target_user.clone())
 }
 
@@ -765,16 +796,16 @@ async fn ban_user_permanently(
     reason: String,
 ) -> Result<User, UserError> {
     handle_cycle_check();
-    
+
     let caller_principal = WalletPrincipalId(ic_cdk::api::msg_caller());
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
-    
+
     let admin = get_admin(caller_principal).await?;
-    
+
     if !admin.is_admin() && !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
+
     if let Some(admin_role) = &admin.admin_role {
         if !admin_role.can_ban_users() {
             return Err(UserError::AuthorizationError);
@@ -782,32 +813,34 @@ async fn ban_user_permanently(
     } else if !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
+
     let ban = BanType::PermanentBan {
         reason,
         banned_by: caller_principal,
         banned_at: ic_cdk::api::time(),
     };
-    
-    let target_user = users.get_mut(&target_user_id).ok_or(UserError::UserNotFound)?;
+
+    let target_user = users
+        .get_mut(&target_user_id)
+        .ok_or(UserError::UserNotFound)?;
     target_user.apply_ban(ban);
-    
+
     Ok(target_user.clone())
 }
 
 #[ic_cdk::update]
 async fn unban_user(target_user_id: WalletPrincipalId) -> Result<User, UserError> {
     handle_cycle_check();
-    
+
     let caller_principal = WalletPrincipalId(ic_cdk::api::msg_caller());
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
-    
+
     let admin = get_admin(caller_principal).await?;
-    
+
     if !admin.is_admin() && !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
+
     if let Some(admin_role) = &admin.admin_role {
         if !admin_role.can_ban_users() {
             return Err(UserError::AuthorizationError);
@@ -815,10 +848,12 @@ async fn unban_user(target_user_id: WalletPrincipalId) -> Result<User, UserError
     } else if !CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller()) {
         return Err(UserError::AuthorizationError);
     }
-    
-    let target_user = users.get_mut(&target_user_id).ok_or(UserError::UserNotFound)?;
+
+    let target_user = users
+        .get_mut(&target_user_id)
+        .ok_or(UserError::UserNotFound)?;
     target_user.remove_ban();
-    
+
     Ok(target_user.clone())
 }
 
@@ -827,7 +862,7 @@ async fn unban_user(target_user_id: WalletPrincipalId) -> Result<User, UserError
 fn get_user_ban_status(user_id: WalletPrincipalId) -> Result<Option<BanType>, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
-    
+
     // Clean expired bans first (though this is read-only, we return current status)
     Ok(user.get_ban_info().cloned())
 }
@@ -836,7 +871,7 @@ fn get_user_ban_status(user_id: WalletPrincipalId) -> Result<Option<BanType>, Us
 fn get_user_admin_role(user_id: WalletPrincipalId) -> Result<Option<AdminRole>, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
-    
+
     Ok(user.admin_role.clone())
 }
 
@@ -844,7 +879,7 @@ fn get_user_admin_role(user_id: WalletPrincipalId) -> Result<Option<AdminRole>, 
 fn can_user_play(user_id: WalletPrincipalId) -> Result<bool, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
-    
+
     Ok(user.can_play())
 }
 
@@ -852,7 +887,7 @@ fn can_user_play(user_id: WalletPrincipalId) -> Result<bool, UserError> {
 fn can_user_gain_xp(user_id: WalletPrincipalId) -> Result<bool, UserError> {
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
-    
+
     Ok(user.can_gain_xp())
 }
 
@@ -860,36 +895,36 @@ fn can_user_gain_xp(user_id: WalletPrincipalId) -> Result<bool, UserError> {
 #[ic_cdk::update]
 fn clean_expired_bans() -> Result<Vec<WalletPrincipalId>, UserError> {
     handle_cycle_check();
-    
+
     // Only admins or controllers can call this
     let caller_principal = WalletPrincipalId(ic_cdk::api::msg_caller());
     let users_lock = USERS.lock().map_err(|_| UserError::LockError)?;
     let caller = users_lock.get(&caller_principal);
-    
+
     let has_permission = if let Some(user) = caller {
         user.is_admin()
     } else {
         false
     } || CONTROLLER_PRINCIPALS.contains(&ic_cdk::api::msg_caller());
-    
+
     if !has_permission {
         return Err(UserError::AuthorizationError);
     }
-    
+
     drop(users_lock); // Release the lock before getting mutable access
-    
+
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
     let mut cleaned_users = Vec::new();
-    
+
     for (user_id, user) in users.iter_mut() {
         let had_ban = user.ban_status.is_some();
         user.clean_expired_bans();
-        
+
         if had_ban && user.ban_status.is_none() {
             cleaned_users.push(*user_id);
         }
     }
-    
+
     Ok(cleaned_users)
 }
 

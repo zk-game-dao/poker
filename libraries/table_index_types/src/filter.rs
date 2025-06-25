@@ -1,7 +1,10 @@
 use candid::CandidType;
 use serde::Deserialize;
 use table::poker::game::{
-    table_functions::{table::{TableConfig, TableId}, types::CurrencyType},
+    table_functions::{
+        table::{TableConfig, TableId},
+        types::CurrencyType,
+    },
     types::GameType,
 };
 

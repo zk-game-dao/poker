@@ -10,7 +10,7 @@ use crate::Clan;
 /// Reward distribution configuration
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub enum RewardDistributionType {
-    Percentage(u8), // 0-100, percentage of treasury balance
+    Percentage(u8),   // 0-100, percentage of treasury balance
     FixedAmount(u64), // Fixed amount in clan's supported currency
 }
 
@@ -23,7 +23,7 @@ impl Default for RewardDistributionType {
 /// Clan treasury configuration and balances
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub struct ClanTreasury {
-    pub balance: u64, // Balance in the clan's single supported currency
+    pub balance: u64,                 // Balance in the clan's single supported currency
     pub revenue_share_percentage: u8, // Fixed at 50% for MVP - 50% to platform, 50% to clan
     pub reward_distribution: RewardDistributionType, // How rewards are calculated
     pub total_revenue_generated: u64,
@@ -48,9 +48,12 @@ impl Default for ClanTreasury {
 
 impl Clan {
     /// Update reward distribution method (admin+ only)
-    pub fn update_reward_distribution(&mut self, new_distribution: RewardDistributionType, updater: &WalletPrincipalId) -> Result<(), ClanError> {
-        let updater_member = self.members.get(updater)
-            .ok_or(ClanError::MemberNotFound)?;
+    pub fn update_reward_distribution(
+        &mut self,
+        new_distribution: RewardDistributionType,
+        updater: &WalletPrincipalId,
+    ) -> Result<(), ClanError> {
+        let updater_member = self.members.get(updater).ok_or(ClanError::MemberNotFound)?;
 
         if !updater_member.is_admin_or_higher() {
             return Err(ClanError::InsufficientPermissions);
@@ -65,7 +68,7 @@ impl Clan {
         match &self.treasury.reward_distribution {
             RewardDistributionType::Percentage(percentage) => {
                 (self.treasury.balance * (*percentage as u64)) / 100
-            },
+            }
             RewardDistributionType::FixedAmount(amount) => {
                 // Return the fixed amount or treasury balance, whichever is smaller
                 std::cmp::min(*amount, self.treasury.balance)
@@ -74,12 +77,15 @@ impl Clan {
     }
 
     /// Distribute rewards to members from treasury
-    pub fn distribute_rewards(&mut self, distribution: HashMap<WalletPrincipalId, u64>) -> Result<(), ClanError> {
+    pub fn distribute_rewards(
+        &mut self,
+        distribution: HashMap<WalletPrincipalId, u64>,
+    ) -> Result<(), ClanError> {
         let distribution_total: u64 = distribution.values().sum();
         let available_amount = self.calculate_available_reward_amount();
-        
+
         if distribution_total > available_amount {
-            return Err(ClanError::InsufficientFunds { 
+            return Err(ClanError::InsufficientFunds {
                 available: available_amount,
                 required: distribution_total,
             });

@@ -4,7 +4,10 @@ use candid::{CandidType, Principal};
 use errors::tournament_error::TournamentError;
 use macros::impl_principal_traits;
 use serde::{Deserialize, Serialize};
-use table::poker::game::table_functions::{table::{TableConfig, TableId}, types::CurrencyType};
+use table::poker::game::table_functions::{
+    table::{TableConfig, TableId},
+    types::CurrencyType,
+};
 use user::user::{UsersCanisterId, WalletPrincipalId};
 
 use crate::tournaments::payouts::{calculate_dynamic_payout_structure, PayoutStructure};
@@ -358,7 +361,9 @@ impl TournamentData {
         );
 
         // Set payout structure from the selected multiplier
-        tournament.payout_structure = PayoutStructure { payouts: selected_multiplier.payout_structure };
+        tournament.payout_structure = PayoutStructure {
+            payouts: selected_multiplier.payout_structure,
+        };
 
         // No late registration for Spin and Go
         tournament.late_registration_duration_ns = 0;
@@ -486,10 +491,8 @@ impl TournamentData {
 
     pub fn calculate_payouts(&mut self) -> Result<(), TournamentError> {
         let total_players = self.all_players.len() as u32;
-        let payout_structure = calculate_dynamic_payout_structure(
-            total_players,
-            &self.tournament_type,
-        );
+        let payout_structure =
+            calculate_dynamic_payout_structure(total_players, &self.tournament_type);
 
         self.payout_structure = payout_structure;
 

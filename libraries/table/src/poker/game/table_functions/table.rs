@@ -369,7 +369,10 @@ impl Table {
     ///
     /// - [`GameError::PlayerNotFound`] if the player is not found
     /// - [`GameError::Other`] if the user table data cannot be retrieved
-    pub fn call(&mut self, user_principal: WalletPrincipalId) -> Result<(), TracedError<GameError>> {
+    pub fn call(
+        &mut self,
+        user_principal: WalletPrincipalId,
+    ) -> Result<(), TracedError<GameError>> {
         // First verify the user is actually in an occupied seat
         let _ = self
             .seats
@@ -595,7 +598,10 @@ impl Table {
     pub fn start_betting_round(
         &mut self,
         bytes: Vec<u8>,
-    ) -> Result<(Vec<(WalletPrincipalId, u64)>, Vec<(WalletPrincipalId, u64)>), TracedError<GameError>> {
+    ) -> Result<
+        (Vec<(WalletPrincipalId, u64)>, Vec<(WalletPrincipalId, u64)>),
+        TracedError<GameError>,
+    > {
         #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
         {
             // ic_cdk::println!("Clearing turn timer in start betting round.");
@@ -641,7 +647,7 @@ impl Table {
 
         for user_principal in self.seats.clone().into_iter() {
             if let SeatStatus::Occupied(user_principal) = user_principal {
-                    #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+                #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
                 {
                     let experience_points =
                         if let Ok(table_data) = self.get_user_table_data(user_principal) {

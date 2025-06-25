@@ -13,7 +13,10 @@ pub enum AdminRole {
 
 impl AdminRole {
     pub fn can_ban_users(&self) -> bool {
-        matches!(self, AdminRole::Moderator | AdminRole::Admin | AdminRole::SuperAdmin)
+        matches!(
+            self,
+            AdminRole::Moderator | AdminRole::Admin | AdminRole::SuperAdmin
+        )
     }
 
     pub fn can_promote_to_moderator(&self) -> bool {
@@ -151,14 +154,16 @@ impl User {
     }
 
     pub fn can_play(&self) -> bool {
-        !self.ban_status
+        !self
+            .ban_status
             .as_ref()
             .map(|ban| ban.prevents_gameplay())
             .unwrap_or(false)
     }
 
     pub fn can_gain_xp(&self) -> bool {
-        !self.ban_status
+        !self
+            .ban_status
             .as_ref()
             .map(|ban| ban.prevents_xp_gain())
             .unwrap_or(false)

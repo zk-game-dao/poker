@@ -11,10 +11,13 @@ use errors::{
     canister_management_error::CanisterManagementError, clan_index_error::ClanIndexError,
 };
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
-use intercanister_call_wrappers::clan_canister::{create_clan_wrapper, get_clan_wrapper, join_clan_wrapper, leave_clan_wrapper, upgrade_subscription_wrapper};
+use intercanister_call_wrappers::clan_canister::{
+    create_clan_wrapper, get_clan_wrapper, join_clan_wrapper, leave_clan_wrapper,
+    upgrade_subscription_wrapper,
+};
 use lazy_static::lazy_static;
-use user::user::{UsersCanisterId, WalletPrincipalId};
 use std::sync::Mutex;
+use user::user::{UsersCanisterId, WalletPrincipalId};
 
 pub mod clans_index;
 pub mod memory;
@@ -100,8 +103,9 @@ async fn create_clan(
         ClanId(clan_canister),
         request.clone(),
         creator,
-        creator_canister
-    ).await?;
+        creator_canister,
+    )
+    .await?;
 
     // Store in index
     {
@@ -161,15 +165,15 @@ async fn join_clan(
     joining_fee_paid: u64,
 ) -> Result<(), ClanIndexError> {
     handle_cycle_check().await?;
-    
+
     join_clan_wrapper(clan_id, users_canister, user_principal, joining_fee_paid).await?;
-    
+
     // Update local index
     {
         let mut state = STATE.lock().map_err(|_| ClanIndexError::LockError)?;
         state.add_member_to_clan(clan_id, user_principal)?;
     }
-    
+
     Ok(())
 }
 
@@ -179,15 +183,15 @@ async fn leave_clan(
     user_principal: WalletPrincipalId,
 ) -> Result<(), ClanIndexError> {
     handle_cycle_check().await?;
-    
+
     leave_clan_wrapper(clan_id, user_principal).await?;
-    
+
     // Update local index
     {
         let mut state = STATE.lock().map_err(|_| ClanIndexError::LockError)?;
         state.remove_member_from_clan(clan_id, user_principal)?;
     }
-    
+
     Ok(())
 }
 
@@ -200,15 +204,9 @@ async fn upgrade_subscription(
     months: u32,
 ) -> Result<(), ClanIndexError> {
     handle_cycle_check().await?;
-    
-    upgrade_subscription_wrapper(
-        clan_id,
-        user_principal,
-        new_tier,
-        paid_amount,
-        months,
-    ).await?;
-    
+
+    upgrade_subscription_wrapper(clan_id, user_principal, new_tier, paid_amount, months).await?;
+
     Ok(())
 }
 
@@ -225,7 +223,10 @@ fn get_total_members() -> Result<usize, ClanIndexError> {
 }
 
 #[ic_cdk::query]
-fn get_clans_by_member_count(min_members: usize, max_members: Option<usize>) -> Result<Vec<Clan>, ClanIndexError> {
+fn get_clans_by_member_count(
+    min_members: usize,
+    max_members: Option<usize>,
+) -> Result<Vec<Clan>, ClanIndexError> {
     let state = STATE.lock().map_err(|_| ClanIndexError::LockError)?;
     Ok(state.get_clans_by_member_count(min_members, max_members))
 }
@@ -250,15 +251,12 @@ async fn delete_clan(clan_id: ClanId) -> Result<(), ClanIndexError> {
 
     // Delete the canister
     stop_and_delete_canister(clan_id.0).await?;
-    
+
     Ok(())
 }
 
 #[ic_cdk::update]
-async fn top_up_clan_canister(
-    canister_id: Principal,
-    amount: u128,
-) -> Result<(), ClanIndexError> {
+async fn top_up_clan_canister(canister_id: Principal, amount: u128) -> Result<(), ClanIndexError> {
     handle_cycle_check().await?;
     top_up_canister(canister_id, amount).await?;
     Ok(())
@@ -267,12 +265,16 @@ async fn top_up_clan_canister(
 #[ic_cdk::update]
 async fn monitor_and_top_up_clan_canisters() -> Result<(), ClanIndexError> {
     handle_cycle_check().await?;
-    
+
     let clan_canisters = {
         let state = STATE.lock().map_err(|_| ClanIndexError::LockError)?;
-        state.get_all_clan_ids().iter().map(|id| id.0.clone()).collect::<Vec<Principal>>()
+        state
+            .get_all_clan_ids()
+            .iter()
+            .map(|id| id.0.clone())
+            .collect::<Vec<Principal>>()
     };
-    
+
     monitor_and_top_up_canisters(clan_canisters).await?;
     Ok(())
 }
@@ -320,7 +322,8 @@ async fn transfer_cycles(cycles_amount: u128, caller: Principal) -> Result<(), C
 }
 
 #[ic_cdk::update]
-async fn upgrade_all_clan_canisters() -> Result<Vec<(Principal, CanisterManagementError)>, ClanIndexError> {
+async fn upgrade_all_clan_canisters(
+) -> Result<Vec<(Principal, CanisterManagementError)>, ClanIndexError> {
     // Validate caller permissions
     let caller = ic_cdk::api::msg_caller();
     if !CONTROLLER_PRINCIPALS.contains(&caller) {
@@ -333,7 +336,9 @@ async fn upgrade_all_clan_canisters() -> Result<Vec<(Principal, CanisterManageme
 
     let clans: Vec<Principal> = {
         let state = STATE.lock().map_err(|_| ClanIndexError::LockError)?;
-        state.get_all_clan_ids().iter()
+        state
+            .get_all_clan_ids()
+            .iter()
             .map(|id| id.0.clone())
             .collect()
     };
@@ -350,7 +355,10 @@ async fn upgrade_all_clan_canisters() -> Result<Vec<(Principal, CanisterManageme
                 async move {
                     match canister_functions::upgrade_wasm_code(clan_canister, wasm_clone).await {
                         Ok(_) => {
-                            ic_cdk::println!("Successfully upgraded clan canister {}", clan_canister);
+                            ic_cdk::println!(
+                                "Successfully upgraded clan canister {}",
+                                clan_canister
+                            );
                             Ok(clan_canister)
                         }
                         Err(e) => {

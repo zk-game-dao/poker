@@ -10,7 +10,11 @@ use table::poker::game::{
     utils::convert_to_e8s,
 };
 use tournaments::tournaments::{
-    blind_level::SpeedType, table_balancing::TableBalancer, tournament_type::{BuyInOptions, TournamentSizeType, TournamentType}, types::{NewTournament, NewTournamentSpeedType, TournamentId, TournamentState}, utils::calculate_rake
+    blind_level::SpeedType,
+    table_balancing::TableBalancer,
+    tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
+    types::{NewTournament, NewTournamentSpeedType, TournamentId, TournamentState},
+    utils::calculate_rake,
 };
 use user::user::{UsersCanisterId, WalletPrincipalId};
 
@@ -125,8 +129,11 @@ impl TestEnv {
             self.pocket_ic.tick();
         }
 
-        println!("--------- Tournament started with players: {} and {} tables", active_players.len(),
-            self.get_tournament(tournament_id).unwrap().tables.len());
+        println!(
+            "--------- Tournament started with players: {} and {} tables",
+            active_players.len(),
+            self.get_tournament(tournament_id).unwrap().tables.len()
+        );
 
         let tournament = self.get_tournament(tournament_id).unwrap();
         let table_id = *tournament.tables.keys().next().unwrap();
@@ -210,7 +217,7 @@ impl TestEnv {
         let mut player_balances: Vec<_> = players
             .iter()
             .map(|player| {
-                let balance = self.get_wallet_balance(player.1.0).unwrap();
+                let balance = self.get_wallet_balance(player.1 .0).unwrap();
                 (balance.e8s(), *player)
             })
             .collect();
@@ -222,7 +229,7 @@ impl TestEnv {
             "Player balances: {:?}",
             player_balances
                 .iter()
-                .map(|b| (b.0 / 1e8 as u64, (b.1.0.0.to_text(), b.1.1.0.to_text())))
+                .map(|b| (b.0 / 1e8 as u64, (b.1 .0 .0.to_text(), b.1 .1 .0.to_text())))
                 .collect::<Vec<_>>()
         );
 

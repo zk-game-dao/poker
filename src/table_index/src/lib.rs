@@ -16,10 +16,13 @@ use futures::future::join_all;
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
 use intercanister_call_wrappers::table_index::get_rake_stats;
 use lazy_static::lazy_static;
-use user::user::{UsersCanisterId, WalletPrincipalId};
 use std::{cmp::Ordering, collections::HashMap, sync::Mutex};
 use table::poker::game::{
-    table_functions::{rake::Rake, table::{SmallBlind, TableConfig, TableId, TableType}, types::CurrencyType},
+    table_functions::{
+        rake::Rake,
+        table::{SmallBlind, TableConfig, TableId, TableType},
+        types::CurrencyType,
+    },
     types::{GameType, PublicTable},
 };
 use table::table_canister::{
@@ -28,6 +31,7 @@ use table::table_canister::{
 };
 use table_index::{PrivateTableIndex, PublicTableIndex};
 use table_index_types::filter::FilterOptions;
+use user::user::{UsersCanisterId, WalletPrincipalId};
 use utils::{get_canister_state, is_table_full};
 
 mod memory;
@@ -148,9 +152,11 @@ async fn create_table(
                 .deposit(
                     &mut transaction_state,
                     &currency::Currency::BTC,
-                    wallet_principal_id.ok_or(TableIndexError::InvalidRequest(
-                        "Wallet principal id is required".to_string(),
-                    ))?.0,
+                    wallet_principal_id
+                        .ok_or(TableIndexError::InvalidRequest(
+                            "Wallet principal id is required".to_string(),
+                        ))?
+                        .0,
                     50000,
                 )
                 .await?;
@@ -162,9 +168,11 @@ async fn create_table(
                 .deposit(
                     &mut transaction_state,
                     &currency::Currency::ICP,
-                    wallet_principal_id.ok_or(TableIndexError::InvalidRequest(
-                        "Wallet principal id is required".to_string(),
-                    ))?.0,
+                    wallet_principal_id
+                        .ok_or(TableIndexError::InvalidRequest(
+                            "Wallet principal id is required".to_string(),
+                        ))?
+                        .0,
                     1e8 as u64,
                 )
                 .await?;
@@ -204,10 +212,7 @@ async fn create_table(
 }
 
 #[ic_cdk::update]
-async fn update_table_player_count(
-    table_id: TableId,
-    count: usize,
-) -> Result<(), TableIndexError> {
+async fn update_table_player_count(table_id: TableId, count: usize) -> Result<(), TableIndexError> {
     handle_cycle_check().await?;
 
     TABLE_PLAYER_COUNTS
@@ -525,7 +530,10 @@ async fn request_cycles() -> Result<(), CanisterManagementError> {
     transfer_cycles(CYCLES_TOP_UP_AMOUNT, caller).await
 }
 
-async fn transfer_cycles(cycles_amount: u128, caller: TableId) -> Result<(), CanisterManagementError> {
+async fn transfer_cycles(
+    cycles_amount: u128,
+    caller: TableId,
+) -> Result<(), CanisterManagementError> {
     let public_table_index_state = PUBLIC_TABLE_INDEX_STATE
         .lock()
         .map_err(|_| CanisterManagementError::LockError)?
@@ -541,9 +549,9 @@ async fn transfer_cycles(cycles_amount: u128, caller: TableId) -> Result<(), Can
         && !private_table_index_state.contains_key(&caller)
     {
         return Err(CanisterManagementError::Transfer(format!(
-                "Caller is not a valid destination: {}",
-                caller.0.to_text()
-            )));
+            "Caller is not a valid destination: {}",
+            caller.0.to_text()
+        )));
     }
 
     top_up_canister(caller.0, cycles_amount).await?;
@@ -551,7 +559,11 @@ async fn transfer_cycles(cycles_amount: u128, caller: TableId) -> Result<(), Can
 }
 
 #[ic_cdk::query]
-async fn get_rake(small_blind: SmallBlind, currency: Currency, game_type: GameType) -> Option<Rake> {
+async fn get_rake(
+    small_blind: SmallBlind,
+    currency: Currency,
+    game_type: GameType,
+) -> Option<Rake> {
     match Rake::new(small_blind, &game_type, &currency) {
         Ok(rake) => Some(rake),
         Err(e) => {
@@ -763,7 +775,8 @@ async fn upgrade_all_table_canisters(
             .map(|&table_canister| {
                 let wasm_clone = wasm_module.clone();
                 async move {
-                    match canister_functions::upgrade_wasm_code(table_canister.0, wasm_clone).await {
+                    match canister_functions::upgrade_wasm_code(table_canister.0, wasm_clone).await
+                    {
                         Ok(_) => {
                             ic_cdk::println!(
                                 "Successfully upgraded table canister {}",
