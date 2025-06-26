@@ -55,15 +55,11 @@ impl_principal_traits!(WalletPrincipalId);
 impl_principal_traits!(UsersCanisterId);
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq, Hash, Copy)]
+#[derive(Default)]
 pub struct UserBalance(pub u64);
 
 impl_u64_comparisons!(UserBalance);
 
-impl Default for UserBalance {
-    fn default() -> Self {
-        UserBalance(0)
-    }
-}
 
 /// The User struct is stored in memory on the user canister.
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]

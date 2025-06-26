@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use authentication::validate_caller;
 use candid::{CandidType, Nat, Principal};
+use canister_functions::{create_canister_wrapper, install_wasm_code};
 use clan::{
     environment::ClanEnvironmentSettings,
     member::{ClanMember, MemberStatus},
@@ -17,9 +18,11 @@ use clan::{
 use currency::{state::TransactionState, types::currency_manager::CurrencyManager, Currency};
 use errors::clan_error::ClanError;
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, DepositCyclesArgs};
-use intercanister_call_wrappers::users_canister::get_user_wrapper;
+use intercanister_call_wrappers::{tournament_canister::create_tournament_wrapper, users_canister::get_user_wrapper};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use table::{poker::game::{table_functions::{table::{TableConfig, TableId}, types::CurrencyType}, types::PublicTable}, table_canister::create_table_wrapper};
+use tournaments::tournaments::types::{NewTournament, TournamentData, TournamentId};
 use user::user::{UsersCanisterId, WalletPrincipalId};
 use utils::handle_cycle_check;
 
@@ -59,7 +62,7 @@ lazy_static! {
     static ref CLAN: Mutex<Option<Clan>> = Mutex::new(None);
     static ref BACKEND_PRINCIPAL: Mutex<Option<Principal>> = Mutex::new(None);
     static ref TRANSACTION_STATE: Mutex<TransactionState> = Mutex::new(TransactionState::new());
-    static ref CURRENCY_MANAGER: Mutex<Option<CurrencyManager>> = Mutex::new(None);
+    static ref CURRENCY_MANAGER: Mutex<CurrencyManager> = Mutex::new(CurrencyManager::new());
     static ref CLAN_EVENTS: Mutex<ClanEvents> = Mutex::new(ClanEvents::new());
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
         Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe")
@@ -69,6 +72,11 @@ lazy_static! {
         Principal::from_text("uyxh5-bi3za-gxbfs-op3gj-ere73-a6jhv-5jky3-zawef-b5r2s-k26un-sae")
             .unwrap(),
     ];
+
+    static ref TABLE_CANISTER_WASM: &'static [u8] =
+        include_bytes!("../../../target/wasm32-unknown-unknown/release/table_canister.wasm");
+    static ref TOURNAMENT_CANISTER_WASM: &'static [u8] =
+        include_bytes!("../../../target/wasm32-unknown-unknown/release/tournament_canister.wasm");
 }
 
 use std::sync::Mutex;
@@ -123,18 +131,12 @@ async fn create_clan(
     }
 
     // Initialize currency manager for real currency
-    let currency_manager = match &clan.supported_currency {
-        Currency::ICP | Currency::BTC => {
-            let mut currency_manager = CurrencyManager::new();
-            currency_manager
-                .add_currency(clan.supported_currency.clone())
-                .await?;
-            Some(currency_manager)
-        }
-        _ => None, // For fake currencies or other types
-    };
-
-    *CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)? = currency_manager;
+    {
+        let mut currency_manager = CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)?;
+        currency_manager
+            .add_currency(clan.supported_currency.clone())
+            .await?;
+    }
 
     // Store the clan
     *CLAN.lock().map_err(|_| ClanError::LockError)? = Some(clan.clone());
@@ -226,10 +228,7 @@ async fn join_clan(
         Currency::ICP | Currency::BTC => {
             let currency_manager = {
                 let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)?;
-                currency_manager
-                    .as_ref()
-                    .ok_or(ClanError::StateNotInitialized)?
-                    .clone()
+                currency_manager.clone()
             };
 
             currency_manager
@@ -474,10 +473,7 @@ async fn upgrade_subscription(
         Currency::ICP | Currency::BTC => {
             let currency_manager = {
                 let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)?;
-                currency_manager
-                    .as_ref()
-                    .ok_or(ClanError::StateNotInitialized)?
-                    .clone()
+                currency_manager.clone()
             };
 
             let mut transaction_state = TRANSACTION_STATE
@@ -601,6 +597,318 @@ async fn update_clan_settings(
 }
 
 #[ic_cdk::update]
+async fn create_clan_table(
+    config: TableConfig,
+    created_by: WalletPrincipalId,
+) -> Result<PublicTable, ClanError> {
+    handle_cycle_check();
+
+    let clan = {
+        let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        clan.as_ref().ok_or(ClanError::ClanNotFound)?.clone()
+    };
+
+    // Check if member has permission to create tables
+    if !clan.has_tier_access(&created_by, "can_create_tables")? {
+        return Err(ClanError::InsufficientPermissions);
+    }
+
+    // Validate currency matches clan's supported currency
+    match config.currency_type {
+        CurrencyType::Real(currency) => {
+            if currency != clan.supported_currency {
+                return Err(ClanError::InvalidCurrency);
+            }
+        }
+        CurrencyType::Fake => {
+            // Allow fake currency for practice/fun games
+        }
+    }
+
+    // Create the table canister
+    let controllers = CONTROLLER_PRINCIPALS.clone();
+    let wasm_module = TABLE_CANISTER_WASM.to_vec();
+    let table_canister_principal = create_canister_wrapper(controllers, None).await
+        .map_err(|e| ClanError::CanisterCallError(format!("Failed to create table canister: {:?}", e)))?;
+    
+    install_wasm_code(table_canister_principal, wasm_module).await
+        .map_err(|e| ClanError::CanisterCallError(format!("Failed to install table WASM: {:?}", e)))?;
+
+    let table_id = TableId(table_canister_principal);
+
+    // Generate random bytes for table creation
+    let raw_bytes = ic_cdk::management_canister::raw_rand().await
+        .map_err(|e| ClanError::CanisterCallError(format!("Failed to generate random bytes: {:?}", e)))?;
+
+    // Create the table with clan-specific configuration
+    let mut clan_config = config.clone();
+    clan_config.is_private = Some(true); // Clan tables are private by default
+    
+    let mut config = config;
+
+    // Set table name prefix if configured
+    if let Some(prefix) = &clan.environment_settings.table_name_prefix {
+        config.name = format!("{} - {}", prefix, config.name);
+    }
+
+    let table = create_table_wrapper(table_id, clan_config, raw_bytes).await
+        .map_err(|e| ClanError::CanisterCallError(format!("Failed to create table: {:?}", e)))?;
+
+    // Add table to clan's active tables
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+        clan_state.active_tables.push(table_id);
+    }
+
+    // Log event
+    let event = ClanEvent::SettingsUpdated {
+        by: created_by,
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
+
+    Ok(table)
+}
+
+/// Create a tournament for the clan
+#[ic_cdk::update]
+async fn create_clan_tournament(
+    new_tournament: NewTournament,
+    table_config: TableConfig,
+    created_by: WalletPrincipalId,
+) -> Result<TournamentData, ClanError> {
+    handle_cycle_check();
+
+    let clan = {
+        let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        clan.as_ref().ok_or(ClanError::ClanNotFound)?.clone()
+    };
+
+    // Check if member has permission to create tournaments
+    if !clan.has_tier_access(&created_by, "can_create_tournaments")? {
+        return Err(ClanError::InsufficientPermissions);
+    }
+
+    // Validate currency matches clan's supported currency
+    match table_config.currency_type {
+        CurrencyType::Real(currency) => {
+            if currency != clan.supported_currency {
+                return Err(ClanError::InvalidCurrency);
+            }
+        }
+        CurrencyType::Fake => {
+            // Allow fake currency for practice tournaments
+        }
+    }
+
+    // Validate tournament start time
+    if new_tournament.start_time <= ic_cdk::api::time() {
+        return Err(ClanError::InvalidRequest(
+            "Tournament start time must be in the future".to_string(),
+        ));
+    }
+
+    // Create the tournament canister
+    let controllers = CONTROLLER_PRINCIPALS.clone();
+    let wasm_module = TOURNAMENT_CANISTER_WASM.to_vec();
+    let cycle_amount = 3_000_000_000_000; // 3T cycles for tournament
+    
+    let tournament_canister_principal = create_canister_wrapper(controllers, Some(cycle_amount)).await
+        .map_err(|e| ClanError::CanisterCallError(format!("Failed to create tournament canister: {:?}", e)))?;
+    
+    install_wasm_code(tournament_canister_principal, wasm_module).await
+        .map_err(|e| ClanError::CanisterCallError(format!("Failed to install tournament WASM: {:?}", e)))?;
+
+    let tournament_id = TournamentId(tournament_canister_principal);
+
+    // Create tournament data
+    let tournament_data = TournamentData::new(tournament_id, new_tournament, table_config.clone())
+        .map_err(|e| ClanError::InvalidRequest(format!("Invalid tournament configuration: {:?}", e)))?;
+
+    // Create the tournament
+    let tournament = create_tournament_wrapper(tournament_id, tournament_data.clone(), table_config, 0).await
+        .map_err(|e| ClanError::CanisterCallError(format!("Failed to create tournament: {:?}", e)))?;
+
+    // Add tournament to clan's hosted tournaments
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+        clan_state.hosted_tournaments.push(tournament_id);
+        clan_state.stats.total_tournaments_hosted += 1;
+    }
+
+    // Log event
+    let event = ClanEvent::TournamentHosted {
+        tournament_id: created_by, // Using created_by as placeholder - you might want to change this
+        timestamp: ic_cdk::api::time(),
+    };
+    CLAN_EVENTS
+        .lock()
+        .map_err(|_| ClanError::LockError)?
+        .add_event(event);
+
+    Ok(tournament)
+}
+
+/// Get all active tables for the clan
+#[ic_cdk::query]
+fn get_clan_tables() -> Result<Vec<TableId>, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.active_tables.clone())
+}
+
+/// Get all tournaments hosted by the clan
+#[ic_cdk::query]
+fn get_clan_tournaments() -> Result<Vec<TournamentId>, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.hosted_tournaments.clone())
+}
+
+/// Remove a table from the clan (admin+ only)
+#[ic_cdk::update]
+async fn remove_clan_table(
+    table_id: TableId,
+    removed_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate permissions
+        let remover = clan_state
+            .members
+            .get(&removed_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !remover.is_admin_or_higher() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Remove from active tables
+        clan_state.active_tables.retain(|&id| id != table_id);
+    }
+
+    Ok(())
+}
+
+/// Remove a tournament from the clan (admin+ only)
+#[ic_cdk::update]
+async fn remove_clan_tournament(
+    tournament_id: TournamentId,
+    removed_by: WalletPrincipalId,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+
+    {
+        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+
+        // Validate permissions
+        let remover = clan_state
+            .members
+            .get(&removed_by)
+            .ok_or(ClanError::MemberNotFound)?;
+
+        if !remover.is_admin_or_higher() {
+            return Err(ClanError::InsufficientPermissions);
+        }
+
+        // Remove from hosted tournaments
+        clan_state.hosted_tournaments.retain(|&id| id != tournament_id);
+    }
+
+    // TODO: Optionally stop and delete the tournament canister here
+
+    Ok(())
+}
+
+/// Check if a member can access a specific table based on their subscription tier
+#[ic_cdk::query]
+fn can_member_access_table(
+    member_id: WalletPrincipalId,
+    table_stakes: u64,
+) -> Result<bool, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+
+    // Check if member exists
+    if !clan.is_member(&member_id) {
+        return Ok(false);
+    }
+
+    // Check table stakes access based on subscription tier
+    clan.can_access_table_stakes(&member_id, table_stakes)
+}
+
+/// Check if a member can participate in tournaments
+#[ic_cdk::query]
+fn can_member_access_benefits(member_id: WalletPrincipalId, benefits: String) -> Result<bool, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+
+    // Check if member exists
+    if !clan.is_member(&member_id) {
+        return Ok(false);
+    }
+
+    // Check tournament access based on subscription tier
+    clan.has_tier_access(&member_id, &benefits)
+}
+
+/// Update clan table/tournament statistics when games complete
+#[ic_cdk::update]
+async fn update_clan_game_stats(
+    table_id: Option<TableId>,
+    tournament_id: Option<TournamentId>,
+    revenue_generated: u64,
+) -> Result<(), ClanError> {
+    handle_cycle_check();
+    let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+    
+    let mut valid_callers = CONTROLLER_PRINCIPALS.clone();
+    let table_ids = clan_state.active_tables.iter().map(|id| id.0).collect::<Vec<_>>();
+    let tournament_ids = clan_state.hosted_tournaments.iter().map(|id| id.0).collect::<Vec<_>>();
+    valid_callers.extend_from_slice(&table_ids);
+    valid_callers.extend_from_slice(&tournament_ids);
+    validate_caller(valid_callers);        
+
+    if table_id.is_some() {
+        clan_state.stats.total_games_played += 1;
+    }
+    if tournament_id.is_some() {
+        clan_state.stats.total_tournaments_hosted += 1;
+    }
+
+    clan_state.treasury.balance += revenue_generated;
+    clan_state.treasury.total_revenue_generated += revenue_generated;
+    clan_state.stats.total_revenue_generated += revenue_generated;
+    clan_state.stats.last_activity = ic_cdk::api::time();
+
+    // Log revenue event
+    if revenue_generated > 0 {
+        let event = ClanEvent::RevenueGenerated {
+            amount: revenue_generated,
+            timestamp: ic_cdk::api::time(),
+        };
+        CLAN_EVENTS
+            .lock()
+            .map_err(|_| ClanError::LockError)?
+            .add_event(event);
+    }
+
+    Ok(())
+}
+
+#[ic_cdk::update]
 async fn create_subscription_tier(
     tier: SubscriptionTier,
     created_by: WalletPrincipalId,
@@ -700,10 +1008,7 @@ async fn distribute_rewards(
         Currency::ICP | Currency::BTC => {
             let currency_manager = {
                 let currency_manager = CURRENCY_MANAGER.lock().map_err(|_| ClanError::LockError)?;
-                currency_manager
-                    .as_ref()
-                    .ok_or(ClanError::StateNotInitialized)?
-                    .clone()
+                currency_manager.clone()
             };
 
             for (recipient, amount) in distribution {

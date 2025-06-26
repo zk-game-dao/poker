@@ -115,6 +115,7 @@ impl Default for TournamentData {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Default)]
 pub struct UserTournamentData {
     pub users_canister_principal: UsersCanisterId,
     pub chips: u64,
@@ -137,18 +138,6 @@ impl UserTournamentData {
     }
 }
 
-impl Default for UserTournamentData {
-    fn default() -> Self {
-        Self {
-            users_canister_principal: UsersCanisterId::default(),
-            chips: 0,
-            position: 0,
-            reentries: 0,
-            addons: 0,
-            rebuys: 0,
-        }
-    }
-}
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum TournamentState {

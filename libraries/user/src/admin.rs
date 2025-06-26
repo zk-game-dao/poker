@@ -119,7 +119,7 @@ impl User {
     }
 
     pub fn is_admin(&self) -> bool {
-        !matches!(self.admin_role, None)
+        self.admin_role.is_some()
     }
 
     pub fn can_perform_admin_action(&self, target_role: &AdminRole) -> bool {
