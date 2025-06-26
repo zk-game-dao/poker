@@ -129,6 +129,23 @@
       "package": "tournament_index",
       "type": "rust"
     },
+    "clans_canister": {
+      "candid": "src/clans_canister/clans_canister.did",
+      "package": "clans_canister",
+      "dependencies": [
+        "table_canister",
+        "tournament_canister"
+      ],
+      "type": "rust"
+    },
+    "clans_index": {
+      "candid": "src/clans_index/clans_index.did",
+      "dependencies": [
+        "clans_canister"
+      ],
+      "package": "clans_index",
+      "type": "rust"
+    },
     "users_canister": {
       "candid": "src/users_canister/users_canister.did",
       "package": "users_canister",

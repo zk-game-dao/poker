@@ -26,7 +26,7 @@ pub mod tags;
 use clans_index::{ClanIndex, ClanSearchFilters};
 
 const MINIMUM_CYCLE_THRESHOLD: u128 = 2_000_000_000_000;
-const SINGLE_CLAN_CYCLE_START_AMOUNT: u128 = 3_000_000_000_000;
+const SINGLE_CLAN_CYCLE_START_AMOUNT: u128 = 10_000_000_000_000;
 
 async fn handle_cycle_check() -> Result<(), ClanIndexError> {
     let id = ic_cdk::api::canister_self();
