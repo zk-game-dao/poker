@@ -357,6 +357,10 @@ impl Clan {
             .get(member_principal)
             .ok_or(ClanError::MemberNotFound)?;
 
+        if member.is_admin_or_higher() {
+            return Ok(true); // Admins have all access
+        }
+
         if !member.is_subscription_active() {
             return Ok(false);
         }
