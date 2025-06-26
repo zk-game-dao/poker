@@ -1,10 +1,9 @@
 use candid::Principal;
 use errors::canister_management_error::CanisterManagementError;
 use ic_cdk::management_canister::{
-    canister_status, create_canister_with_extra_cycles, delete_canister, install_code,
-    stop_canister, CanisterInstallMode, CanisterSettings, CanisterStatusArgs, CanisterStatusType,
-    CreateCanisterArgs, DeleteCanisterArgs, InstallCodeArgs, StopCanisterArgs,
+    canister_status, create_canister_with_extra_cycles, delete_canister, install_chunked_code, install_code, stop_canister, upload_chunk, CanisterInstallMode, CanisterSettings, CanisterStatusArgs, CanisterStatusType, CreateCanisterArgs, DeleteCanisterArgs, InstallChunkedCodeArgs, InstallCodeArgs, StopCanisterArgs, UploadChunkArgs
 };
+use sha2::{Sha256, Digest};
 
 pub mod cycle;
 pub mod leaderboard_utils;
@@ -53,7 +52,7 @@ pub async fn create_canister_wrapper(
     Ok(create_canister_response.canister_id)
 }
 
-/// Installs the wasm code into a canister
+/// Installs the wasm code into a canister.
 ///
 /// # Parameters
 ///
@@ -68,16 +67,61 @@ pub async fn install_wasm_code(
     canister_id: Principal,
     wasm_module: Vec<u8>,
 ) -> Result<(), CanisterManagementError> {
-    let install_code_arg = InstallCodeArgs {
-        mode: CanisterInstallMode::Install,
-        canister_id,
-        wasm_module,
-        arg: candid::encode_args(()).unwrap(),
-    };
+    const MAX_CHUNK_SIZE: usize = 1_048_576; // 8MB chunks to stay under 10MB limit
+    
+    if wasm_module.len() <= MAX_CHUNK_SIZE {
+        // Use regular install for smaller files
+        let install_code_arg = InstallCodeArgs {
+            mode: CanisterInstallMode::Install,
+            canister_id,
+            wasm_module,
+            arg: candid::encode_args(()).unwrap(),
+        };
 
-    install_code(&install_code_arg)
-        .await
-        .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+        install_code(&install_code_arg)
+            .await
+            .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+    } else {
+        let chunks: Vec<&[u8]> = wasm_module.chunks(MAX_CHUNK_SIZE).collect();
+        let mut chunk_hashes_list = Vec::new();
+        for chunk in chunks {
+            let res = upload_chunk(&UploadChunkArgs {
+                canister_id,
+                chunk: chunk.to_vec(),
+            }).await;
+
+            match res {
+                Ok(uploaded_chunk) => {
+                    chunk_hashes_list.push(uploaded_chunk);
+                }
+                Err(e) => {
+                    return Err(CanisterManagementError::UploadChunkError(format!(
+                        "{:?}",
+                        e
+                    )));
+                }
+            }
+        }
+
+        let mut full_hasher = Sha256::new();
+        full_hasher.update(&wasm_module);
+        let full_hash = full_hasher.finalize().to_vec();
+
+        // Use chunked install for larger files
+        let install_code_arg = InstallChunkedCodeArgs {
+            mode: CanisterInstallMode::Install,
+            target_canister: canister_id,
+            wasm_module_hash: full_hash,
+            chunk_hashes_list,
+            arg: candid::encode_args(()).unwrap(),
+            store_canister: None,
+        };
+
+        // Upload wasm module in chunks
+        install_chunked_code(&install_code_arg)
+            .await
+            .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+    }
 
     Ok(())
 }
@@ -97,16 +141,62 @@ pub async fn upgrade_wasm_code(
     canister_id: Principal,
     wasm_module: Vec<u8>,
 ) -> Result<(), CanisterManagementError> {
-    let install_code_arg = InstallCodeArgs {
-        mode: CanisterInstallMode::Upgrade(None),
-        canister_id,
-        wasm_module,
-        arg: candid::encode_args(()).unwrap(),
-    };
+    const MAX_CHUNK_SIZE: usize = 1_048_576; // 8MB chunks to stay under 10MB limit
+    
+    if wasm_module.len() <= MAX_CHUNK_SIZE {
+        // Use regular install for smaller files
+        let install_code_arg = InstallCodeArgs {
+            mode: CanisterInstallMode::Upgrade(None),
+            canister_id,
+            wasm_module,
+            arg: candid::encode_args(()).unwrap(),
+        };
 
-    install_code(&install_code_arg)
-        .await
-        .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+        install_code(&install_code_arg)
+            .await
+            .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+    } else {
+        let chunks: Vec<&[u8]> = wasm_module.chunks(MAX_CHUNK_SIZE).collect();
+        let mut chunk_hashes_list = Vec::new();
+        for chunk in chunks {
+            let res = upload_chunk(&UploadChunkArgs {
+                canister_id,
+                chunk: chunk.to_vec(),
+            }).await;
+
+            match res {
+                Ok(uploaded_chunk) => {
+                    chunk_hashes_list.push(uploaded_chunk);
+                }
+                Err(e) => {
+                    return Err(CanisterManagementError::UploadChunkError(format!(
+                        "{:?}",
+                        e
+                    )));
+                }
+            }
+        }
+
+        let mut full_hasher = Sha256::new();
+        full_hasher.update(&wasm_module);
+        let full_hash = full_hasher.finalize().to_vec();
+
+        // Use chunked install for larger files
+        let install_code_arg = InstallChunkedCodeArgs {
+            mode: CanisterInstallMode::Upgrade(None),
+            target_canister: canister_id,
+            wasm_module_hash: full_hash,
+            chunk_hashes_list,
+            arg: candid::encode_args(()).unwrap(),
+            store_canister: None,
+        };
+
+        // Upload wasm module in chunks
+        install_chunked_code(&install_code_arg)
+            .await
+            .map_err(|e| CanisterManagementError::InstallCodeError(format!("{:?}", e)))?;
+    }
+
     Ok(())
 }
 

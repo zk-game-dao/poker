@@ -31,11 +31,12 @@ const SINGLE_CLAN_CYCLE_START_AMOUNT: u128 = 3_000_000_000_000;
 async fn handle_cycle_check() -> Result<(), ClanIndexError> {
     let id = ic_cdk::api::canister_self();
     let cycle_dispenser_canister_id =
-        if id == Principal::from_text("zclan-index-prod-canister-id").unwrap() {
-            *CYCLE_DISPENSER_CANISTER_PROD
-        } else if id == Principal::from_text("zclan-index-test-canister-id").unwrap() {
-            *CYCLE_DISPENSER_CANISTER_TEST
-        } else if id == Principal::from_text("zclan-index-dev-canister-id").unwrap() {
+        // if id == Principal::from_text("zclan-index-prod-canister-id").unwrap() {
+        //     *CYCLE_DISPENSER_CANISTER_PROD
+        // } else if id == Principal::from_text("zclan-index-test-canister-id").unwrap() {
+        //     *CYCLE_DISPENSER_CANISTER_TEST
+        // } else 
+        if id == Principal::from_text("tm5rl-y7777-77776-aaaca-cai").unwrap() {
             *CYCLE_DISPENSER_CANISTER_DEV
         } else {
             return Ok(());
@@ -79,7 +80,7 @@ async fn create_clan(
     request: CreateClanRequest,
     creator: WalletPrincipalId,
     creator_canister: UsersCanisterId,
-) -> Result<Principal, ClanIndexError> {
+) -> Result<Clan, ClanIndexError> {
     handle_cycle_check().await?;
 
     // Validate the request
@@ -113,7 +114,7 @@ async fn create_clan(
         state.add_clan(clan.clone())?;
     }
 
-    Ok(clan_canister)
+    Ok(clan)
 }
 
 #[ic_cdk::update]

@@ -81,6 +81,7 @@ type CanisterManagementError = variant {
   StopCanisterError : text;
   Transfer : text;
   QueryError : text;
+  UploadChunkError : text;
   CanisterCallError : text;
   DeleteCanisterError : text;
   InstallCodeError : text;
@@ -355,7 +356,7 @@ type Token = record { decimals : nat8; ledger_id : principal; symbol : blob };
 type TournamentData = record {
   id : principal;
   table_config : TableConfig;
-  sorted_users : opt vec principal;
+  sorted_users : opt vec record { principal; nat64 };
   guaranteed_prize_pool : opt nat64;
   min_players : nat8;
   name : text;

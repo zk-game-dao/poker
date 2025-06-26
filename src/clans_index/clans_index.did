@@ -8,6 +8,7 @@ type CanisterManagementError = variant {
   StopCanisterError : text;
   Transfer : text;
   QueryError : text;
+  UploadChunkError : text;
   CanisterCallError : text;
   DeleteCanisterError : text;
   InstallCodeError : text;
@@ -344,13 +345,12 @@ type MemberStatus = variant {
   Active;
   Suspended : record { until : opt nat64 };
 };
-type Result = variant { Ok : principal; Err : ClanIndexError };
+type Result = variant { Ok : Clan; Err : ClanIndexError };
 type Result_1 = variant { Ok; Err : ClanIndexError };
 type Result_2 = variant { Ok : vec Clan; Err : ClanIndexError };
 type Result_3 = variant { Ok : text; Err : ClanIndexError };
-type Result_4 = variant { Ok : Clan; Err : ClanIndexError };
-type Result_5 = variant { Ok : nat64; Err : ClanIndexError };
-type Result_6 = variant {
+type Result_4 = variant { Ok : nat64; Err : ClanIndexError };
+type Result_5 = variant {
   Ok : vec record { principal; CanisterManagementError };
   Err : ClanIndexError;
 };
@@ -365,6 +365,7 @@ type SubscriptionBenefits = record {
   exclusive_access : bool;
   can_invite_members : bool;
   description : text;
+  can_create_tables : bool;
   custom_styling : bool;
   custom_role_name : opt text;
   max_table_stakes : opt nat64;
@@ -439,13 +440,13 @@ service : () -> {
   delete_clan : (principal) -> (Result_1);
   get_all_clans : () -> (Result_2) query;
   get_canister_status_formatted : () -> (Result_3);
-  get_clan : (principal) -> (Result_4);
-  get_clan_count : () -> (Result_5) query;
+  get_clan : (principal) -> (Result);
+  get_clan_count : () -> (Result_4) query;
   get_clans_by_currency : (Currency) -> (Result_2) query;
   get_clans_by_member_count : (nat64, opt nat64) -> (Result_2) query;
   get_clans_by_tag : (ClanTag) -> (Result_2) query;
   get_popular_clans : (nat64) -> (Result_2) query;
-  get_total_members : () -> (Result_5) query;
+  get_total_members : () -> (Result_4) query;
   get_user_clans : (principal) -> (Result_2) query;
   join_clan : (principal, principal, principal, nat64) -> (Result_1);
   leave_clan : (principal, principal) -> (Result_1);
@@ -454,7 +455,7 @@ service : () -> {
   request_cycles : () -> (Result_1);
   search_clans : (opt ClanSearchFilters, nat64, nat64) -> (Result_2) query;
   top_up_clan_canister : (principal, nat) -> (Result_1);
-  upgrade_all_clan_canisters : () -> (Result_6);
+  upgrade_all_clan_canisters : () -> (Result_5);
   upgrade_clan_canister : (principal) -> (Result_1);
   upgrade_subscription : (principal, principal, text, nat64, nat32) -> (
       Result_1,

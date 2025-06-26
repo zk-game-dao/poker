@@ -5,6 +5,7 @@ edition = "2021"
 
 [dev-dependencies]
 candid = { workspace = true }
+clan = { path = "../libraries/clan" }
 errors = { path = "../libraries/errors" }
 ic-cdk = { workspace = true }
 ic-cdk-timers = { workspace = true }

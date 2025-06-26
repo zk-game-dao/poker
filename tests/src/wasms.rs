@@ -5,6 +5,10 @@ use lazy_static::lazy_static;
 pub type CanisterWasm = Vec<u8>;
 
 lazy_static! {
+    pub static ref CLANS: CanisterWasm = get_local_wasm("clans_canister");
+
+    pub static ref CLANS_INDEX: CanisterWasm = get_local_wasm("clans_index");
+
     pub static ref TABLE: CanisterWasm = get_local_wasm("table_canister");
     pub static ref TABLE_INDEX: CanisterWasm = get_local_wasm("table_index");
     pub static ref TOURNAMENT: CanisterWasm = get_local_wasm("tournament_canister");

@@ -36,4 +36,7 @@ pub enum CanisterManagementError {
 
     #[error("Lock error")]
     LockError,
+
+    #[error("Failed to upload chunk: {0}")]
+    UploadChunkError(String),
 }

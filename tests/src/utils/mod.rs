@@ -1,3 +1,4 @@
+pub mod clan;
 pub mod table;
 pub mod tournament;
 pub mod transfer;
