@@ -5,6 +5,12 @@
   "btc_frontend": {
     "ic": "j5kch-7yaaa-aaaam-qds2a-cai"
   },
+  "clans_canister": {
+    "ic": "xa3co-zqaaa-aaaam-qdxia-cai"
+  },
+  "clans_index": {
+    "ic": "xh2e2-uiaaa-aaaam-qdxiq-cai"
+  },
   "cycle_dispenser": {
     "ic": "zuv6g-yaaaa-aaaam-qbeza-cai"
   },
