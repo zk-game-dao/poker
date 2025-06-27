@@ -96,6 +96,8 @@ dapp_canisters:
     - "h37sg-kqaaa-aaaad-qhkvq-cai" # zk.game frontend
     - "z5wv2-oiaaa-aaaam-qbeyq-cai" # zkpoker.app frontend
     - "j5kch-7yaaa-aaaam-qds2a-cai" # purepoker.app frontend
+    - "xa3co-zqaaa-aaaam-qdxia-cai" # clans canister
+    - "xh2e2-uiaaa-aaaam-qdxiq-cai" # clans_index canister
     - "zuv6g-yaaaa-aaaam-qbeza-cai" # cycle_dispenser canister
     - "j2let-saaaa-aaaam-qds2q-cai" # ic_siwb_provider canister
     - "ztuys-vyaaa-aaaam-qbezq-cai" # log_store canister
