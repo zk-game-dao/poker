@@ -20,6 +20,7 @@
         "table_index",
         "users_index",
         "internet-identity",
+        "tournament_index",
         "ic_siwb_provider",
         "ckbtc_ledger"
       ],
