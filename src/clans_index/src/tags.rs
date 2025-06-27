@@ -1,29 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use candid::CandidType;
 use clan::{
-    tags::{ClanTag, TagCategory},
-    Clan, ClanId,
+    search::TagSearchFilters, tags::{ClanTag, TagCategory}, Clan, ClanId
 };
-use serde::{Deserialize, Serialize};
 
 use crate::clans_index::ClanIndex;
-
-/// Tag-related search filters for the clan index
-#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
-pub struct TagSearchFilters {
-    /// Tags that must be present (AND logic)
-    pub required_tags: Option<Vec<ClanTag>>,
-
-    /// Tags where at least one must be present (OR logic)
-    pub any_of_tags: Option<Vec<ClanTag>>,
-
-    /// Tags that must NOT be present (NOT logic)
-    pub excluded_tags: Option<Vec<ClanTag>>,
-
-    /// Filter by specific tag categories
-    pub categories: Option<Vec<TagCategory>>,
-}
 
 /// Updated clan index with tag support
 impl ClanIndex {

@@ -18,6 +18,7 @@ use crate::{
 
 pub mod environment;
 pub mod member;
+pub mod search;
 pub mod storable;
 pub mod subscriptions;
 pub mod tags;

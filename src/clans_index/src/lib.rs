@@ -5,7 +5,7 @@ use canister_functions::{
     cycle::{check_and_top_up_canister, monitor_and_top_up_canisters, top_up_canister},
     install_wasm_code, stop_and_delete_canister,
 };
-use clan::{subscriptions::SubscriptionTierId, tags::ClanTag, Clan, ClanId, CreateClanRequest};
+use clan::{search::ClanSearchFilters, subscriptions::SubscriptionTierId, tags::ClanTag, Clan, ClanId, CreateClanRequest};
 use currency::{types::currency_manager::CurrencyManager, Currency};
 use errors::{
     canister_management_error::CanisterManagementError, clan_index_error::ClanIndexError,
@@ -23,9 +23,9 @@ pub mod clans_index;
 pub mod memory;
 pub mod tags;
 
-use clans_index::{ClanIndex, ClanSearchFilters};
+use clans_index::ClanIndex;
 
-const MINIMUM_CYCLE_THRESHOLD: u128 = 2_000_000_000_000;
+const MINIMUM_CYCLE_THRESHOLD: u128 = 10_000_000_000_000;
 const SINGLE_CLAN_CYCLE_START_AMOUNT: u128 = 10_000_000_000_000;
 
 async fn handle_cycle_check() -> Result<(), ClanIndexError> {

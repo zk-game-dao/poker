@@ -1,9 +1,6 @@
-use crate::tags::TagSearchFilters;
 use candid::{CandidType, Principal};
 use clan::{
-    subscriptions::{ClanRole, SubscriptionTierId},
-    tags::{ClanTag, TagCategory},
-    Clan, ClanId, ClanPrivacy,
+    search::ClanSearchFilters, subscriptions::{ClanRole, SubscriptionTierId}, tags::{ClanTag, TagCategory}, Clan, ClanId, ClanPrivacy
 };
 use currency::Currency;
 use errors::clan_index_error::ClanIndexError;
@@ -28,21 +25,6 @@ pub struct ClanIndex {
     /// Statistics
     pub total_clans: usize,
     pub total_members: usize,
-}
-
-#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
-pub struct ClanSearchFilters {
-    pub name_contains: Option<String>,
-    pub currency: Option<Currency>,
-    pub privacy: Option<ClanPrivacy>,
-    pub min_members: Option<u32>,
-    pub max_members: Option<u32>,
-    pub has_joining_fee: Option<bool>,
-    pub subscription_enabled: Option<bool>,
-    pub require_proof_of_humanity: Option<bool>,
-
-    // New tag-based filters
-    pub tag_filters: Option<TagSearchFilters>,
 }
 
 impl Default for ClanIndex {

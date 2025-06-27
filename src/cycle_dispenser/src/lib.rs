@@ -8,9 +8,8 @@ use lazy_static::lazy_static;
 pub type PlayerId = u64;
 pub type TableId = u64;
 
-const CYCLES_TOP_UP_AMOUNT: u128 = 20_000_000_000_000;
+const CYCLES_TOP_UP_AMOUNT: u128 = 30_000_000_000_000;
 
-// Define a global instance of GameState wrapped in a Mutex for safe concurrent access.
 lazy_static! {
     static ref VALID_CALLERS: Vec<Principal> = vec![
         *TOURNAMENT_INDEX_PROD,
@@ -22,6 +21,9 @@ lazy_static! {
         *TABLE_INDEX_DEV,
         *TOURNAMENT_INDEX_DEV,
         *USERS_INDEX_DEV,
+        *CLANS_INDEX_PROD,
+        *CLANS_INDEX_TEST,
+        *CLANS_INDEX_DEV,
     ];
     static ref TOURNAMENT_INDEX_PROD: Principal =
         Principal::from_text("zocwf-5qaaa-aaaam-qdfaq-cai").unwrap();
@@ -41,6 +43,13 @@ lazy_static! {
         Principal::from_text("t63gs-up777-77776-aaaba-cai").unwrap();
     static ref USERS_INDEX_DEV: Principal =
         Principal::from_text("txyno-ch777-77776-aaaaq-cai").unwrap();
+    static ref CLANS_INDEX_PROD: Principal =
+        Principal::from_text("xh2e2-uiaaa-aaaam-qdxiq-cai").unwrap();
+    static ref CLANS_INDEX_TEST: Principal =
+        Principal::from_text("434tn-2qaaa-aaaah-qqc7q-cai").unwrap();
+    static ref CLANS_INDEX_DEV: Principal =
+        Principal::from_text("tm5rl-y7777-77776-aaaca-cai").unwrap();
+
     static ref CONTROLLER_PRINCIPALS: Vec<Principal> = vec![
         Principal::from_text("py2cj-ei3dt-3ber7-nvxdl-56xvh-qkhop-7x7fz-nph7j-7cuya-3gyxr-cqe")
             .unwrap(),
