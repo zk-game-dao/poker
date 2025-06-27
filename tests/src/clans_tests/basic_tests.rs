@@ -14,7 +14,7 @@ use crate::TestEnv;
 #[test]
 #[serial]
 fn test_create_clan_success() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     let creator_id = WalletPrincipalId(Principal::self_authenticating("creator"));
     let creator_user = test_env
@@ -62,7 +62,7 @@ fn test_create_clan_success() {
 #[test]
 #[serial]
 fn test_create_clan_invalid_name() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     let creator_id = WalletPrincipalId(Principal::self_authenticating("creator_invalid"));
     let creator_user = test_env
@@ -115,7 +115,7 @@ fn test_create_clan_invalid_name() {
 #[test]
 #[serial]
 fn test_create_clan_invalid_description() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     let creator_id = WalletPrincipalId(Principal::self_authenticating("creator_desc"));
     let creator_user = test_env
@@ -147,7 +147,7 @@ fn test_create_clan_invalid_description() {
 #[test]
 #[serial]
 fn test_join_clan_public() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan
     let creator_id = WalletPrincipalId(Principal::self_authenticating("creator_public"));
@@ -204,7 +204,7 @@ fn test_join_clan_public() {
 #[test]
 #[serial]
 fn test_join_clan_with_fee() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan with joining fee
     let creator_id = WalletPrincipalId(Principal::self_authenticating("creator_fee"));
@@ -267,7 +267,7 @@ fn test_join_clan_with_fee() {
 #[test]
 #[serial]
 fn test_join_clan_insufficient_fee() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan with joining fee
     let creator_id = WalletPrincipalId(Principal::self_authenticating("creator_insufficient"));
@@ -319,7 +319,7 @@ fn test_join_clan_insufficient_fee() {
 #[test]
 #[serial]
 fn test_leave_clan() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, _, joiner_id, _) = setup_clan_with_member(&test_env, "leave_test_joiner");
@@ -337,7 +337,7 @@ fn test_leave_clan() {
 #[test]
 #[serial]
 fn test_kick_member() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, creator_id, joiner_id, _) = setup_clan_with_member(&test_env, "kick_test_joiner");
@@ -354,7 +354,7 @@ fn test_kick_member() {
 #[test]
 #[serial]
 fn test_kick_member_insufficient_permissions() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, creator_id, joiner_id, _) = setup_clan_with_member(&test_env, "kick_test_joiner_insufficient");
@@ -371,7 +371,7 @@ fn test_kick_member_insufficient_permissions() {
 #[test]
 #[serial]
 fn test_cannot_kick_owner() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan with two members
     let (clan_canister, creator_id, joiner_id, _) = setup_clan_with_member(&test_env, "owner_kick_test_joiner");
@@ -393,7 +393,7 @@ fn test_cannot_kick_owner() {
 #[test]
 #[serial]
 fn test_update_member_role() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, creator_id, joiner_id, _) = setup_clan_with_member(&test_env, "update_role_test_joiner");
@@ -415,7 +415,7 @@ fn test_update_member_role() {
 #[test]
 #[serial]
 fn test_update_member_role_insufficient_permissions() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, _, joiner_id, _) = setup_clan_with_member(&test_env, "update_role_insufficient_joiner");
@@ -433,7 +433,7 @@ fn test_update_member_role_insufficient_permissions() {
 #[test]
 #[serial]
 fn test_suspend_member() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, creator_id, joiner_id, _) = setup_clan_with_member(&test_env, "suspend_test_joiner");
@@ -461,7 +461,7 @@ fn test_suspend_member() {
 #[test]
 #[serial]
 fn test_clan_at_capacity() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan with limit of 2 members
     let creator_id = WalletPrincipalId(Principal::self_authenticating("creator_capacity"));
@@ -522,7 +522,7 @@ fn test_clan_at_capacity() {
 #[test]
 #[serial]
 fn test_user_already_member() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, _, joiner_id, joiner_user) = setup_clan_with_member(&test_env, "already_member_joiner");
@@ -540,7 +540,7 @@ fn test_user_already_member() {
 #[test]
 #[serial]
 fn test_get_clan_members() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, creator_id, joiner_id, _) = setup_clan_with_member(&test_env, "get_members_joiner");
@@ -561,7 +561,7 @@ fn test_get_clan_members() {
 #[test]
 #[serial]
 fn test_get_specific_clan_member() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan and member
     let (clan_canister, creator_id, _, _) = setup_clan_with_member(&test_env, "get_specific_member_joiner");
@@ -578,7 +578,7 @@ fn test_get_specific_clan_member() {
 #[test]
 #[serial]
 fn test_get_nonexistent_member() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Setup clan
     let (clan_canister, _, _, _) = setup_clan_with_member(&test_env, "nonexistent_member_joiner");
@@ -593,7 +593,7 @@ fn test_get_nonexistent_member() {
 #[test]
 #[serial]
 fn test_ping_clan_canister() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create a simple clan
     let creator_id = WalletPrincipalId(Principal::self_authenticating("ping_creator"));

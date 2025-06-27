@@ -14,7 +14,7 @@ use crate::TestEnv;
 #[test]
 #[serial]
 fn test_create_clan_table_success() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan
     let (clan, creator_id, _) = test_env.create_test_clan("Table Test Clan", "table_creator");
@@ -41,7 +41,7 @@ fn test_create_clan_table_success() {
 #[test]
 #[serial]
 fn test_create_clan_table_insufficient_permissions() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan with owner and regular member
     let (clan, creator_id, _) = test_env.create_test_clan("Permission Test Clan", "perm_creator");
@@ -68,7 +68,7 @@ fn test_create_clan_table_insufficient_permissions() {
 #[test]
 #[serial]
 fn test_remove_clan_table() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan and table
     let (clan, creator_id, _) = test_env.create_test_clan("Remove Table Clan", "remove_creator");
@@ -98,7 +98,7 @@ fn test_remove_clan_table() {
 #[test]
 #[serial]
 fn test_remove_table_insufficient_permissions() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan with table
     let (clan, creator_id, _) = test_env.create_test_clan("Remove Perm Clan", "remove_perm_creator");
@@ -129,7 +129,7 @@ fn test_remove_table_insufficient_permissions() {
 #[test]
 #[serial]
 fn test_admin_can_manage_tables() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan
     let (clan, creator_id, _) = test_env.create_test_clan("Admin Table Clan", "admin_creator");
@@ -159,7 +159,7 @@ fn test_admin_can_manage_tables() {
 #[test]
 #[serial]
 fn test_clan_members_can_join_clan_tables() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan
     let (clan, creator_id, _) = test_env.create_test_clan("Join Table Clan", "join_creator");
@@ -210,7 +210,7 @@ fn test_clan_members_can_join_clan_tables() {
 #[test]
 #[serial]
 fn test_table_access_based_on_subscription() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan
     let (clan, _, _) = test_env.create_test_clan("Subscription Table Clan", "sub_creator");
@@ -242,7 +242,7 @@ fn test_table_access_based_on_subscription() {
 #[test]
 #[serial]
 fn test_get_empty_clan_tables() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000));
 
     // Create clan without any tables
     let (clan, _, _) = test_env.create_test_clan("Empty Table Clan", "empty_creator");
