@@ -226,7 +226,6 @@ const General = memo(() => {
     SingleTable: (size) => size,
     MultiTable: ([size]) => size,
   });
-  const timeUntilStart = useFormatDateDistance(BigIntTimestampToDate(data.start_time));
 
   return (
     <ItemContainer>
@@ -250,11 +249,6 @@ const General = memo(() => {
             Freezout<span className='w-1' /><Tooltips.freezout />
           </ListItem>
         )}
-        {!('SitAndGo' in data.tournament_type) && 'Registration' in data.state && timeUntilStart && (
-          <ListItem rightLabel={timeUntilStart.number < 0 ? 'now' : `in ${timeUntilStart.string}`}>
-            Start time
-          </ListItem>
-        )}
         {('SpinAndGo' in data.tournament_type) && !!(data.tournament_type.SpinAndGo[1].multiplier) && (
           <ListItem rightLabel={data.tournament_type.SpinAndGo[1].multiplier.toString()}>
             Spin multiplier
@@ -265,6 +259,31 @@ const General = memo(() => {
   )
 });
 General.displayName = 'GeneralComponent';
+
+const Participation = memo(() => {
+  const { data } = useTournament(true);
+  const timeUntilStart = useFormatDateDistance(BigIntTimestampToDate(data.start_time));
+
+  // Placeholder for Participation component logic
+  return (
+    <ItemContainer>
+      <List label="Participation">
+        {data.require_proof_of_humanity && <ListItem rightLabel="Required">Proof of humanity</ListItem>}
+        {!('SitAndGo' in data.tournament_type) && 'Registration' in data.state && timeUntilStart && (
+          <ListItem rightLabel={timeUntilStart.number < 0 ? 'now' : `in ${timeUntilStart.string}`}>
+            Start time
+          </ListItem>
+        )}
+        {data.late_registration_duration_ns > 0n && (
+          <ListItem rightLabel={nanosecondsToString(data.late_registration_duration_ns)}>
+            Late registration
+          </ListItem>
+        )}
+      </List>
+    </ItemContainer>
+  );
+});
+Participation.displayName = 'ParticipationComponent';
 
 const PayoutStructure = memo<Pick<TournamentData, 'payout_structure'>>(({ payout_structure }) => {
   return (
@@ -335,6 +354,7 @@ export const TournamentInfoPage = memo(() => {
       <PricePool hideOnDesktop />
       <div className="flex flex-col md:flex-row flex-wrap gap-4 w-full">
         <General />
+        <Participation />
         <Blinds speed_type={data.speed_type} />
         {type.addon.enabled && <Addon {...type.addon} currencyType={currencyType} />}
         {type.rebuy.enabled && <Rebuy {...type.rebuy} currencyType={currencyType} />}
