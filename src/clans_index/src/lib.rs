@@ -31,12 +31,11 @@ const SINGLE_CLAN_CYCLE_START_AMOUNT: u128 = 10_000_000_000_000;
 async fn handle_cycle_check() -> Result<(), ClanIndexError> {
     let id = ic_cdk::api::canister_self();
     let cycle_dispenser_canister_id =
-        // if id == Principal::from_text("zclan-index-prod-canister-id").unwrap() {
-        //     *CYCLE_DISPENSER_CANISTER_PROD
-        // } else if id == Principal::from_text("zclan-index-test-canister-id").unwrap() {
-        //     *CYCLE_DISPENSER_CANISTER_TEST
-        // } else 
-        if id == Principal::from_text("tm5rl-y7777-77776-aaaca-cai").unwrap() {
+        if id == Principal::from_text("xh2e2-uiaaa-aaaam-qdxiq-cai").unwrap() {
+            *CYCLE_DISPENSER_CANISTER_PROD
+        } else if id == Principal::from_text("434tn-2qaaa-aaaah-qqc7q-cai").unwrap() {
+            *CYCLE_DISPENSER_CANISTER_TEST
+        } else if id == Principal::from_text("tm5rl-y7777-77776-aaaca-cai").unwrap() {
             *CYCLE_DISPENSER_CANISTER_DEV
         } else {
             return Ok(());
