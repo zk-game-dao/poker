@@ -361,8 +361,10 @@ impl Clan {
             return Ok(true); // Admins have all access
         }
 
-        if !member.is_subscription_active() {
+        if self.subscription_enabled && !member.is_subscription_active() {
             return Ok(false);
+        } else if !self.subscription_enabled {
+            return Ok(true); // No subscription required
         }
 
         let tier = self
@@ -399,8 +401,10 @@ impl Clan {
             .get(member_principal)
             .ok_or(ClanError::MemberNotFound)?;
 
-        if !member.is_subscription_active() {
+        if self.subscription_enabled && !member.is_subscription_active() {
             return Ok(false);
+        } else if !self.subscription_enabled {
+            return Ok(true);
         }
 
         let tier = self

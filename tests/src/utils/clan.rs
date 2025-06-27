@@ -831,4 +831,21 @@ impl TestEnv {
 
         (user_id, user.users_canister_id)
     }
+
+    pub fn get_all_clans(&self) -> Result<Vec<Clan>, ClanIndexError> {
+        let result = self.pocket_ic.query_call(
+            self.canister_ids.clan_index,
+            Principal::anonymous(),
+            "get_all_clans",
+            encode_args(()).unwrap(),
+        );
+
+        match result {
+            Ok(arg) => {
+                let clans: Result<Vec<Clan>, ClanIndexError> = decode_one(&arg).unwrap();
+                clans
+            }
+            _ => panic!("Failed to get all clans"),
+        }
+    }
 }

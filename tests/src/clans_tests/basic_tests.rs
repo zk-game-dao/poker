@@ -438,7 +438,7 @@ fn test_suspend_member() {
     // Setup clan and member
     let (clan_canister, creator_id, joiner_id, _) = setup_clan_with_member(&test_env, "suspend_test_joiner");
 
-    let suspension_end = ic_cdk::api::time() + 86_400_000_000_000; // 1 day from now
+    let suspension_end = test_env.pocket_ic.get_time().as_nanos_since_unix_epoch() + 86_400_000_000_000; // 1 day from now
 
     // Suspend member
     let result = test_env.suspend_member(
