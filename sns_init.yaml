@@ -328,14 +328,14 @@ Distribution:
         - principal: w3kjy-pitqg-dvab7-tb57q-63gnd-di4vo-loiiy-s6zm2-gqcmw-ixliz-aae
           stake: 2_000 tokens # 10x the Proposal rejection fee of 100 tokens, allowing for 20 Concurrent proposals
           memo: 0
-          dissolve_delay: 2 years   
+          dissolve_delay: 2 years
           vesting_period: 0 years
 
         - principal: f3edy-doi3q-pjieb-tmpmk-xdcht-qplkb-yp7y6-i3qv6-rhlgu-xcts7-eqe
           stake: 35_000_000 tokens
           memo: 1
-          dissolve_delay: 2 years   
-          vesting_period: 1 years   
+          dissolve_delay: 2 years
+          vesting_period: 1 years
           
         - principal: ksjxn-hcz5h-iirie-c27qk-6wtsn-3oz7r-wyhoi-vm22j-agdem-gunct-wqe
           stake: 25_000_000 tokens
