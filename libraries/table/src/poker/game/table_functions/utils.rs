@@ -399,6 +399,7 @@ impl Table {
                         }
                         if !is_cycling_to_showdown
                             && !self.config.is_private.unwrap_or(true)
+                            && !self.config.is_shared_rake.is_some()
                             && table_data.player_action != PlayerAction::SittingOut
                             && self.config.currency_type != CurrencyType::Fake
                         {

@@ -13,17 +13,18 @@ type CanisterManagementError = variant {
 type EmojiUserAvatar = record { emoji : nat64; style : nat64 };
 type Result = variant { Ok : User; Err : UserError };
 type Result_1 = variant { Ok; Err : UserError };
+type Result_10 = variant { Ok; Err : text };
 type Result_2 = variant { Ok : record { User; nat64 }; Err : UserError };
 type Result_3 = variant { Ok : vec principal; Err : UserError };
-type Result_4 = variant { Ok : nat64; Err : UserError };
-type Result_5 = variant {
+type Result_4 = variant { Ok : text; Err : UserError };
+type Result_5 = variant { Ok : nat64; Err : UserError };
+type Result_6 = variant {
   Ok : vec record { principal; nat64 };
   Err : UserError;
 };
-type Result_6 = variant { Ok : nat8; Err : UserError };
-type Result_7 = variant { Ok : opt principal; Err : UserError };
-type Result_8 = variant { Ok : float64; Err : UserError };
-type Result_9 = variant { Ok; Err : text };
+type Result_7 = variant { Ok : nat8; Err : UserError };
+type Result_8 = variant { Ok : opt principal; Err : UserError };
+type Result_9 = variant { Ok : float64; Err : UserError };
 type User = record {
   experience_points_pure_poker : opt nat64;
   experience_points : opt nat64;
@@ -82,22 +83,23 @@ service : () -> {
       opt principal,
     ) -> (Result_2);
   get_active_tables : (principal) -> (Result_3) query;
-  get_canister_status_formatted : () -> (Result_1);
-  get_experience_points_by_uid : (principal) -> (Result_4) query;
-  get_pure_poker_experience_points_by_uid : (principal) -> (Result_4) query;
-  get_pure_poker_user_experience_points : () -> (Result_5) query;
-  get_referral_rake_percentage : (principal) -> (Result_6);
-  get_referral_tier : (principal) -> (Result_6) query;
+  get_canister_status_formatted : () -> (Result_4);
+  get_experience_points_by_uid : (principal) -> (Result_5) query;
+  get_pure_poker_experience_points_by_uid : (principal) -> (Result_5) query;
+  get_pure_poker_user_experience_points : () -> (Result_6) query;
+  get_referral_rake_percentage : (principal) -> (Result_7);
+  get_referral_tier : (principal) -> (Result_7) query;
   get_referred_users : (principal) -> (Result_3) query;
-  get_referrer : (principal) -> (Result_7);
+  get_referrer : (principal) -> (Result_8);
   get_user : (principal) -> (Result) query;
-  get_user_experience_points : () -> (Result_5) query;
+  get_user_experience_points : () -> (Result_6) query;
   get_user_icc : (principal) -> (Result);
-  get_user_level : (principal) -> (Result_8) query;
-  get_verified_pure_poker_user_experience_points : () -> (Result_5) query;
-  get_verified_user_experience_points : () -> (Result_5) query;
+  get_user_level : (principal) -> (Result_9) query;
+  get_verified_pure_poker_user_experience_points : () -> (Result_6) query;
+  get_verified_user_experience_points : () -> (Result_6) query;
   ping : () -> (text) query;
   remove_active_table : (principal, principal) -> (Result);
+  reset_users_xp : (text) -> (Result_1);
   update_user : (
       principal,
       opt text,
@@ -108,5 +110,5 @@ service : () -> {
       opt nat16,
       opt text,
     ) -> (Result);
-  verify_credential : (principal, text, text, principal) -> (Result_9);
+  verify_credential : (principal, text, text, principal) -> (Result_10);
 }

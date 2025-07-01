@@ -57,7 +57,7 @@ download_if_not_exists "https://github.com/AstroxNetwork/ic-siwb/raw/refs/heads/
 
 echo "Downloading and extracting .did files asset storage for local deployment..."
 mkdir -p .dfx/local/canisters/app_frontend && \
-curl -o .dfx/local/canisters/app_frontend/assetstorage.did https://raw.githubusercontent.com/jamesbeadle/OpenFPL/4ae9346d84233654a6856b8d05defa4df8a66346/candid/assetstorage.did
+curl -o .dfx/local/canisters/app_frontend/assetstorage.did https://raw.githubusercontent.com/dfinity/sdk/refs/heads/master/src/distributed/assetstorage.did
 
 mkdir -p .dfx/local/canisters/btc_frontend && \
-curl -o .dfx/local/canisters/btc_frontend/assetstorage.did https://raw.githubusercontent.com/jamesbeadle/OpenFPL/4ae9346d84233654a6856b8d05defa4df8a66346/candid/assetstorage.did
+curl -o .dfx/local/canisters/btc_frontend/assetstorage.did https://raw.githubusercontent.com/dfinity/sdk/refs/heads/master/src/distributed/assetstorage.did

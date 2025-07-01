@@ -188,7 +188,7 @@ fn get_action_logs(
 }
 
 #[ic_cdk::update]
-async fn get_canister_status_formatted() -> Result<(), LogStoreError> {
+async fn get_canister_status_formatted() -> Result<String, LogStoreError> {
     // Validate caller is a controller
     let controllers = CONTROLLER_PRINCIPALS.with(|c| c.clone());
     validate_caller(controllers);
@@ -236,7 +236,7 @@ async fn get_canister_status_formatted() -> Result<(), LogStoreError> {
     );
 
     ic_cdk::println!("{}", formatted_status);
-    Ok(())
+    Ok(formatted_status)
 }
 
 ic_cdk::export_candid!();

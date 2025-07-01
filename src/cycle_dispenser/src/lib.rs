@@ -93,7 +93,7 @@ async fn transfer_cycles(
 }
 
 #[ic_cdk::update]
-async fn get_canister_status_formatted() -> Result<(), CanisterManagementError> {
+async fn get_canister_status_formatted() -> Result<String, CanisterManagementError> {
     // Validate caller is a controller
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
@@ -144,7 +144,7 @@ async fn get_canister_status_formatted() -> Result<(), CanisterManagementError> 
     );
 
     ic_cdk::println!("{}", formatted_status);
-    Ok(())
+    Ok(formatted_status)
 }
 
 ic_cdk::export_candid!();

@@ -213,11 +213,12 @@ type Result_4 = variant {
 };
 type Result_5 = variant { Ok : GlobalRakeStats; Err : TableIndexError };
 type Result_6 = variant { Ok : vec principal; Err : TableIndexError };
-type Result_7 = variant {
+type Result_7 = variant { Ok : text; Err : TableIndexError };
+type Result_8 = variant {
   Ok : vec record { principal; CanisterManagementError };
   Err : TableIndexError;
 };
-type Result_8 = variant { Ok; Err : TableError };
+type Result_9 = variant { Ok; Err : TableError };
 type SeatStatus = variant {
   Empty;
   QueuedForNextRound : record { principal; User; bool };
@@ -404,7 +405,7 @@ service : () -> {
   get_all_public_tables : () -> (Result_4) query;
   get_all_rake_stats : () -> (Result_5);
   get_all_table_principals : () -> (Result_6) query;
-  get_canister_status_formatted : () -> (Result_1);
+  get_canister_status_formatted : () -> (Result_7);
   get_private_tables : () -> (Result_6) query;
   get_rake : (nat64, Currency, GameType) -> (opt Rake) query;
   get_rake_wallet_info : () -> (principal, text) query;
@@ -418,7 +419,7 @@ service : () -> {
   request_cycles : () -> (Result_1);
   top_up_table_canister : (principal, nat) -> (Result_1);
   update_table_player_count : (principal, nat64) -> (Result_1);
-  upgrade_all_table_canisters : () -> (Result_7);
+  upgrade_all_table_canisters : () -> (Result_8);
   upgrade_table_canister : (principal) -> (Result_1);
-  withdraw_rake : (nat64) -> (Result_8);
+  withdraw_rake : (nat64) -> (Result_9);
 }

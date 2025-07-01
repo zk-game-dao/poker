@@ -37,5 +37,20 @@
   },
   "users_index": {
     "ic": "m3tym-daaaa-aaaah-qqbsq-cai"
-  }
+  },
+  "sns_governance": {
+    "ic": "ynils-tiaaa-aaaah-qqcha-cai"
+  },
+  "sns_index": {
+    "ic": "ykjng-6qaaa-aaaah-qqchq-cai"
+  },
+  "sns_ledger": {
+    "ic": "2xudo-nyaaa-aaaah-qqcia-cai"
+  },
+  "sns_root": {
+    "ic": "2qvf2-aaaaa-aaaah-qqciq-cai"
+  },
+  "sns_swap": {
+    "ic": "2zwog-wiaaa-aaaah-qqcja-cai"
+  },
 }

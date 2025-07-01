@@ -1,38 +1,74 @@
 {
-  "dfx": "0.27.0",
   "canisters": {
+    "app_frontend": {
+      "dependencies": [
+        "table_index",
+        "users_index",
+        "internet-identity"
+      ],
+      "frontend": {
+        "entrypoint": "src/app_frontend/dist/index.html"
+      },
+      "source": [
+        "src/app_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "src/app_frontend"
+    },
+    "btc_frontend": {
+      "dependencies": [
+        "table_index",
+        "users_index",
+        "internet-identity",
+        "tournament_index",
+        "ic_siwb_provider",
+        "ckbtc_ledger"
+      ],
+      "frontend": {
+        "entrypoint": "src/btc_frontend/dist/index.html"
+      },
+      "source": [
+        "src/btc_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "src/btc_frontend"
+    },
     "ckbtc_ledger": {
-      "type": "custom",
       "candid": "target/ic/ckbtc_ledger.did",
-      "wasm": "target/ic/ckbtc_ledger.wasm",
       "init_arg_file": "src/candid/ckbtc_ledger_init.did",
-      "specified_id": "mxzaz-hqaaa-aaaar-qaada-cai",
       "remote": {
         "id": {
           "ic": "mxzaz-hqaaa-aaaar-qaada-cai"
         }
-      }
-    },
-    "ic_siwb_provider": {
-      "init_arg_file": "src/candid/ic_siwb_provider_init.did",
-      "candid": "target/ic/ic_siwb_provider.did",
-      "wasm": "target/ic/ic_siwb_provider.wasm",
+      },
+      "specified_id": "mxzaz-hqaaa-aaaar-qaada-cai",
       "type": "custom",
-      "specified_id": "j2let-saaaa-aaaam-qds2q-cai",
-      "remote": {
-        "id": {
-          "ic": "j2let-saaaa-aaaam-qds2q-cai"
-        }
-      }
-    },
-    "log_store": {
-      "candid": "src/log_store/log_store.did",
-      "package": "log_store",
-      "type": "rust"
+      "wasm": "target/ic/ckbtc_ledger.wasm"
     },
     "cycle_dispenser": {
       "candid": "src/cycle_dispenser/cycle_dispenser.did",
       "package": "cycle_dispenser",
+      "type": "rust"
+    },
+    "ic_siwb_provider": {
+      "candid": "target/ic/ic_siwb_provider.did",
+      "init_arg_file": "src/candid/ic_siwb_provider_init.did",
+      "remote": {
+        "id": {
+          "ic": "j2let-saaaa-aaaam-qds2q-cai"
+        }
+      },
+      "specified_id": "j2let-saaaa-aaaam-qds2q-cai",
+      "type": "custom",
+      "wasm": "target/ic/ic_siwb_provider.wasm"
+    },
+    "internet-identity": {
+      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai",
+      "type": "pull"
+    },
+    "log_store": {
+      "candid": "src/log_store/log_store.did",
+      "package": "log_store",
       "type": "rust"
     },
     "table_canister": {
@@ -41,26 +77,26 @@
       "type": "rust"
     },
     "table_index": {
+      "candid": "src/table_index/table_index.did",
       "dependencies": [
         "table_canister"
       ],
-      "candid": "src/table_index/table_index.did",
       "package": "table_index",
       "type": "rust"
     },
     "tournament_canister": {
       "candid": "src/tournament_canister/tournament_canister.did",
-      "package": "tournament_canister",
       "dependencies": [
         "table_canister"
       ],
+      "package": "tournament_canister",
       "type": "rust"
     },
     "tournament_index": {
+      "candid": "src/tournament_index/tournament_index.did",
       "dependencies": [
         "tournament_canister"
       ],
-      "candid": "src/tournament_index/tournament_index.did",
       "package": "tournament_index",
       "type": "rust"
     },
@@ -70,56 +106,21 @@
       "type": "rust"
     },
     "users_index": {
+      "candid": "src/users_index/users_index.did",
       "dependencies": [
         "users_canister"
       ],
-      "candid": "src/users_index/users_index.did",
       "package": "users_index",
       "type": "rust"
-    },
-    "app_frontend": {
-      "frontend": {
-        "entrypoint": "src/app_frontend/dist/index.html"
-      },
-      "dependencies": [
-        "table_index",
-        "users_index",
-        "internet-identity"
-      ],
-      "source": [
-        "src/app_frontend/dist"
-      ],
-      "type": "assets",
-      "workspace": "src/app_frontend"
-    },
-    "btc_frontend": {
-      "frontend": {
-        "entrypoint": "src/btc_frontend/dist/index.html"
-      },
-      "dependencies": [
-        "table_index",
-        "users_index",
-        "internet-identity",
-        "ic_siwb_provider",
-        "ckbtc_ledger"
-      ],
-      "source": [
-        "src/btc_frontend/dist"
-      ],
-      "type": "assets",
-      "workspace": "src/btc_frontend"
-    },
-    "internet-identity": {
-      "type": "pull",
-      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
     }
   },
-  "output_env_file": ".env",
-  "version": 1,
+  "dfx": "0.27.0",
   "networks": {
     "local": {
       "bind": "127.0.0.1:4943",
       "type": "ephemeral"
     }
-  }
+  },
+  "output_env_file": ".env",
+  "version": 1
 }

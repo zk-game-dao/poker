@@ -36,23 +36,6 @@ const BuildRouter = (theme: Omit<ThemeContextType, 'setShownCurrencyType'>) => {
     { path: "rules", element: <HouseRulesPage /> },
     { path: "contact", element: <ContactPage /> },
     { path: "store", element: <StorePage /> },
-    theme.isBTC ?
-      {
-        path: "leaderboard",
-        element: <LeaderboardPage disableVerifiedLeaderboard />,
-      } : {
-        path: "leaderboard",
-        children: [
-          {
-            path: "",
-            loader: redirectLoader("/leaderboard/verified"),
-          },
-          {
-            path: ":type",
-            element: <LeaderboardPage />,
-          }
-        ]
-      },
     { path: "cash-games", element: <LobbyPage /> },
     { path: "changelog", element: <ChangelogPage markdown={theme.changelogMarkdown} /> },
     { path: "roadmap", element: <RoadmapPage markdown={theme.roadmapMarkdown} /> },
@@ -66,6 +49,21 @@ const BuildRouter = (theme: Omit<ThemeContextType, 'setShownCurrencyType'>) => {
     },
     TournamentsRouter,
   ];
+
+  if (!theme.isBTC)
+    children.push({
+      path: "leaderboard",
+      children: [
+        {
+          path: "",
+          loader: redirectLoader("/leaderboard/verified"),
+        },
+        {
+          path: ":type",
+          element: <LeaderboardPage />,
+        }
+      ]
+    });
 
   return createBrowserRouter([
     {
@@ -87,7 +85,7 @@ export const App = memo<Omit<ThemeContextType, 'setShownCurrencyType'>>(({
   const theme = useMemo((): Omit<ThemeContextType, 'setShownCurrencyType'> => ({
     ...remainder,
     banner: {
-      children: "We're launching zkGame DAO on the SNS soon! Learn more",
+      children: "We're launching zkGame DAO on SNS! Get involved.",
       href: "https://forum.dfinity.org/t/were-preparing-to-launch-zkgame-dao-on-the-sns/48128",
     },
     isBTC,

@@ -6,6 +6,7 @@ import { useMemo } from "react";
 
 import { Queries } from "../../data";
 import { callActorMutation } from "../../utils/call-actor-mutation";
+import { useIsBTC } from "@zk-game-dao/currency";
 
 export enum TournamentTypeFilter {
   BuyIn = 0,
@@ -30,9 +31,14 @@ export const TournamentTypes: TournamentTypeMeta[] = [
   { label: "Bounty", value: 4, locked: true },
 ];
 
-export const fetchTournamentsOfType = async (type: TournamentTypeFilter) => {
+export const fetchTournamentsOfType = async (type: TournamentTypeFilter, isBTC: boolean) => {
   if (TournamentTypes[type].locked) return [];
-  const tournaments = await tournament_index.get_active_tournaments([type]);
+  const tournaments = (await tournament_index.get_active_tournaments([type])).filter(
+    (t) => {
+      const isBTCTournament = "Real" in t.currency && "BTC" in t.currency.Real;
+      return isBTC ? isBTCTournament : !isBTCTournament;
+    }
+  );
   return await Promise.all(
     tournaments.map((t) =>
       callActorMutation(createActor(t.id), "get_tournament")
@@ -40,24 +46,27 @@ export const fetchTournamentsOfType = async (type: TournamentTypeFilter) => {
   );
 };
 
-export const useGetTournamentsOfType = (type: TournamentTypeFilter) =>
+export const useGetTournamentsOfType = (type: TournamentTypeFilter, isBTC: boolean) =>
   useQuery({
-    queryKey: Queries.tournaments.key(type),
+    queryKey: Queries.tournaments.key(isBTC, type),
     queryFn: async (): Promise<TournamentData[]> =>
-      fetchTournamentsOfType(type),
+      fetchTournamentsOfType(type, isBTC),
     refetchInterval: 10000,
   });
 
-export const useGetAllTournaments = () =>
-  useQueries({
+export const useGetAllTournaments = () => {
+
+  const isBTC = useIsBTC();
+
+  return useQueries({
     queries: TournamentTypes.map((meta) => ({
-      queryKey: Queries.tournaments.key(meta.value),
+      queryKey: Queries.tournaments.key(isBTC, meta.value),
       queryFn: async (): Promise<{
         meta: TournamentTypeMeta;
         tournaments: TournamentData[];
       }> => ({
         meta,
-        tournaments: await fetchTournamentsOfType(meta.value),
+        tournaments: await fetchTournamentsOfType(meta.value, isBTC),
       }),
       initialData: { meta, tournaments: [] },
       refetchInterval: 10000,
@@ -79,7 +88,8 @@ export const useGetAllTournaments = () =>
           isPending: result.isPending,
         })
       ),
-  });
+  })
+};
 
 export const isTournamentConsideredActive = ({ state }: TournamentData) =>
   !("Cancelled" in state || "Completed" in state);
