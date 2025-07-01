@@ -572,32 +572,33 @@ type ReentryOptions = record {
 };
 type Result = variant { Ok; Err : ClanError };
 type Result_1 = variant { Ok : bool; Err : ClanError };
-type Result_10 = variant { Ok : vec principal; Err : ClanError };
+type Result_10 = variant { Ok : ClanStats; Err : ClanError };
 type Result_11 = variant { Ok : vec principal; Err : ClanError };
-type Result_12 = variant { Ok : ClanTreasury; Err : ClanError };
-type Result_13 = variant {
-  Ok : vec record { principal; nat64 };
-  Err : ClanError;
-};
+type Result_12 = variant { Ok : vec principal; Err : ClanError };
+type Result_13 = variant { Ok : ClanTreasury; Err : ClanError };
 type Result_14 = variant {
   Ok : vec record { principal; nat64 };
   Err : ClanError;
 };
-type Result_15 = variant { Ok : vec JoinRequest; Err : ClanError };
-type Result_16 = variant { Ok : vec SubscriptionTier; Err : ClanError };
-type Result_17 = variant {
+type Result_15 = variant {
+  Ok : vec record { principal; nat64 };
+  Err : ClanError;
+};
+type Result_16 = variant { Ok : vec JoinRequest; Err : ClanError };
+type Result_17 = variant { Ok : vec SubscriptionTier; Err : ClanError };
+type Result_18 = variant {
   Ok : vec record { principal; text };
   Err : ClanError;
 };
-type Result_18 = variant { Ok : ClanInvitation; Err : ClanError };
+type Result_19 = variant { Ok : ClanInvitation; Err : ClanError };
 type Result_2 = variant { Ok : Clan; Err : ClanError };
 type Result_3 = variant { Ok : PublicTable; Err : ClanError };
 type Result_4 = variant { Ok : TournamentData; Err : ClanError };
-type Result_5 = variant { Ok : text; Err : ClanError };
-type Result_6 = variant { Ok : vec ClanEvent; Err : ClanError };
-type Result_7 = variant { Ok : ClanMember; Err : ClanError };
-type Result_8 = variant { Ok : vec ClanMember; Err : ClanError };
-type Result_9 = variant { Ok : ClanStats; Err : ClanError };
+type Result_5 = variant { Ok : SubscriptionTier; Err : ClanError };
+type Result_6 = variant { Ok : text; Err : ClanError };
+type Result_7 = variant { Ok : vec ClanEvent; Err : ClanError };
+type Result_8 = variant { Ok : ClanMember; Err : ClanError };
+type Result_9 = variant { Ok : vec ClanMember; Err : ClanError };
 type RevenueSource = variant { Tournament; Table; Subscription };
 type RewardDistributionType = variant {
   FixedAmount : nat64;
@@ -855,35 +856,35 @@ service : () -> {
       bool,
       nat32,
       principal,
-    ) -> (Result);
+    ) -> (Result_5);
   create_subscription_tier : (SubscriptionTier, principal) -> (Result);
   distribute_rewards : (vec record { principal; nat64 }, principal) -> (Result);
-  get_canister_status_formatted : () -> (Result_5);
+  get_canister_status_formatted : () -> (Result_6);
   get_clan : () -> (Result_2) query;
-  get_clan_events : (opt nat64) -> (Result_6) query;
-  get_clan_member : (principal) -> (Result_7) query;
-  get_clan_members : () -> (Result_8) query;
-  get_clan_statistics : () -> (Result_9) query;
-  get_clan_tables : () -> (Result_10) query;
-  get_clan_tournaments : () -> (Result_11) query;
-  get_clan_treasury : () -> (Result_12) query;
-  get_invited_users : () -> (Result_13) query;
-  get_leaderboard : (LeaderboardType) -> (Result_14) query;
-  get_pending_requests : () -> (Result_15) query;
-  get_subscription_tiers : () -> (Result_16) query;
+  get_clan_events : (opt nat64) -> (Result_7) query;
+  get_clan_member : (principal) -> (Result_8) query;
+  get_clan_members : () -> (Result_9) query;
+  get_clan_statistics : () -> (Result_10) query;
+  get_clan_tables : () -> (Result_11) query;
+  get_clan_tournaments : () -> (Result_12) query;
+  get_clan_treasury : () -> (Result_13) query;
+  get_invited_users : () -> (Result_14) query;
+  get_leaderboard : (LeaderboardType) -> (Result_15) query;
+  get_pending_requests : () -> (Result_16) query;
+  get_subscription_tiers : () -> (Result_17) query;
   has_tier_access : (principal, text) -> (Result_1) query;
   join_clan : (principal, principal, nat64) -> (Result);
   kick_member : (principal, principal) -> (Result);
   leave_clan : (principal) -> (Result);
   ping : () -> (text) query;
-  process_subscription_renewals : () -> (Result_17);
+  process_subscription_renewals : () -> (Result_18);
   reject_join_request : (principal, principal) -> (Result);
   remove_clan_table : (principal, principal) -> (Result);
   remove_clan_tournament : (principal, principal) -> (Result);
   remove_subscription_tier : (text, principal) -> (Result);
   request_cycles : () -> (Result);
   send_clan_invitation : (principal, principal, opt text, opt nat64) -> (
-      Result_18,
+      Result_19,
     );
   submit_join_request : (principal, principal, opt text, opt principal) -> (
       Result,

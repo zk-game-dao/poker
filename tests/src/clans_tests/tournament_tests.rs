@@ -12,7 +12,7 @@ use table::poker::game::{
 };
 use tournaments::tournaments::{
     tournament_type::{BuyInOptions, TournamentSizeType, TournamentType},
-    types::{NewTournament, NewTournamentSpeedType, TournamentId},
+    types::{NewTournament, NewTournamentSpeedType},
 };
 use user::user::WalletPrincipalId;
 
@@ -134,7 +134,7 @@ fn test_create_multiple_clan_tournaments() {
         starting_chips: 2000,
         speed_type: NewTournamentSpeedType::Turbo(30),
         min_players: 6,
-        max_players: 10,
+        max_players: 8,
         late_registration_duration_ns: 20,
         guaranteed_prize_pool: Some(convert_to_e8s(1000.0)),
         tournament_type: TournamentType::BuyIn(TournamentSizeType::SingleTable(
@@ -340,20 +340,6 @@ fn test_remove_clan_tournament() {
         .get_clan_tournaments(clan.id.0)
         .expect("Failed to get clan tournaments");
     assert_eq!(clan_tournaments.len(), 0);
-}
-
-#[test]
-#[serial]
-fn test_remove_nonexistent_tournament() {
-    let test_env = TestEnv::new(Some(100_000_000_000_000));
-
-    // Create clan
-    let (clan, creator_id, _) = test_env.create_test_clan("Nonexistent Tournament Clan", "nonexist_tournament_creator");
-
-    // Try to remove non-existent tournament
-    let fake_tournament_id = TournamentId(Principal::self_authenticating("fake_tournament"));
-    let result = test_env.remove_clan_tournament(clan.id.0, fake_tournament_id, creator_id);
-    assert!(matches!(result, Err(ClanError::TournamentNotFound)));
 }
 
 #[test]

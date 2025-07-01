@@ -429,7 +429,7 @@ impl Clan {
         is_active: bool,
         tier_order: u32,
         creator: &WalletPrincipalId,
-    ) -> Result<(), ClanError> {
+    ) -> Result<SubscriptionTier, ClanError> {
         let creator_member = self.members.get(creator).ok_or(ClanError::MemberNotFound)?;
 
         if !creator_member.is_admin_or_higher() {
@@ -441,11 +441,13 @@ impl Clan {
             return Err(ClanError::InvalidTierName);
         }
 
+        let tier = SubscriptionTier::new_custom(id.clone(), name, requirements, benefits, is_active, tier_order);
+
         self.subscription_tiers.insert(
             id.clone(),
-            SubscriptionTier::new_custom(id, name, requirements, benefits, is_active, tier_order),
+            tier.clone(),
         );
-        Ok(())
+        Ok(tier)
     }
 
     /// Create or update a custom subscription tier (admin+ only)

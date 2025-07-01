@@ -147,14 +147,7 @@ impl Clan {
         creator_member.subscription_tier = SubscriptionTierId::elite();
         members.insert(creator, creator_member);
 
-        // Initialize default subscription tiers
-        let mut subscription_tiers = HashMap::new();
-        subscription_tiers.insert(SubscriptionTierId::basic(), SubscriptionTier::new_basic());
-        subscription_tiers.insert(
-            SubscriptionTierId::premium(),
-            SubscriptionTier::new_premium(),
-        );
-        subscription_tiers.insert(SubscriptionTierId::elite(), SubscriptionTier::new_elite());
+        let subscription_tiers = HashMap::new();
 
         Ok(Self {
             id,
@@ -171,7 +164,7 @@ impl Clan {
             require_proof_of_humanity: false,
             joining_fee,
             subscription_tiers,
-            subscription_enabled: true, // Enable subscriptions by default
+            subscription_enabled: false,
             treasury: ClanTreasury::default(),
             environment_settings: ClanEnvironmentSettings::default(),
             stats: ClanStats::default(),

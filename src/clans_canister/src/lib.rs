@@ -839,10 +839,16 @@ fn can_member_access_table(
     let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
     let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
 
+    ic_cdk::println!(
+        "Checking access for member {:?} with table stakes {}",
+        member_id, table_stakes
+    );
     // Check if member exists
     if !clan.is_member(&member_id) {
         return Ok(false);
     }
+
+    ic_cdk::println!("Member {:?} exists in the clan", member_id);
 
     // Check table stakes access based on subscription tier
     clan.can_access_table_stakes(&member_id, table_stakes)
@@ -909,7 +915,7 @@ async fn update_clan_game_stats(
 }
 
 #[ic_cdk::update]
-async fn create_subscription_tier(
+async fn update_subscription_tier(
     tier: SubscriptionTier,
     created_by: WalletPrincipalId,
 ) -> Result<(), ClanError> {
@@ -934,25 +940,21 @@ async fn create_custom_subscription_tier(
     is_active: bool,
     tier_order: u32,
     creator: WalletPrincipalId,
-) -> Result<(), ClanError> {
+) -> Result<SubscriptionTier, ClanError> {
     handle_cycle_check();
 
-    {
-        let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
-        let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
+    let mut clan_state = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan_state = clan_state.as_mut().ok_or(ClanError::ClanNotFound)?;
 
-        clan_state.create_custom_subscription_tier(
-            id,
-            name,
-            requirements,
-            benefits,
-            is_active,
-            tier_order,
-            &creator,
-        )?;
-    }
-
-    Ok(())
+    clan_state.create_custom_subscription_tier(
+        id,
+        name,
+        requirements,
+        benefits,
+        is_active,
+        tier_order,
+        &creator,
+    )
 }
 
 #[ic_cdk::update]
@@ -970,6 +972,13 @@ async fn remove_subscription_tier(
     }
 
     Ok(())
+}
+
+#[ic_cdk::query]
+fn get_subscription_tiers() -> Result<Vec<SubscriptionTier>, ClanError> {
+    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
+    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
+    Ok(clan.subscription_tiers.values().cloned().collect())
 }
 
 #[ic_cdk::update]
@@ -1048,13 +1057,6 @@ fn get_clan_statistics() -> Result<ClanStats, ClanError> {
     let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
     let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
     Ok(clan.stats.clone())
-}
-
-#[ic_cdk::query]
-fn get_subscription_tiers() -> Result<Vec<SubscriptionTier>, ClanError> {
-    let clan = CLAN.lock().map_err(|_| ClanError::LockError)?;
-    let clan = clan.as_ref().ok_or(ClanError::ClanNotFound)?;
-    Ok(clan.subscription_tiers.values().cloned().collect())
 }
 
 #[ic_cdk::query]

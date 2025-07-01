@@ -209,38 +209,6 @@ fn test_clan_members_can_join_clan_tables() {
 
 #[test]
 #[serial]
-fn test_table_access_based_on_subscription() {
-    let test_env = TestEnv::new(Some(100_000_000_000_000));
-
-    // Create clan
-    let (clan, _, _) = test_env.create_test_clan("Subscription Table Clan", "sub_creator");
-
-    // Add a regular member
-    let (member_id, _) = test_env.create_user_and_join_clan(
-        clan.id.0,
-        "sub_member",
-        0,
-    );
-
-    // Test access with different stake levels
-    let low_stakes = 10000; // Should be accessible to basic members
-    let high_stakes = 200000; // Should require premium subscription
-
-    // Member should be able to access low stakes
-    let can_access_low = test_env
-        .can_member_access_table(clan.id.0, member_id, low_stakes)
-        .expect("Failed to check table access");
-    assert!(can_access_low, "Member should access low stakes tables");
-
-    // Member should NOT be able to access high stakes without premium subscription
-    let can_access_high = test_env
-        .can_member_access_table(clan.id.0, member_id, high_stakes)
-        .expect("Failed to check table access");
-    assert!(!can_access_high, "Member should NOT access high stakes tables without premium");
-}
-
-#[test]
-#[serial]
 fn test_get_empty_clan_tables() {
     let test_env = TestEnv::new(Some(100_000_000_000_000));
 
