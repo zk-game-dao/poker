@@ -148,6 +148,10 @@ async fn create_user(
             .clone()
     };
 
+    if user_index_state.does_user_name_exist(&user_name).await {
+        return Err(UserError::UserAlreadyExists);
+    }
+
     // Check if user already exists
     if user_index_state
         .user_to_canister

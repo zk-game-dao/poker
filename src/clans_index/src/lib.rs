@@ -110,6 +110,9 @@ async fn create_clan(
     // Store in index
     {
         let mut state = STATE.lock().map_err(|_| ClanIndexError::LockError)?;
+        if state.does_clan_name_exist(&request.name) {
+            return Err(ClanIndexError::ClanAlreadyExists)
+        }
         state.add_clan(clan.clone())?;
     }
 

@@ -130,6 +130,7 @@ service : () -> {
   get_user : (principal) -> (Result) query;
   get_user_admin_role : (principal) -> (Result_11) query;
   get_user_ban_status : (principal) -> (Result_12) query;
+  get_user_by_username : (text) -> (Result) query;
   get_user_experience_points : () -> (Result_8) query;
   get_user_icc : (principal) -> (Result);
   get_user_level : (principal) -> (Result_13) query;

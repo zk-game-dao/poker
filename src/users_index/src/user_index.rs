@@ -4,9 +4,7 @@ use candid::{CandidType, Principal};
 use errors::user_error::UserError;
 use futures::future::join_all;
 use intercanister_call_wrappers::users_canister::{
-    get_pure_poker_user_experience_points_wrapper, get_user_experience_points_wrapper,
-    get_verified_pure_poker_user_experience_points_wrapper,
-    get_verified_user_experience_points_wrapper,
+    get_pure_poker_user_experience_points_wrapper, get_user_by_username_wrapper, get_user_experience_points_wrapper, get_verified_pure_poker_user_experience_points_wrapper, get_verified_user_experience_points_wrapper
 };
 use serde::Deserialize;
 use user::user::{UsersCanisterId, WalletPrincipalId};
@@ -240,6 +238,18 @@ impl UserIndex {
         all_results.sort_by(|a, b| b.1.cmp(&a.1));
 
         Ok(all_results)
+    }
+
+    pub async fn does_user_name_exist(&self, user_name: &str) -> bool {
+        let users_canisters: Vec<UsersCanisterId> = self.canister_user_count.keys().copied().collect();
+        for users_canister in users_canisters {
+            match get_user_by_username_wrapper(users_canister, user_name.to_string()).await {
+                Ok(_) => return true, // User name exists in this canister
+                Err(_) => continue
+            }
+        }
+
+        return false;
     }
 }
 

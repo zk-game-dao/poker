@@ -512,6 +512,10 @@ impl ClanIndex {
 
         stats
     }
+
+    pub fn does_clan_name_exist(&self, name: &str) -> bool {
+        self.clans.values().any(|clan| clan.name.eq_ignore_ascii_case(name))
+    }
 }
 
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
