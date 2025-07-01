@@ -240,6 +240,16 @@ fn get_user(user_id: WalletPrincipalId) -> Result<User, UserError> {
     Ok(user.clone())
 }
 
+#[ic_cdk::query]
+fn get_user_by_username(user_name: String) -> Result<User, UserError> {
+    let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
+    let user = user
+        .into_values()
+        .find(|u| u.user_name == user_name)
+        .ok_or(UserError::UserNotFound)?;
+    Ok(user)
+}
+
 #[ic_cdk::update]
 fn get_user_icc(user_id: WalletPrincipalId) -> Result<User, UserError> {
     handle_cycle_check();

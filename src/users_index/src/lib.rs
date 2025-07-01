@@ -14,7 +14,7 @@ use errors::{canister_management_error::CanisterManagementError, user_error::Use
 use ic_cdk::management_canister::{canister_status, CanisterStatusArgs};
 use ic_ledger_types::{AccountIdentifier, Subaccount, DEFAULT_SUBACCOUNT};
 use intercanister_call_wrappers::users_canister::{
-    create_user_wrapper, get_user_wrapper, update_user_wrapper,
+    create_user_wrapper, get_user_by_username_wrapper, get_user_wrapper, update_user_wrapper
 };
 use lazy_static::lazy_static;
 use user::user::{User, UserAvatar, UsersCanisterId, WalletPrincipalId};
@@ -697,6 +697,28 @@ async fn delete_users_canister(user_canister: UsersCanisterId) -> Result<(), Use
         })?;
 
     Ok(())
+}
+
+#[ic_cdk::update]
+async fn get_user_by_username(user_name: String) -> Result<(WalletPrincipalId, UsersCanisterId), UserError> {
+    let users_canister_ids = {
+        let user_index_state = USER_INDEX_STATE.lock().map_err(|_| UserError::LockError)?;
+        user_index_state.get_users_canisters()
+    };
+
+    for user_canister in users_canister_ids {
+        let user = get_user_by_username_wrapper(user_canister, user_name.clone()).await;
+        match user {
+            Ok(user) => {
+                if user.user_name == user_name {
+                    return Ok((user.principal_id, user_canister));
+                }
+            }
+            Err(_) => continue, // Ignore errors and continue searching
+        }
+    }
+
+    Err(UserError::UserNotFound)
 }
 
 #[ic_cdk::update]

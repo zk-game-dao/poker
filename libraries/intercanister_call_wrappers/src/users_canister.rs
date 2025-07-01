@@ -107,6 +107,32 @@ pub async fn get_user_wrapper(
     }
 }
 
+pub async fn get_user_by_username_wrapper(
+    user_canister_principal_id: UsersCanisterId,
+    user_name: String,
+) -> Result<User, UserError> {
+    let call_result = ic_cdk::call::Call::unbounded_wait(user_canister_principal_id.0, "get_user_by_username")
+        .with_arg(user_name)
+        .await;
+
+    match call_result {
+        Ok(user_result) => match user_result.candid() {
+            Ok(user) => user,
+            Err(err) => {
+                ic_cdk::println!("Error decoding user by username: {:?}", err);
+                Err(UserError::CanisterCallFailed(format!(
+                    "Failed to decode user by username: {:?}",
+                    err
+                )))
+            }
+        },
+        Err(err) => {
+            ic_cdk::println!("Error in get_user_by_username call: {:?}", err);
+            Err(UserError::CanisterCallFailed(format!("{:?}", err)))
+        }
+    }
+}
+
 pub async fn add_users_active_table(
     users_canister_id: UsersCanisterId,
     user_id: WalletPrincipalId,
