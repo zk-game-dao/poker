@@ -162,7 +162,7 @@ async fn create_user(
             // No available canister, create a new one
             let controller_principals = CONTROLLER_PRINCIPALS.clone();
             let wasm_module = USER_CANISTER_WASM.to_vec();
-            let new_canister = create_canister_wrapper(controller_principals, None).await?;
+            let new_canister = create_canister_wrapper(controller_principals, Some(3_000_000_000_000)).await?;
             install_wasm_code(new_canister, wasm_module).await?;
 
             // Initialize the count for this new canister

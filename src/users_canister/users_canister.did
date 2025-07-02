@@ -82,7 +82,7 @@ service : () -> {
       opt text,
       opt principal,
     ) -> (Result_2);
-  get_active_tables : (principal) -> (Result_3) query;
+  get_active_tables : (principal) -> (Result_3);
   get_canister_status_formatted : () -> (Result_4);
   get_experience_points_by_uid : (principal) -> (Result_5) query;
   get_pure_poker_experience_points_by_uid : (principal) -> (Result_5) query;

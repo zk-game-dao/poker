@@ -94,37 +94,35 @@ lazy_static! {
     static ref USERS: Mutex<Users> = Mutex::new(Users::new());
 }
 
-fn handle_cycle_check() {
+async fn handle_cycle_check() {
     let cycles = ic_cdk::api::canister_cycle_balance();
     if cycles >= MINIMUM_CYCLE_THRESHOLD {
         return;
     }
-    ic_cdk::futures::spawn(async {
-        let user_index_result = USER_INDEX_PRINCIPAL.lock();
-        let user_index = match user_index_result {
-            Ok(lock) => match *lock {
-                Some(index) => index,
-                None => {
-                    ic_cdk::println!("User not found");
-                    return; // or perform some error handling
-                }
-            },
-            Err(_) => {
-                ic_cdk::println!("Lock error occurred");
-                return; // or handle the lock error
+    let user_index_result = USER_INDEX_PRINCIPAL.lock();
+    let user_index = match user_index_result {
+        Ok(lock) => match *lock {
+            Some(index) => index,
+            None => {
+                ic_cdk::println!("User not found");
+                return; // or perform some error handling
             }
-        };
-
-        if let Err(e) = check_and_top_up_canister(
-            ic_cdk::api::canister_self(),
-            user_index,
-            MINIMUM_CYCLE_THRESHOLD,
-        )
-        .await
-        {
-            ic_cdk::println!("Failed to top up canister: {:?}", e);
+        },
+        Err(_) => {
+            ic_cdk::println!("Lock error occurred");
+            return; // or handle the lock error
         }
-    });
+    };
+
+    if let Err(e) = check_and_top_up_canister(
+        ic_cdk::api::canister_self(),
+        user_index,
+        MINIMUM_CYCLE_THRESHOLD,
+    )
+    .await
+    {
+        ic_cdk::println!("Failed to top up canister: {:?}", e);
+    }
 }
 
 #[ic_cdk::init]
@@ -139,7 +137,7 @@ fn ping() -> String {
 }
 
 #[ic_cdk::update]
-fn create_user(
+async fn create_user(
     user_name: String,
     address: Option<String>,
     internet_identity_principal_id: Principal,
@@ -163,7 +161,7 @@ fn create_user(
             .map_err(|_| UserError::LockError)? = Some(ic_cdk::api::msg_caller());
     }
 
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     let user = User::new(
         internet_identity_principal_id,
@@ -184,7 +182,7 @@ fn create_user(
 
 #[ic_cdk::update]
 #[allow(clippy::too_many_arguments)]
-fn update_user(
+async fn update_user(
     user_id: Principal,
     user_name: Option<String>,
     balance: Option<u64>,
@@ -194,7 +192,7 @@ fn update_user(
     volume_level: Option<u16>,
     eth_wallet_address: Option<String>,
 ) -> Result<User, UserError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = user.get_mut(&user_id).ok_or(UserError::UserNotFound)?;
     let user_index = (*USER_INDEX_PRINCIPAL
@@ -234,16 +232,16 @@ fn get_user(user_id: Principal) -> Result<User, UserError> {
 }
 
 #[ic_cdk::update]
-fn get_user_icc(user_id: Principal) -> Result<User, UserError> {
-    handle_cycle_check();
+async fn get_user_icc(user_id: Principal) -> Result<User, UserError> {
+    handle_cycle_check().await;
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
     Ok(user.clone())
 }
 
 #[ic_cdk::update]
-fn add_active_table(table_principal: Principal, user_id: Principal) -> Result<User, UserError> {
-    handle_cycle_check();
+async fn add_active_table(table_principal: Principal, user_id: Principal) -> Result<User, UserError> {
+    handle_cycle_check().await;
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = user.get_mut(&user_id).ok_or(UserError::UserNotFound)?;
@@ -252,8 +250,8 @@ fn add_active_table(table_principal: Principal, user_id: Principal) -> Result<Us
 }
 
 #[ic_cdk::update]
-fn remove_active_table(table_principal: Principal, user_id: Principal) -> Result<User, UserError> {
-    handle_cycle_check();
+async fn remove_active_table(table_principal: Principal, user_id: Principal) -> Result<User, UserError> {
+    handle_cycle_check().await;
 
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = user.get_mut(&user_id).ok_or(UserError::UserNotFound)?;
@@ -261,9 +259,9 @@ fn remove_active_table(table_principal: Principal, user_id: Principal) -> Result
     Ok(user.clone())
 }
 
-#[ic_cdk::query]
-fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
-    handle_cycle_check();
+#[ic_cdk::update]
+async fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
+    handle_cycle_check().await;
 
     let user = USERS.lock().map_err(|_| UserError::LockError)?.clone();
     let user = user.get(&user_id).ok_or(UserError::UserNotFound)?;
@@ -271,12 +269,12 @@ fn get_active_tables(user_id: Principal) -> Result<Vec<Principal>, UserError> {
 }
 
 #[ic_cdk::update]
-fn add_experience_points(
+async fn add_experience_points(
     experience_points: u64,
     currency: String,
     user_id: Principal,
 ) -> Result<User, UserError> {
-    handle_cycle_check();
+    handle_cycle_check().await;
     let mut user = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = user.get_mut(&user_id).ok_or(UserError::UserNotFound)?;
 
@@ -290,8 +288,8 @@ fn add_experience_points(
 }
 
 #[ic_cdk::update]
-fn clear_experience_points() -> Result<(), UserError> {
-    handle_cycle_check();
+async fn clear_experience_points() -> Result<(), UserError> {
+    handle_cycle_check().await;
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
     for (_, user) in users.iter_mut() {
         user.clear_experience_points();
@@ -301,8 +299,8 @@ fn clear_experience_points() -> Result<(), UserError> {
 }
 
 #[ic_cdk::update]
-fn clear_pure_poker_experience_points() -> Result<(), UserError> {
-    handle_cycle_check();
+async fn clear_pure_poker_experience_points() -> Result<(), UserError> {
+    handle_cycle_check().await;
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
     for (_, user) in users.iter_mut() {
         user.clear_pure_poker_experience_points();
@@ -451,8 +449,8 @@ fn get_referral_tier(user_id: Principal) -> Result<u8, UserError> {
 }
 
 #[ic_cdk::update]
-fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
-    handle_cycle_check();
+async fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
+    handle_cycle_check().await;
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
 
@@ -460,8 +458,8 @@ fn get_referral_rake_percentage(user_id: Principal) -> Result<u8, UserError> {
 }
 
 #[ic_cdk::update]
-fn get_referrer(user_id: Principal) -> Result<Option<Principal>, UserError> {
-    handle_cycle_check();
+async fn get_referrer(user_id: Principal) -> Result<Option<Principal>, UserError> {
+    handle_cycle_check().await;
     let users = USERS.lock().map_err(|_| UserError::LockError)?;
     let user = users.get(&user_id).ok_or(UserError::UserNotFound)?;
 
@@ -469,8 +467,8 @@ fn get_referrer(user_id: Principal) -> Result<Option<Principal>, UserError> {
 }
 
 #[ic_cdk::update]
-fn reset_users_xp(user_name: String) -> Result<(), UserError> {
-    handle_cycle_check();
+async fn reset_users_xp(user_name: String) -> Result<(), UserError> {
+    handle_cycle_check().await;
     validate_caller(CONTROLLER_PRINCIPALS.clone());
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
     for user in users.iter_mut() {
@@ -488,7 +486,7 @@ async fn get_canister_status_formatted() -> Result<String, UserError> {
     let controllers = (*CONTROLLER_PRINCIPALS).clone();
     validate_caller(controllers);
 
-    handle_cycle_check();
+    handle_cycle_check().await;
 
     // Call the management canister to get status
     let canister_status_arg = CanisterStatusArgs {

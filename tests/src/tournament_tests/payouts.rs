@@ -240,7 +240,7 @@ impl TestEnv {
 
 #[test]
 fn test_winner_takes_all_payout() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000)); // Ample cycles for testing
 
     // Setup tournament with winner-takes-all payout structure
     let payout_structure = vec![PayoutPercentage {
@@ -254,6 +254,22 @@ fn test_winner_takes_all_payout() {
     let players = test_env.simulate_tournament_until_completion(tournament_id, 5);
     let tournament = test_env.get_tournament(tournament_id).unwrap();
     assert_eq!(tournament.state, TournamentState::Completed);
+    let mut player_users = Vec::new();
+    for player in &players {
+        let user = test_env.get_user(player.0, player.1).unwrap();
+        println!("Active tables for player {}: {:?}", user.users_canister_id.to_text(), user.active_tables.len());
+        player_users.push(user);
+    }
+
+    for _ in 0..30 {
+        // Advance time to allow tournament processing
+        test_env.pocket_ic.advance_time(Duration::from_secs(30));
+        test_env.pocket_ic.tick();
+    }
+
+    for player in player_users {
+        assert!(player.active_tables.is_empty(), "Player {} should not have active tables after tournament completion", player.users_canister_id.to_text());
+    }
 
     // Verify payouts
     let total_prize_pool = config.buy_in * 5;
