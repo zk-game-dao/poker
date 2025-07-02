@@ -68,6 +68,11 @@ compile_and_extract() {
 # Find all Rust packages in the src/ directory
 canisters=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.manifest_path | contains("/src/")) | .name')
 
+cargo build --release --target wasm32-unknown-unknown --package table_canister
+cargo build --release --target wasm32-unknown-unknown --package tournament_canister
+cargo build --release --target wasm32-unknown-unknown --package clans_canister
+cargo build --release --target wasm32-unknown-unknown --package users_canister
+
 for canister in $canisters; do
   compile_and_extract "$canister"
 done

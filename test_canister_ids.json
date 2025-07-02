@@ -5,9 +5,6 @@
   "btc_frontend": {
     "ic": "ne3l3-ayaaa-aaaah-qqbwa-cai"
   },
-  "clans_canister": {
-    "ic": "445vz-xiaaa-aaaah-qqc7a-cai"
-  },
   "clans_index": {
     "ic": "434tn-2qaaa-aaaah-qqc7q-cai"
   },
@@ -20,20 +17,11 @@
   "log_store": {
     "ic": "es22x-qaaaa-aaaah-qdskq-cai"
   },
-  "table_canister": {
-    "ic": "e3zrl-giaaa-aaaah-qdsla-cai"
-  },
   "table_index": {
     "ic": "e4yx7-lqaaa-aaaah-qdslq-cai"
   },
-  "tournament_canister": {
-    "ic": "vx6jo-kaaaa-aaaag-at3dq-cai"
-  },
   "tournament_index": {
     "ic": "u2qna-fiaaa-aaaag-at3ea-cai"
-  },
-  "users_canister": {
-    "ic": "m4s6y-oyaaa-aaaah-qqbsa-cai"
   },
   "users_index": {
     "ic": "m3tym-daaaa-aaaah-qqbsq-cai"

@@ -71,62 +71,23 @@
       "package": "log_store",
       "type": "rust"
     },
-    "table_canister": {
-      "candid": "src/table_canister/table_canister.did",
-      "package": "table_canister",
-      "type": "rust"
-    },
     "table_index": {
       "candid": "src/table_index/table_index.did",
-      "dependencies": [
-        "table_canister"
-      ],
       "package": "table_index",
-      "type": "rust"
-    },
-    "tournament_canister": {
-      "candid": "src/tournament_canister/tournament_canister.did",
-      "dependencies": [
-        "table_canister"
-      ],
-      "package": "tournament_canister",
       "type": "rust"
     },
     "tournament_index": {
       "candid": "src/tournament_index/tournament_index.did",
-      "dependencies": [
-        "tournament_canister"
-      ],
       "package": "tournament_index",
-      "type": "rust"
-    },
-    "clans_canister": {
-      "candid": "src/clans_canister/clans_canister.did",
-      "package": "clans_canister",
-      "dependencies": [
-        "table_canister",
-        "tournament_canister"
-      ],
       "type": "rust"
     },
     "clans_index": {
       "candid": "src/clans_index/clans_index.did",
-      "dependencies": [
-        "clans_canister"
-      ],
       "package": "clans_index",
-      "type": "rust"
-    },
-    "users_canister": {
-      "candid": "src/users_canister/users_canister.did",
-      "package": "users_canister",
       "type": "rust"
     },
     "users_index": {
       "candid": "src/users_index/users_index.did",
-      "dependencies": [
-        "users_canister"
-      ],
       "package": "users_index",
       "type": "rust"
     }

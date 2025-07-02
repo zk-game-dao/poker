@@ -106,6 +106,11 @@ deploy_canisters() {
 # Function to update .did files for specific canisters
 update_did_files() {
   canisters=("$@")
+
+  cargo build --release --target wasm32-unknown-unknown --package table_canister
+  cargo build --release --target wasm32-unknown-unknown --package tournament_canister
+  cargo build --release --target wasm32-unknown-unknown --package clans_canister
+  cargo build --release --target wasm32-unknown-unknown --package users_canister
   
   for canister in "${canisters[@]}"; do
     compile_and_extract "$canister"
