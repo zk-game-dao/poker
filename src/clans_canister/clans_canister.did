@@ -857,7 +857,6 @@ service : () -> {
       nat32,
       principal,
     ) -> (Result_5);
-  create_subscription_tier : (SubscriptionTier, principal) -> (Result);
   distribute_rewards : (vec record { principal; nat64 }, principal) -> (Result);
   get_canister_status_formatted : () -> (Result_6);
   get_clan : () -> (Result_2) query;
@@ -894,5 +893,6 @@ service : () -> {
   update_clan_settings : (ClanUpdateRequest, principal) -> (Result);
   update_member_role : (principal, ClanRole, principal) -> (Result);
   update_member_stats : (principal, nat64, nat64, nat64, nat64) -> (Result);
+  update_subscription_tier : (SubscriptionTier, principal) -> (Result);
   upgrade_subscription : (principal, text, nat64, nat32) -> (Result);
 }

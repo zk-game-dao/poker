@@ -22,7 +22,6 @@ members = [
     "src/users_canister",
     "src/users_index",
     "tests",
-    "webserver",
 ]
 resolver = "2"
 

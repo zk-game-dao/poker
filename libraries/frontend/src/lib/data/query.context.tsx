@@ -19,7 +19,7 @@ export const Queries = {
     "chain-fusion-transaction-fees",
     authenticated.toString(),
   ]),
-  tournaments: queryKeyFactory((type?: number) => ["tournaments", type ?? 'all']),
+  tournaments: queryKeyFactory((isBTC: boolean, type?: number) => ["tournaments", type ?? 'all', isBTC ? 'btc' : 'non-icp']),
   tournament: queryKeyFactory((tournament_principal?: Principal) => ["tournament", tournament_principal ? tournament_principal.toText() : "unknown"]),
   tournamentPrizePool: queryKeyFactory((tournament_principal?: Principal) => ["tournament-prize-pool", tournament_principal ? tournament_principal.toText() : "unknown"]),
   tournament_leaderboard: queryKeyFactory((tournament_principal?: Principal) => ["tournament-leaderboard", tournament_principal ? tournament_principal.toText() : "unknown"]),

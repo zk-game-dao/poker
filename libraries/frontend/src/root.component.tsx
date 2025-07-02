@@ -106,7 +106,7 @@ export const RootComponent = memo<Omit<ThemeContextType, 'setShownCurrencyType'>
               navbarTabs={[
                 // { type: "link", label: "Profile", onClick: () => theme.showProfile() },
                 { type: "link", label: "Cash games", href: "/cash-games" },
-                { type: "link", label: "Leaderboard", href: "/leaderboard" },
+                { type: "link", label: "Leaderboard", comingSoon: theme.isBTC, href: theme.isBTC ? undefined : "/leaderboard" },
                 { type: "link", label: "Tournaments", href: "/tournaments" },
                 { type: "seperator" },
                 { type: "link", label: "Roadmap", href: "/roadmap" },

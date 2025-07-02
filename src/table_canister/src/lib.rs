@@ -409,6 +409,20 @@ async fn leave_table(
 ) -> Result<PublicTable, TableError> {
     handle_cycle_check().await;
 
+    ic_cdk::futures::spawn(async move {
+        for _ in 0..3 {
+            match remove_users_active_table(users_canister_id, user_id, TableId(ic_cdk::api::canister_self())).await {
+                Ok(_) => {
+                    ic_cdk::println!("User {} removed from active table", user_id.0.to_text());
+                    break;
+                }
+                Err(e) => {
+                    ic_cdk::println!("Error removing active table: {}", e);
+                }
+            }
+        }
+    });
+
     let (mut table, balance) = {
         let mut table = TABLE.lock().map_err(|_| TableError::LockError)?;
         let table = table.as_mut().ok_or(TableError::TableNotFound)?;
@@ -480,18 +494,6 @@ async fn leave_table(
         }
         CurrencyType::Fake => {}
     }
-
-    ic_cdk::futures::spawn(async move {
-        if let Err(e) = remove_users_active_table(
-            users_canister_id,
-            user_id,
-            TableId(ic_cdk::api::canister_self()),
-        )
-        .await
-        {
-            ic_cdk::println!("Error removing active table: {}", e);
-        }
-    });
 
     {
         let mut table_state = TABLE.lock().map_err(|_| TableError::LockError)?;

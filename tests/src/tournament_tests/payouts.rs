@@ -256,7 +256,7 @@ impl TestEnv {
 
 #[test]
 fn test_winner_takes_all_payout() {
-    let test_env = TestEnv::new(None);
+    let test_env = TestEnv::new(Some(100_000_000_000_000)); // Ample cycles for testing
 
     let (tournament_id, config) = test_env.setup_payout_tournament(2, 8, None);
 

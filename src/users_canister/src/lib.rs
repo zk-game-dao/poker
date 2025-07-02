@@ -121,7 +121,7 @@ fn handle_cycle_check() {
                 return; // or handle the lock error
             }
         };
-
+    
         if let Err(e) = check_and_top_up_canister(
             ic_cdk::api::canister_self(),
             user_index,
@@ -146,7 +146,7 @@ fn ping() -> String {
 }
 
 #[ic_cdk::update]
-fn create_user(
+async fn create_user(
     user_name: String,
     address: Option<String>,
     internet_identity_principal_id: WalletPrincipalId,
@@ -294,7 +294,7 @@ fn get_active_tables(user_id: WalletPrincipalId) -> Result<Vec<Principal>, UserE
 }
 
 #[ic_cdk::update]
-fn add_experience_points(
+async fn add_experience_points(
     experience_points: u64,
     currency: String,
     user_id: WalletPrincipalId,
@@ -320,7 +320,7 @@ fn add_experience_points(
 }
 
 #[ic_cdk::update]
-fn clear_experience_points() -> Result<(), UserError> {
+async fn clear_experience_points() -> Result<(), UserError> {
     handle_cycle_check();
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
     for (_, user) in users.iter_mut() {
@@ -331,7 +331,7 @@ fn clear_experience_points() -> Result<(), UserError> {
 }
 
 #[ic_cdk::update]
-fn clear_pure_poker_experience_points() -> Result<(), UserError> {
+async fn clear_pure_poker_experience_points() -> Result<(), UserError> {
     handle_cycle_check();
     let mut users = USERS.lock().map_err(|_| UserError::LockError)?;
     for (_, user) in users.iter_mut() {
